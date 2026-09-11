@@ -36,8 +36,6 @@ function getDBConnection(): ?PDO {
         return $pdo; // reuse the existing connection
     }
 
-    // TODO (DB): Uncomment this block to enable the real database connection.
-    /*
     try {
         $dsn = sprintf(
             'mysql:host=%s;dbname=%s;charset=%s',
@@ -60,8 +58,6 @@ function getDBConnection(): ?PDO {
         echo json_encode(['success' => false, 'message' => 'Database connection failed.']);
         exit;
     }
-    */
 
-    // Stub: returns null until DB is connected.
-    return null;
+    return $pdo;
 }
