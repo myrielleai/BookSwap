@@ -11,12 +11,15 @@
  *   POST   /api/listings              → create()     — Customer submits a listing
  *   PUT    /api/listings/{id}         → update()     — Customer edits their listing
  *   DELETE /api/listings/{id}         → withdraw()   — Customer withdraws their listing
- *   POST   /api/listings/{id}/watchlist → addToWatchlist()
+ *   POST   /api/listings/{id}/watchlist   → addToWatchlist()
+ *   DELETE /api/listings/{id}/watchlist   → removeFromWatchlist()
+ *   GET    /api/user/watchlist            → getWatchlist()
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 require_once __DIR__ . '/../middleware/auth_middleware.php';
 require_once __DIR__ . '/../models/ListingModel.php';
+require_once __DIR__ . '/../models/WatchlistModel.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
 require_once __DIR__ . '/../helpers/upload.php';
@@ -24,10 +27,12 @@ require_once __DIR__ . '/../config/constants.php';
 
 class ListingController {
 
-    private ListingModel $listingModel;
+    private ListingModel   $listingModel;
+    private WatchlistModel $watchlistModel;
 
     public function __construct() {
-        $this->listingModel = new ListingModel();
+        $this->listingModel   = new ListingModel();
+        $this->watchlistModel = new WatchlistModel();
     }
 
     /**
@@ -63,47 +68,48 @@ class ListingController {
 
     /**
      * POST /api/listings
-     * Submit a new book listing. Customer only.
+     * Customer submits a new book for exchange.
      * Accepts multipart/form-data: title, author, edition, publisher,
-     *   genre_id, condition_id, preferred_return?, is_open_offer, photo (file)
+     *                               genre_id, condition_id, preferred_return,
+     *                               is_open_offer, photo
      */
     public function create(): void {
         $authUser = requireAuth(ROLE_CUSTOMER);
 
-        // Validate text fields (sent as form fields in multipart request).
         $errors = [];
-        $body   = $_POST; // multipart form data
-        validateRequired(['title', 'author', 'genre_id', 'condition_id'], $body, $errors);
+        validateRequired(['title', 'author', 'genre_id', 'condition_id'], $_POST, $errors);
         if (!empty($errors)) sendError('Validation failed.', 422, $errors);
 
-        validateMaxLength('title',  $body['title'],  255, $errors);
-        validateMaxLength('author', $body['author'], 255, $errors);
-        if (!empty($errors)) sendError('Validation failed.', 422, $errors);
+        // Photo upload is mandatory.
+        if (empty($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+            sendError('A clear photo of the book is required.', 422, ['photo' => 'Photo is required.']);
+        }
 
-        // Handle the required book photo upload.
-        $photoPath = saveBookPhoto('photo'); // returns 'uploads/books/filename.jpg'
+        $photoResult = handlePhotoUpload($_FILES['photo']);
+        if (!$photoResult['success']) {
+            sendError($photoResult['message'], 422);
+        }
 
-        $listingId = $this->listingModel->create([
-            'user_id'          => $authUser['sub'],
-            'title'            => sanitizeString($body['title']),
-            'author'           => sanitizeString($body['author']),
-            'edition'          => sanitizeString($body['edition']    ?? ''),
-            'publisher'        => sanitizeString($body['publisher']  ?? ''),
-            'genre_id'         => (int) $body['genre_id'],
-            'condition_id'     => (int) $body['condition_id'],
-            'preferred_return' => sanitizeString($body['preferred_return'] ?? ''),
-            'is_open_offer'    => !empty($body['is_open_offer']) ? 1 : 0,
-            'photo_path'       => $photoPath,
+        $newId = $this->listingModel->create([
+            'user_id'          => (int) $authUser['sub'],
+            'title'            => sanitizeString($_POST['title']),
+            'author'           => sanitizeString($_POST['author']),
+            'edition'          => sanitizeString($_POST['edition']          ?? ''),
+            'publisher'        => sanitizeString($_POST['publisher']        ?? ''),
+            'genre_id'         => (int) $_POST['genre_id'],
+            'condition_id'     => (int) $_POST['condition_id'],
+            'preferred_return' => sanitizeString($_POST['preferred_return'] ?? ''),
+            'is_open_offer'    => !empty($_POST['is_open_offer']),
+            'photo_path'       => $photoResult['path'],
         ]);
 
-        sendSuccess(['listing_id' => $listingId], 'Listing submitted successfully. It will appear in the catalog after Staff verification.', 201);
+        sendSuccess(['listing_id' => $newId], 'Listing submitted for staff verification.', 201);
     }
 
     /**
      * PUT /api/listings/{id}
-     * Edit a listing. Only allowed while status = 'unverified' or 'returned'.
-     * Only the listing owner may edit.
-     * Accepts JSON body with the same fields as create (photo update is optional).
+     * Customer edits their listing.
+     * Only permitted while status = 'unverified' or 'returned' (revision requested).
      *
      * @param int $id
      */
@@ -112,53 +118,43 @@ class ListingController {
 
         $listing = $this->listingModel->findById($id);
         if ($listing === null) sendNotFound('Listing not found.');
+        if ((int) $listing['user_id'] !== (int) $authUser['sub']) sendForbidden('You may only edit your own listings.');
 
-        // Ownership check.
-        if ((int) $listing['user_id'] !== (int) $authUser['sub']) {
-            sendForbidden('You may only edit your own listings.');
-        }
-
-        // Editability check — locked/archived listings cannot be changed.
+        // Editing is locked once a listing is approved into the catalog.
         $editableStatuses = [LISTING_UNVERIFIED, LISTING_RETURNED];
         if (!in_array($listing['status'], $editableStatuses, true)) {
-            sendError('This listing cannot be edited in its current state (' . $listing['status'] . ').', 409);
+            sendError('Listings can only be edited while pending verification or returned for revision.', 409);
         }
 
         $body   = getRequestBody();
         $errors = [];
-        if (!empty($body['title']))  validateMaxLength('title',  $body['title'],  255, $errors);
-        if (!empty($body['author'])) validateMaxLength('author', $body['author'], 255, $errors);
+        validateRequired(['title', 'author', 'genre_id', 'condition_id'], $body, $errors);
         if (!empty($errors)) sendError('Validation failed.', 422, $errors);
 
-        // Photo update is optional on edit — only re-process if a new file is sent.
-        $photoPath = $listing['photo_path'];
-        if (!empty($_FILES['photo'])) {
-            deleteBookPhoto($listing['photo_path']); // remove old photo
-            $photoPath = saveBookPhoto('photo');
-        }
-
         $this->listingModel->update($id, [
-            'title'            => sanitizeString($body['title']   ?? $listing['title']),
-            'author'           => sanitizeString($body['author']  ?? $listing['author']),
-            'edition'          => sanitizeString($body['edition'] ?? $listing['edition']),
-            'publisher'        => sanitizeString($body['publisher'] ?? $listing['publisher']),
-            'genre_id'         => (int) ($body['genre_id']     ?? $listing['genre_id']),
-            'condition_id'     => (int) ($body['condition_id'] ?? $listing['condition_id']),
-            'preferred_return' => sanitizeString($body['preferred_return'] ?? $listing['preferred_return']),
-            'is_open_offer'    => isset($body['is_open_offer']) ? (int) $body['is_open_offer'] : $listing['is_open_offer'],
-            'photo_path'       => $photoPath,
+            'title'            => sanitizeString($body['title']),
+            'author'           => sanitizeString($body['author']),
+            'edition'          => sanitizeString($body['edition']          ?? ''),
+            'publisher'        => sanitizeString($body['publisher']        ?? ''),
+            'genre_id'         => (int) $body['genre_id'],
+            'condition_id'     => (int) $body['condition_id'],
+            'preferred_return' => sanitizeString($body['preferred_return'] ?? ''),
+            'is_open_offer'    => !empty($body['is_open_offer']),
+            'photo_path'       => sanitizeString($body['photo_path']       ?? $listing['photo_path']),
         ]);
 
-        // Reset to 'unverified' so Staff re-reviews the edited listing.
-        $this->listingModel->updateStatus($id, LISTING_UNVERIFIED);
+        // If it was returned for revision, reset status to unverified so staff reviews it again.
+        if ($listing['status'] === LISTING_RETURNED) {
+            $this->listingModel->updateStatus($id, LISTING_UNVERIFIED, 'Resubmitted after revision.');
+        }
 
-        sendSuccess(null, 'Listing updated. It will be re-reviewed by a moderator.');
+        sendSuccess(null, 'Listing updated successfully.');
     }
 
     /**
      * DELETE /api/listings/{id}
-     * Withdraw (soft-delete) a listing. Only the owner can do this,
-     * and only while the listing is 'unverified' or 'available'.
+     * Customer withdraws their listing from the platform.
+     * Allowed only for 'unverified', 'available', or 'returned' listings.
      *
      * @param int $id
      */
@@ -182,22 +178,45 @@ class ListingController {
     /**
      * POST /api/listings/{id}/watchlist
      * Add a listing to the authenticated user's watchlist.
-     * Sends a notification when the listing becomes available.
-     *
-     * TODO (DB): This requires a `watchlist` table: (user_id, listing_id, created_at).
-     * Add WatchlistModel when the DB is integrated.
      *
      * @param int $id
      */
     public function addToWatchlist(int $id): void {
-        requireAuth(ROLE_CUSTOMER);
+        $authUser = requireAuth(ROLE_CUSTOMER);
+        $userId   = (int) $authUser['sub'];
 
         $listing = $this->listingModel->findById($id);
         if ($listing === null) sendNotFound('Listing not found.');
 
-        // TODO (DB): INSERT INTO watchlist (user_id, listing_id, created_at) VALUES (..., NOW())
-        //            Handle duplicate key gracefully.
+        $this->watchlistModel->add($userId, $id);
 
-        sendSuccess(null, 'Listing added to your watchlist. You will be notified when it becomes available.');
+        sendSuccess(null, 'Listing added to your watchlist. You will be notified of updates.');
+    }
+
+    /**
+     * DELETE /api/listings/{id}/watchlist
+     * Remove a listing from the authenticated user's watchlist.
+     *
+     * @param int $id
+     */
+    public function removeFromWatchlist(int $id): void {
+        $authUser = requireAuth(ROLE_CUSTOMER);
+        $userId   = (int) $authUser['sub'];
+
+        $this->watchlistModel->remove($userId, $id);
+
+        sendSuccess(null, 'Listing removed from your watchlist.');
+    }
+
+    /**
+     * GET /api/user/watchlist
+     * Retrieve all watchlisted listings for the authenticated customer.
+     */
+    public function getWatchlist(): void {
+        $authUser = requireAuth(ROLE_CUSTOMER);
+        $userId   = (int) $authUser['sub'];
+
+        $watchlist = $this->watchlistModel->getByUserId($userId);
+        sendSuccess($watchlist, 'Watchlist retrieved.');
     }
 }

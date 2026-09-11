@@ -80,7 +80,12 @@ class AdminController {
 
         // Guard: prevent the Admin from deactivating themselves if they are the
         // only active Admin (enforces the "at least one active Admin" rule).
-        // TODO: Add a check here — query COUNT of active admins before deactivating.
+        if ($id === (int) $admin['sub'] && $body['status'] !== ACCOUNT_ACTIVE) {
+            $activeAdmins = $this->userModel->getAll(ACCOUNT_ACTIVE, ROLE_ADMIN);
+            if (count($activeAdmins) <= 1) {
+                sendError('Cannot deactivate the only active administrator on the platform.', 409);
+            }
+        }
 
         $success = $this->userModel->updateStatus($id, $body['status']);
         if (!$success) {

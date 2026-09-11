@@ -5,6 +5,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * All database operations related to the `listings` table.
  *
+ * Implemented with live PDO operations for Member 4 (Database & API integration).
+ *
  * TABLE ASSUMED: listings
  *   id, user_id (FK→users), title, author, edition, publisher,
  *   genre_id (FK→categories), condition_id (FK→conditions),
@@ -14,6 +16,7 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/constants.php';
 
 class ListingModel {
 
@@ -32,20 +35,17 @@ class ListingModel {
      * @return array|null
      */
     public function findById(int $id): ?array {
-        // TODO (DB):
-        // SQL: SELECT l.*, u.name AS owner_name, c.name AS genre_name, cond.label AS condition_label
-        //      FROM listings l
-        //      JOIN users u ON u.id = l.user_id
-        //      JOIN categories c ON c.id = l.genre_id
-        //      JOIN conditions cond ON cond.id = l.condition_id
-        //      WHERE l.id = :id LIMIT 1
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute([':id' => $id]);
-        // $result = $stmt->fetch();
-        // return $result ?: null;
-
-        return null; // stub
+        if (!$this->db) return null;
+        $sql = "SELECT l.*, u.name AS owner_name, c.name AS genre_name, cond.label AS condition_label
+                FROM listings l
+                JOIN users u ON u.id = l.user_id
+                JOIN categories c ON c.id = l.genre_id
+                JOIN conditions cond ON cond.id = l.condition_id
+                WHERE l.id = :id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $result = $stmt->fetch();
+        return $result ?: null;
     }
 
     /**
@@ -57,39 +57,36 @@ class ListingModel {
      * @return array
      */
     public function getAvailable(array $filters = []): array {
-        // TODO (DB):
-        // Build a dynamic WHERE clause. Start with status='available'.
-        //
-        // $where  = ["l.status = 'available'"];
-        // $params = [];
-        //
-        // if (!empty($filters['keyword'])) {
-        //     $where[]  = "(l.title LIKE :kw OR l.author LIKE :kw)";
-        //     $params[':kw'] = '%' . $filters['keyword'] . '%';
-        // }
-        // if (!empty($filters['genre_id'])) {
-        //     $where[]  = "l.genre_id = :genre_id";
-        //     $params[':genre_id'] = $filters['genre_id'];
-        // }
-        // if (!empty($filters['condition_id'])) {
-        //     $where[]  = "l.condition_id = :condition_id";
-        //     $params[':condition_id'] = $filters['condition_id'];
-        // }
-        //
-        // $order = ($filters['sort'] ?? 'date') === 'date' ? 'l.created_at DESC' : 'l.title ASC';
-        //
-        // $sql = "SELECT l.*, u.name AS owner_name, c.name AS genre_name
-        //         FROM listings l
-        //         JOIN users u ON u.id = l.user_id
-        //         JOIN categories c ON c.id = l.genre_id
-        //         WHERE " . implode(' AND ', $where) . "
-        //         ORDER BY $order";
-        //
-        // $stmt = $this->db->prepare($sql);
-        // $stmt->execute($params);
-        // return $stmt->fetchAll();
+        if (!$this->db) return [];
+        $where  = ["l.status = 'available'"];
+        $params = [];
 
-        return []; // stub
+        if (!empty($filters['keyword'])) {
+            $where[]  = "(l.title LIKE :kw OR l.author LIKE :kw)";
+            $params[':kw'] = '%' . $filters['keyword'] . '%';
+        }
+        if (!empty($filters['genre_id'])) {
+            $where[]  = "l.genre_id = :genre_id";
+            $params[':genre_id'] = $filters['genre_id'];
+        }
+        if (!empty($filters['condition_id'])) {
+            $where[]  = "l.condition_id = :condition_id";
+            $params[':condition_id'] = $filters['condition_id'];
+        }
+
+        $order = ($filters['sort'] ?? 'date') === 'date' ? 'l.created_at DESC' : 'l.title ASC';
+
+        $sql = "SELECT l.*, u.name AS owner_name, c.name AS genre_name, cond.label AS condition_label
+                FROM listings l
+                JOIN users u ON u.id = l.user_id
+                JOIN categories c ON c.id = l.genre_id
+                LEFT JOIN conditions cond ON cond.id = l.condition_id
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY $order";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -99,18 +96,15 @@ class ListingModel {
      * @return array
      */
     public function getByUserId(int $userId): array {
-        // TODO (DB):
-        // SQL: SELECT l.*, c.name AS genre_name, cond.label AS condition_label
-        //      FROM listings l
-        //      JOIN categories c ON c.id = l.genre_id
-        //      JOIN conditions cond ON cond.id = l.condition_id
-        //      WHERE l.user_id = :user_id ORDER BY l.created_at DESC
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute([':user_id' => $userId]);
-        // return $stmt->fetchAll();
-
-        return []; // stub
+        if (!$this->db) return [];
+        $sql = "SELECT l.*, c.name AS genre_name, cond.label AS condition_label
+                FROM listings l
+                JOIN categories c ON c.id = l.genre_id
+                JOIN conditions cond ON cond.id = l.condition_id
+                WHERE l.user_id = :user_id ORDER BY l.created_at DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -120,16 +114,16 @@ class ListingModel {
      * @return array
      */
     public function getPending(): array {
-        // TODO (DB):
-        // SQL: SELECT l.*, u.name AS owner_name FROM listings l
-        //      JOIN users u ON u.id = l.user_id
-        //      WHERE l.status = 'unverified' ORDER BY l.created_at ASC
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute();
-        // return $stmt->fetchAll();
-
-        return []; // stub
+        if (!$this->db) return [];
+        $sql = "SELECT l.*, u.name AS owner_name, c.name AS genre_name, cond.label AS condition_label
+                FROM listings l
+                JOIN users u ON u.id = l.user_id
+                LEFT JOIN categories c ON c.id = l.genre_id
+                LEFT JOIN conditions cond ON cond.id = l.condition_id
+                WHERE l.status = 'unverified' ORDER BY l.created_at ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -139,20 +133,14 @@ class ListingModel {
      * @return array
      */
     public function getIdle(): array {
-        // TODO (DB):
-        // SQL: SELECT * FROM listings
-        //      WHERE status IN ('unverified', 'available')
-        //      AND updated_at < DATE_SUB(NOW(), INTERVAL :days DAY)
-        //
-        // $stmt = $this->db->prepare("
-        //     SELECT * FROM listings
-        //     WHERE status IN ('unverified', 'available')
-        //     AND updated_at < DATE_SUB(NOW(), INTERVAL :days DAY)
-        // ");
-        // $stmt->execute([':days' => IDLE_LISTING_DAYS]);
-        // return $stmt->fetchAll();
-
-        return []; // stub
+        if (!$this->db) return [];
+        $days = defined('IDLE_LISTING_DAYS') ? IDLE_LISTING_DAYS : 30;
+        $sql = "SELECT * FROM listings
+                WHERE status IN ('unverified', 'available')
+                AND (updated_at < DATE_SUB(NOW(), INTERVAL :days DAY) OR (updated_at IS NULL AND created_at < DATE_SUB(NOW(), INTERVAL :days2 DAY)))";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':days' => $days, ':days2' => $days]);
+        return $stmt->fetchAll() ?: [];
     }
 
     // ── Write ─────────────────────────────────────────────────────────────────
@@ -166,19 +154,28 @@ class ListingModel {
      * @return int  New listing's auto-increment ID.
      */
     public function create(array $data): int {
-        // TODO (DB):
-        // SQL: INSERT INTO listings
-        //      (user_id, title, author, edition, publisher, genre_id, condition_id,
-        //       preferred_return, is_open_offer, photo_path, status, created_at)
-        //      VALUES (:user_id, :title, :author, :edition, :publisher, :genre_id,
-        //              :condition_id, :preferred_return, :is_open_offer, :photo_path,
-        //              'unverified', NOW())
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute([...]);
-        // return (int) $this->db->lastInsertId();
-
-        return 0; // stub
+        if (!$this->db) return 0;
+        $stmt = $this->db->prepare("
+            INSERT INTO listings
+            (user_id, title, author, edition, publisher, genre_id, condition_id,
+             preferred_return, is_open_offer, photo_path, status, created_at)
+            VALUES (:user_id, :title, :author, :edition, :publisher, :genre_id,
+                    :condition_id, :preferred_return, :is_open_offer, :photo_path,
+                    'unverified', NOW())
+        ");
+        $stmt->execute([
+            ':user_id'          => $data['user_id'],
+            ':title'            => $data['title'],
+            ':author'           => $data['author'],
+            ':edition'          => $data['edition'] ?? null,
+            ':publisher'        => $data['publisher'] ?? null,
+            ':genre_id'         => $data['genre_id'],
+            ':condition_id'     => $data['condition_id'],
+            ':preferred_return' => $data['preferred_return'] ?? null,
+            ':is_open_offer'    => !empty($data['is_open_offer']) ? 1 : 0,
+            ':photo_path'       => $data['photo_path'],
+        ]);
+        return (int) $this->db->lastInsertId();
     }
 
     /**
@@ -189,16 +186,27 @@ class ListingModel {
      * @return bool
      */
     public function update(int $id, array $data): bool {
-        // TODO (DB):
-        // SQL: UPDATE listings SET title=:title, author=:author, edition=:edition,
-        //      publisher=:publisher, genre_id=:genre_id, condition_id=:condition_id,
-        //      preferred_return=:preferred_return, is_open_offer=:is_open_offer,
-        //      photo_path=:photo_path, updated_at=NOW() WHERE id=:id
-        //
-        // $stmt = $this->db->prepare("...");
-        // return $stmt->execute([...]);
-
-        return false; // stub
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("
+            UPDATE listings
+            SET title=:title, author=:author, edition=:edition,
+                publisher=:publisher, genre_id=:genre_id, condition_id=:condition_id,
+                preferred_return=:preferred_return, is_open_offer=:is_open_offer,
+                photo_path=:photo_path, updated_at=NOW()
+            WHERE id=:id
+        ");
+        return $stmt->execute([
+            ':title'            => $data['title'],
+            ':author'           => $data['author'],
+            ':edition'          => $data['edition'] ?? null,
+            ':publisher'        => $data['publisher'] ?? null,
+            ':genre_id'         => $data['genre_id'],
+            ':condition_id'     => $data['condition_id'],
+            ':preferred_return' => $data['preferred_return'] ?? null,
+            ':is_open_offer'    => !empty($data['is_open_offer']) ? 1 : 0,
+            ':photo_path'       => $data['photo_path'],
+            ':id'               => $id,
+        ]);
     }
 
     /**
@@ -211,13 +219,9 @@ class ListingModel {
      * @return bool
      */
     public function updateStatus(int $id, string $status, ?string $staffNote = null): bool {
-        // TODO (DB):
-        // SQL: UPDATE listings SET status=:status, staff_note=:note, updated_at=NOW() WHERE id=:id
-        //
-        // $stmt = $this->db->prepare("UPDATE listings SET status=:status, staff_note=:note, updated_at=NOW() WHERE id=:id");
-        // return $stmt->execute([':status' => $status, ':note' => $staffNote, ':id' => $id]);
-
-        return false; // stub
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("UPDATE listings SET status=:status, staff_note=:note, updated_at=NOW() WHERE id=:id");
+        return $stmt->execute([':status' => $status, ':note' => $staffNote, ':id' => $id]);
     }
 
     /**
@@ -228,12 +232,8 @@ class ListingModel {
      * @return bool
      */
     public function withdraw(int $id): bool {
-        // TODO (DB):
-        // SQL: UPDATE listings SET status='withdrawn', updated_at=NOW() WHERE id=:id
-        //
-        // $stmt = $this->db->prepare("UPDATE listings SET status='withdrawn', updated_at=NOW() WHERE id=:id");
-        // return $stmt->execute([':id' => $id]);
-
-        return false; // stub
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("UPDATE listings SET status='withdrawn', updated_at=NOW() WHERE id=:id");
+        return $stmt->execute([':id' => $id]);
     }
 }

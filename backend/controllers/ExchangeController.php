@@ -121,9 +121,11 @@ class ExchangeController {
         $request = $this->exchangeModel->findById($id);
         if ($request === null) sendNotFound('Exchange request not found.');
 
-        // Permission: must be requester, or Staff/Admin.
-        $isParty = in_array($authUser['sub'], [(int) $request['requester_id']], true);
-        // TODO: also check if the user is the target listing owner.
+        $targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
+        $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($request['target_owner_id'] ?? 0);
+
+        // Permission: must be requester, target owner, or Staff/Admin.
+        $isParty = in_array((int) $authUser['sub'], [(int) $request['requester_id'], $ownerId], true);
         $isStaff = in_array($authUser['role'], [ROLE_STAFF, ROLE_ADMIN], true);
 
         if (!$isParty && !$isStaff) {
@@ -147,8 +149,11 @@ class ExchangeController {
         if ($request === null) sendNotFound('Exchange request not found.');
 
         // Only the listing owner can accept.
-        // TODO: Fetch listing owner ID from target_listing_id and compare.
-        // if ((int) $targetListing['user_id'] !== $authUser['sub']) sendForbidden(...);
+        $targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
+        $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($request['target_owner_id'] ?? 0);
+        if ($ownerId !== (int) $authUser['sub']) {
+            sendForbidden('Only the listing owner can accept this exchange request.');
+        }
 
         if ($request['status'] !== REQUEST_ENDORSED) {
             sendError('This request has not been endorsed by a moderator yet and cannot be accepted.', 409);
@@ -189,7 +194,11 @@ class ExchangeController {
         if ($request === null) sendNotFound('Exchange request not found.');
 
         // Only the listing owner may decline.
-        // TODO: verify $authUser['sub'] === $targetListing['user_id']
+        $targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
+        $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($request['target_owner_id'] ?? 0);
+        if ($ownerId !== (int) $authUser['sub']) {
+            sendForbidden('Only the listing owner can decline this exchange request.');
+        }
 
         if (!in_array($request['status'], [REQUEST_PENDING, REQUEST_ENDORSED], true)) {
             sendError('This request cannot be declined in its current state.', 409);

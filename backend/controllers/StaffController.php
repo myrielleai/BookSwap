@@ -58,19 +58,21 @@ class StaffController {
         $idleListings     = $this->listingModel->getIdle();
 
         sendSuccess([
-            'pending_verifications' => count($pendingListings),
-            'pending_requests'      => count($pendingRequests),
-            'todays_handovers'      => count($todaysHandovers),
-            'idle_listings_count'   => count($idleListings),
-            'listings'              => $pendingListings,
-            'requests'              => $pendingRequests,
-            'handovers'             => $todaysHandovers,
-        ], 'Dashboard data retrieved.');
+            'counts' => [
+                'pending_verifications' => count($pendingListings),
+                'pending_requests'      => count($pendingRequests),
+                'todays_handovers'      => count($todaysHandovers),
+                'idle_listings'         => count($idleListings),
+            ],
+            'pending_verifications' => $pendingListings,
+            'pending_requests'      => $pendingRequests,
+            'todays_handovers'      => $todaysHandovers,
+        ]);
     }
 
     /**
      * PUT /api/staff/listings/{id}/verify
-     * Approve, return for revision, or reject a listing.
+     * Approve, return, or reject a submitted listing.
      * Accepts: { action: 'approve'|'return'|'reject', note?: string }
      *
      * @param int $id Listing primary key.
@@ -84,9 +86,15 @@ class StaffController {
         if (!empty($errors)) sendError('Action is required.', 422, $errors);
 
         validateInList('action', $body['action'], ['approve', 'return', 'reject'], $errors);
-        if (!empty($errors)) sendError('Invalid action.', 422, $errors);
+        if (!empty($errors)) sendError('Invalid action. Must be approve, return, or reject.', 422, $errors);
 
-        // Fetch the listing to get the owner's ID for the no-self-action check.
+        // A reason is mandatory when returning or rejecting.
+        if (in_array($body['action'], ['return', 'reject'], true)) {
+            if (empty($body['note'])) {
+                sendError('A note explaining the decision is required when returning or rejecting.', 422);
+            }
+        }
+
         $listing = $this->listingModel->findById($id);
         if ($listing === null) sendNotFound('Listing not found.');
 
@@ -155,8 +163,9 @@ class StaffController {
         }
 
         // Role separation: Staff cannot endorse a request they are personally in.
-        // TODO: Fetch the listing owner ID from the target listing and check.
-        // blockStaffSelfTransaction($staff['sub'], [$request['requester_id'], $targetListingOwnerId]);
+        $targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
+        $targetListingOwnerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($request['target_owner_id'] ?? 0);
+        blockStaffSelfTransaction($staff['sub'], [(int) $request['requester_id'], $targetListingOwnerId]);
 
         $statusMap = [
             'endorse' => REQUEST_ENDORSED,
@@ -179,7 +188,16 @@ class StaffController {
                 $txId
             );
 
-            // TODO: Notify the listing owner. Fetch their user_id from the target listing.
+            // Notify the listing owner.
+            if ($targetListingOwnerId > 0) {
+                $this->notificationModel->create(
+                    $targetListingOwnerId,
+                    'request_endorsed_for_owner',
+                    "An exchange request for your listing \"{$request['target_title']}\" has been endorsed by staff and is awaiting your review.",
+                    'transaction',
+                    $txId
+                );
+            }
         }
 
         $this->reportModel->logActivity($staff['sub'], 'request', $id, $body['action'], $note);
@@ -218,18 +236,18 @@ class StaffController {
         $cancelReason = sanitizeString($body['cancel_reason'] ?? '');
         $this->transactionModel->updateStatus($id, $body['status'], $cancelReason);
 
+        $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
+
         // If approved, lock both listings so they cannot enter another exchange.
-        if ($body['status'] === TX_APPROVED) {
-            // TODO: Fetch listing IDs from the exchange request and lock them.
-            // $this->listingModel->updateStatus($targetListingId, LISTING_LOCKED);
-            // $this->listingModel->updateStatus($offeredListingId, LISTING_LOCKED);
+        if ($body['status'] === TX_APPROVED && $exchangeReq) {
+            $this->listingModel->updateStatus((int) $exchangeReq['target_listing_id'], LISTING_LOCKED);
+            $this->listingModel->updateStatus((int) $exchangeReq['offered_listing_id'], LISTING_LOCKED);
         }
 
         // If cancelled, unlock the listings (return them to 'available').
-        if ($body['status'] === TX_CANCELLED) {
-            // TODO: Fetch listing IDs and restore them to LISTING_AVAILABLE.
-            // $this->listingModel->updateStatus($targetListingId, LISTING_AVAILABLE);
-            // $this->listingModel->updateStatus($offeredListingId, LISTING_AVAILABLE);
+        if ($body['status'] === TX_CANCELLED && $exchangeReq) {
+            $this->listingModel->updateStatus((int) $exchangeReq['target_listing_id'], LISTING_AVAILABLE);
+            $this->listingModel->updateStatus((int) $exchangeReq['offered_listing_id'], LISTING_AVAILABLE);
         }
 
         $this->reportModel->logActivity($staff['sub'], 'transaction', $id, $body['status'], $cancelReason);
@@ -266,7 +284,19 @@ class StaffController {
         // Advance transaction to Scheduled.
         $this->transactionModel->updateStatus($id, TX_SCHEDULED);
 
-        // TODO: Notify both parties of their handover date/time/location.
+        // Notify both parties of their handover date/time/location.
+        $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
+        if ($exchangeReq) {
+            $targetListing = $this->listingModel->findById((int) $exchangeReq['target_listing_id']);
+            $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($exchangeReq['target_owner_id'] ?? 0);
+            $date = sanitizeString($body['slot_date']);
+            $time = sanitizeString($body['slot_time']);
+            $msg = "A handover has been scheduled for $date at $time. Please check your transaction details for location instructions.";
+            $this->notificationModel->create((int) $exchangeReq['requester_id'], 'handover_scheduled', $msg, 'transaction', $id);
+            if ($ownerId > 0) {
+                $this->notificationModel->create($ownerId, 'handover_scheduled', $msg, 'transaction', $id);
+            }
+        }
 
         $this->reportModel->logActivity($staff['sub'], 'transaction', $id, 'scheduled', "Slot ID: $slotId");
 
@@ -306,7 +336,19 @@ class StaffController {
 
         $this->reportModel->logActivity($staff['sub'], 'transaction', $id, 'rescheduled', '');
 
-        // TODO: Notify both parties of the updated schedule.
+        // Notify both parties of the updated schedule.
+        $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
+        if ($exchangeReq) {
+            $targetListing = $this->listingModel->findById((int) $exchangeReq['target_listing_id']);
+            $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($exchangeReq['target_owner_id'] ?? 0);
+            $date = sanitizeString($body['slot_date']);
+            $time = sanitizeString($body['slot_time']);
+            $msg = "Your handover schedule has been updated to $date at $time.";
+            $this->notificationModel->create((int) $exchangeReq['requester_id'], 'handover_rescheduled', $msg, 'transaction', $id);
+            if ($ownerId > 0) {
+                $this->notificationModel->create($ownerId, 'handover_rescheduled', $msg, 'transaction', $id);
+            }
+        }
 
         sendSuccess(null, 'Handover rescheduled.');
     }
@@ -327,8 +369,20 @@ class StaffController {
         $this->transactionModel->recordNoShow($id);
         $this->transactionModel->updateStatus($id, TX_CANCELLED, 'No-show recorded by moderator.');
 
-        // TODO: Return both listings to LISTING_AVAILABLE.
-        // TODO: Notify both parties.
+        // Return both listings to LISTING_AVAILABLE and notify both parties.
+        $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
+        if ($exchangeReq) {
+            $this->listingModel->updateStatus((int) $exchangeReq['target_listing_id'], LISTING_AVAILABLE);
+            $this->listingModel->updateStatus((int) $exchangeReq['offered_listing_id'], LISTING_AVAILABLE);
+
+            $targetListing = $this->listingModel->findById((int) $exchangeReq['target_listing_id']);
+            $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($exchangeReq['target_owner_id'] ?? 0);
+            $msg = "A no-show was recorded for your scheduled handover. The transaction has been cancelled and both listings returned to available.";
+            $this->notificationModel->create((int) $exchangeReq['requester_id'], 'handover_noshow', $msg, 'transaction', $id);
+            if ($ownerId > 0) {
+                $this->notificationModel->create($ownerId, 'handover_noshow', $msg, 'transaction', $id);
+            }
+        }
 
         $this->reportModel->logActivity($staff['sub'], 'transaction', $id, 'no_show', '');
 

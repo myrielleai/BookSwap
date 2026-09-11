@@ -5,8 +5,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * All database operations for the `transactions` and `handover_slots` tables.
  *
- * A Transaction is created when a Staff member approves an exchange request.
- * It tracks the workflow: Pending → Approved → Scheduled → Completed|Cancelled.
+ * Implemented with live PDO operations for Member 4 (Database & API integration).
  *
  * TABLES ASSUMED:
  *   transactions
@@ -22,6 +21,7 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/constants.php';
 
 class TransactionModel {
 
@@ -40,20 +40,19 @@ class TransactionModel {
      * @return array|null
      */
     public function findById(int $id): ?array {
-        // TODO (DB):
-        // SQL: SELECT t.*, hs.slot_date, hs.slot_time, ml.name AS location_name,
-        //             hs.confirmed_by_a, hs.confirmed_by_b, hs.no_show_recorded
-        //      FROM transactions t
-        //      LEFT JOIN handover_slots hs ON hs.transaction_id = t.id
-        //      LEFT JOIN meetup_locations ml ON ml.id = hs.location_id
-        //      WHERE t.id = :id LIMIT 1
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute([':id' => $id]);
-        // $result = $stmt->fetch();
-        // return $result ?: null;
-
-        return null; // stub
+        if (!$this->db) return null;
+        $sql = "SELECT t.*, hs.slot_date, hs.slot_time, hs.location_id, ml.name AS location_name, ml.address AS location_address,
+                       hs.confirmed_by_a, hs.confirmed_by_b, hs.no_show_recorded,
+                       er.requester_id, er.target_listing_id, er.offered_listing_id
+                FROM transactions t
+                LEFT JOIN handover_slots hs ON hs.transaction_id = t.id
+                LEFT JOIN meetup_locations ml ON ml.id = hs.location_id
+                LEFT JOIN exchange_requests er ON er.id = t.exchange_request_id
+                WHERE t.id = :id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $result = $stmt->fetch();
+        return $result ?: null;
     }
 
     /**
@@ -64,21 +63,18 @@ class TransactionModel {
      * @return array
      */
     public function getByUserId(int $userId): array {
-        // TODO (DB):
-        // Join transactions → exchange_requests to find ones where the user
-        // is either the requester or the listing owner.
-        //
-        // SQL: SELECT t.* FROM transactions t
-        //      JOIN exchange_requests er ON er.id = t.exchange_request_id
-        //      JOIN listings tl ON tl.id = er.target_listing_id
-        //      WHERE er.requester_id = :uid OR tl.user_id = :uid
-        //      ORDER BY t.created_at DESC
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute([':uid' => $userId]);
-        // return $stmt->fetchAll();
-
-        return []; // stub
+        if (!$this->db) return [];
+        $sql = "SELECT t.*, hs.slot_date, hs.slot_time, ml.name AS location_name
+                FROM transactions t
+                JOIN exchange_requests er ON er.id = t.exchange_request_id
+                JOIN listings tl ON tl.id = er.target_listing_id
+                LEFT JOIN handover_slots hs ON hs.transaction_id = t.id
+                LEFT JOIN meetup_locations ml ON ml.id = hs.location_id
+                WHERE er.requester_id = :uid OR tl.user_id = :uid2
+                ORDER BY t.created_at DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':uid' => $userId, ':uid2' => $userId]);
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -88,14 +84,15 @@ class TransactionModel {
      * @return array
      */
     public function getByStaffId(int $staffId): array {
-        // TODO (DB):
-        // SQL: SELECT * FROM transactions WHERE handled_by = :staff_id ORDER BY created_at DESC
-        //
-        // $stmt = $this->db->prepare("SELECT * FROM transactions WHERE handled_by = :staff_id ORDER BY created_at DESC");
-        // $stmt->execute([':staff_id' => $staffId]);
-        // return $stmt->fetchAll();
-
-        return []; // stub
+        if (!$this->db) return [];
+        $sql = "SELECT t.*, hs.slot_date, hs.slot_time, ml.name AS location_name
+                FROM transactions t
+                LEFT JOIN handover_slots hs ON hs.transaction_id = t.id
+                LEFT JOIN meetup_locations ml ON ml.id = hs.location_id
+                WHERE t.handled_by = :staff_id ORDER BY t.created_at DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':staff_id' => $staffId]);
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -104,18 +101,16 @@ class TransactionModel {
      * @return array
      */
     public function getScheduledToday(): array {
-        // TODO (DB):
-        // SQL: SELECT t.*, hs.slot_time, ml.name AS location_name
-        //      FROM transactions t
-        //      JOIN handover_slots hs ON hs.transaction_id = t.id
-        //      LEFT JOIN meetup_locations ml ON ml.id = hs.location_id
-        //      WHERE t.status = 'scheduled' AND hs.slot_date = CURDATE()
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute();
-        // return $stmt->fetchAll();
-
-        return []; // stub
+        if (!$this->db) return [];
+        $sql = "SELECT t.*, hs.slot_time, ml.name AS location_name
+                FROM transactions t
+                JOIN handover_slots hs ON hs.transaction_id = t.id
+                LEFT JOIN meetup_locations ml ON ml.id = hs.location_id
+                WHERE t.status = 'scheduled' AND hs.slot_date = CURDATE()
+                ORDER BY hs.slot_time ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
     }
 
     // ── Write ─────────────────────────────────────────────────────────────────
@@ -128,18 +123,13 @@ class TransactionModel {
      * @return int  New transaction's auto-increment ID.
      */
     public function create(int $exchangeRequestId, int $staffId): int {
-        // TODO (DB):
-        // SQL: INSERT INTO transactions (exchange_request_id, status, handled_by, created_at)
-        //      VALUES (:er_id, 'pending', :staff_id, NOW())
-        //
-        // $stmt = $this->db->prepare("
-        //     INSERT INTO transactions (exchange_request_id, status, handled_by, created_at)
-        //     VALUES (:er_id, 'pending', :staff_id, NOW())
-        // ");
-        // $stmt->execute([':er_id' => $exchangeRequestId, ':staff_id' => $staffId]);
-        // return (int) $this->db->lastInsertId();
-
-        return 0; // stub
+        if (!$this->db) return 0;
+        $stmt = $this->db->prepare("
+            INSERT INTO transactions (exchange_request_id, status, handled_by, created_at)
+            VALUES (:er_id, 'pending', :staff_id, NOW())
+        ");
+        $stmt->execute([':er_id' => $exchangeRequestId, ':staff_id' => $staffId]);
+        return (int) $this->db->lastInsertId();
     }
 
     /**
@@ -152,17 +142,12 @@ class TransactionModel {
      * @return bool
      */
     public function updateStatus(int $id, string $status, ?string $cancelReason = null): bool {
-        // TODO (DB):
-        // SQL: UPDATE transactions SET status=:status, cancel_reason=:reason, updated_at=NOW()
-        //      WHERE id=:id
-        //
-        // $stmt = $this->db->prepare("
-        //     UPDATE transactions SET status=:status, cancel_reason=:reason, updated_at=NOW()
-        //     WHERE id=:id
-        // ");
-        // return $stmt->execute([':status' => $status, ':reason' => $cancelReason, ':id' => $id]);
-
-        return false; // stub
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("
+            UPDATE transactions SET status=:status, cancel_reason=:reason, updated_at=NOW()
+            WHERE id=:id
+        ");
+        return $stmt->execute([':status' => $status, ':reason' => $cancelReason, ':id' => $id]);
     }
 
     // ── Handover Slot Methods ─────────────────────────────────────────────────
@@ -177,15 +162,19 @@ class TransactionModel {
      * @return int   New handover_slot ID.
      */
     public function assignHandoverSlot(int $transactionId, int $locationId, string $slotDate, string $slotTime): int {
-        // TODO (DB):
-        // SQL: INSERT INTO handover_slots (transaction_id, location_id, slot_date, slot_time, created_at)
-        //      VALUES (:tx_id, :loc_id, :slot_date, :slot_time, NOW())
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute([...]);
-        // return (int) $this->db->lastInsertId();
-
-        return 0; // stub
+        if (!$this->db) return 0;
+        $stmt = $this->db->prepare("
+            INSERT INTO handover_slots (transaction_id, location_id, slot_date, slot_time, created_at)
+            VALUES (:tx_id, :loc_id, :slot_date, :slot_time, NOW())
+            ON DUPLICATE KEY UPDATE location_id = VALUES(location_id), slot_date = VALUES(slot_date), slot_time = VALUES(slot_time), updated_at = NOW()
+        ");
+        $stmt->execute([
+            ':tx_id'     => $transactionId,
+            ':loc_id'    => $locationId,
+            ':slot_date' => $slotDate,
+            ':slot_time' => $slotTime,
+        ]);
+        return (int) ($this->db->lastInsertId() ?: $transactionId);
     }
 
     /**
@@ -200,20 +189,38 @@ class TransactionModel {
      * @return bool
      */
     public function rescheduleHandoverSlot(int $transactionId, int $locationId, string $slotDate, string $slotTime): bool {
-        // TODO (DB):
-        // SQL (two queries — run in a transaction):
-        //   UPDATE handover_slots SET location_id=:loc_id, slot_date=:date, slot_time=:time, updated_at=NOW()
-        //   WHERE transaction_id=:tx_id
-        //
-        //   UPDATE transactions SET reschedule_count = reschedule_count + 1, updated_at=NOW()
-        //   WHERE id=:tx_id
-        //
-        // $this->db->beginTransaction();
-        // ... execute both queries ...
-        // $this->db->commit();
-        // return true;
+        if (!$this->db) return false;
+        try {
+            $this->db->beginTransaction();
 
-        return false; // stub
+            $stmt1 = $this->db->prepare("
+                UPDATE handover_slots
+                SET location_id = :loc_id, slot_date = :slot_date, slot_time = :slot_time, updated_at = NOW()
+                WHERE transaction_id = :tx_id
+            ");
+            $stmt1->execute([
+                ':loc_id'    => $locationId,
+                ':slot_date' => $slotDate,
+                ':slot_time' => $slotTime,
+                ':tx_id'     => $transactionId,
+            ]);
+
+            $stmt2 = $this->db->prepare("
+                UPDATE transactions
+                SET reschedule_count = reschedule_count + 1, updated_at = NOW()
+                WHERE id = :tx_id
+            ");
+            $stmt2->execute([':tx_id' => $transactionId]);
+
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[TransactionModel Reschedule Error] ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -224,14 +231,9 @@ class TransactionModel {
      * @return bool
      */
     public function recordNoShow(int $transactionId): bool {
-        // TODO (DB):
-        // SQL: UPDATE handover_slots SET no_show_recorded = 1, updated_at=NOW()
-        //      WHERE transaction_id = :tx_id
-        //
-        // $stmt = $this->db->prepare("UPDATE handover_slots SET no_show_recorded = 1, updated_at=NOW() WHERE transaction_id = :tx_id");
-        // return $stmt->execute([':tx_id' => $transactionId]);
-
-        return false; // stub
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("UPDATE handover_slots SET no_show_recorded = 1, updated_at=NOW() WHERE transaction_id = :tx_id");
+        return $stmt->execute([':tx_id' => $transactionId]);
     }
 
     /**
@@ -243,16 +245,10 @@ class TransactionModel {
      * @return bool
      */
     public function confirmReceipt(int $transactionId, bool $isPartyA): bool {
-        // TODO (DB):
-        // Choose the correct column based on which party is confirming.
-        // $column = $isPartyA ? 'confirmed_by_a' : 'confirmed_by_b';
-        // SQL: UPDATE handover_slots SET {$column} = 1, updated_at=NOW()
-        //      WHERE transaction_id = :tx_id
-        //
-        // $stmt = $this->db->prepare("UPDATE handover_slots SET {$column} = 1, updated_at=NOW() WHERE transaction_id = :tx_id");
-        // return $stmt->execute([':tx_id' => $transactionId]);
-
-        return false; // stub
+        if (!$this->db) return false;
+        $column = $isPartyA ? 'confirmed_by_a' : 'confirmed_by_b';
+        $stmt = $this->db->prepare("UPDATE handover_slots SET {$column} = 1, updated_at=NOW() WHERE transaction_id = :tx_id");
+        return $stmt->execute([':tx_id' => $transactionId]);
     }
 
     /**
@@ -264,15 +260,10 @@ class TransactionModel {
      * @return bool True if both confirmed_by_a and confirmed_by_b are 1.
      */
     public function bothPartiesConfirmed(int $transactionId): bool {
-        // TODO (DB):
-        // SQL: SELECT confirmed_by_a, confirmed_by_b FROM handover_slots
-        //      WHERE transaction_id = :tx_id LIMIT 1
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->execute([':tx_id' => $transactionId]);
-        // $row = $stmt->fetch();
-        // return $row && $row['confirmed_by_a'] && $row['confirmed_by_b'];
-
-        return false; // stub
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("SELECT confirmed_by_a, confirmed_by_b FROM handover_slots WHERE transaction_id = :tx_id LIMIT 1");
+        $stmt->execute([':tx_id' => $transactionId]);
+        $row = $stmt->fetch();
+        return $row && !empty($row['confirmed_by_a']) && !empty($row['confirmed_by_b']);
     }
 }

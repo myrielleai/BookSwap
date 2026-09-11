@@ -5,9 +5,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * Analytics queries for the Administrator's reporting features.
  *
- * All methods return aggregated data — no single-row lookups here.
- * These queries are typically slow on large datasets; the DB integrator
- * may want to add indexes on created_at and status columns.
+ * Implemented with live PDO operations for Member 4 (Database & API integration).
+ * All methods return aggregated data or audit logs.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -30,22 +29,39 @@ class ReportModel {
      * @return array  Keys: listings_posted, exchanges_completed, cancellations, cancellation_rate
      */
     public function getSummary(string $from, string $to): array {
-        // TODO (DB):
-        // Run three COUNT queries and combine the results.
-        //
-        // $listings = "SELECT COUNT(*) FROM listings WHERE created_at BETWEEN :from AND :to";
-        // $completed = "SELECT COUNT(*) FROM transactions WHERE status='completed' AND created_at BETWEEN :from AND :to";
-        // $cancelled = "SELECT COUNT(*) FROM transactions WHERE status='cancelled' AND created_at BETWEEN :from AND :to";
-        //
-        // Execute each and calculate:
-        //   cancellation_rate = cancellations / (completed + cancellations) * 100
+        if (!$this->db) {
+            return [
+                'listings_posted'     => 0,
+                'exchanges_completed' => 0,
+                'cancellations'       => 0,
+                'cancellation_rate'   => '0%',
+            ];
+        }
+
+        $fromDt = $from . ' 00:00:00';
+        $toDt   = $to . ' 23:59:59';
+
+        $stmt1 = $this->db->prepare("SELECT COUNT(*) FROM listings WHERE created_at BETWEEN :from AND :to");
+        $stmt1->execute([':from' => $fromDt, ':to' => $toDt]);
+        $listings = (int) $stmt1->fetchColumn();
+
+        $stmt2 = $this->db->prepare("SELECT COUNT(*) FROM transactions WHERE status='completed' AND created_at BETWEEN :from AND :to");
+        $stmt2->execute([':from' => $fromDt, ':to' => $toDt]);
+        $completed = (int) $stmt2->fetchColumn();
+
+        $stmt3 = $this->db->prepare("SELECT COUNT(*) FROM transactions WHERE status='cancelled' AND created_at BETWEEN :from AND :to");
+        $stmt3->execute([':from' => $fromDt, ':to' => $toDt]);
+        $cancelled = (int) $stmt3->fetchColumn();
+
+        $total = $completed + $cancelled;
+        $rate  = $total > 0 ? round(($cancelled / $total) * 100, 1) . '%' : '0%';
 
         return [
-            'listings_posted'    => 0,
-            'exchanges_completed' => 0,
-            'cancellations'      => 0,
-            'cancellation_rate'  => '0%',
-        ]; // stub
+            'listings_posted'     => $listings,
+            'exchanges_completed' => $completed,
+            'cancellations'       => $cancelled,
+            'cancellation_rate'   => $rate,
+        ];
     }
 
     /**
@@ -58,24 +74,24 @@ class ReportModel {
      * @return array  Each row: { genre_name, request_count }
      */
     public function getTopGenres(string $from, string $to, int $limit = 10): array {
-        // TODO (DB):
-        // SQL: SELECT c.name AS genre_name, COUNT(er.id) AS request_count
-        //      FROM exchange_requests er
-        //      JOIN listings tl ON tl.id = er.target_listing_id
-        //      JOIN categories c ON c.id = tl.genre_id
-        //      WHERE er.created_at BETWEEN :from AND :to
-        //      GROUP BY c.id, c.name
-        //      ORDER BY request_count DESC
-        //      LIMIT :limit
-        //
-        // $stmt = $this->db->prepare("...");
-        // $stmt->bindValue(':from',  $from);
-        // $stmt->bindValue(':to',    $to);
-        // $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        // $stmt->execute();
-        // return $stmt->fetchAll();
+        if (!$this->db) return [];
+        $fromDt = $from . ' 00:00:00';
+        $toDt   = $to . ' 23:59:59';
 
-        return []; // stub
+        $sql = "SELECT c.name AS genre_name, COUNT(er.id) AS request_count
+                FROM exchange_requests er
+                JOIN listings tl ON tl.id = er.target_listing_id
+                JOIN categories c ON c.id = tl.genre_id
+                WHERE er.created_at BETWEEN :from AND :to
+                GROUP BY c.id, c.name
+                ORDER BY request_count DESC
+                LIMIT :limit";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':from',  $fromDt);
+        $stmt->bindValue(':to',    $toDt);
+        $stmt->bindValue(':limit', (int) $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -86,16 +102,20 @@ class ReportModel {
      * @return array  Each row: { city, active_users, exchanges_in_city }
      */
     public function getParticipationByCity(string $from, string $to): array {
-        // TODO (DB):
-        // SQL: SELECT u.city, COUNT(DISTINCT u.id) AS active_users,
-        //             COUNT(t.id) AS exchanges_in_city
-        //      FROM users u
-        //      LEFT JOIN exchange_requests er ON er.requester_id = u.id
-        //      LEFT JOIN transactions t ON t.exchange_request_id = er.id AND t.status = 'completed'
-        //      WHERE u.created_at BETWEEN :from AND :to
-        //      GROUP BY u.city ORDER BY active_users DESC
+        if (!$this->db) return [];
+        $fromDt = $from . ' 00:00:00';
+        $toDt   = $to . ' 23:59:59';
 
-        return []; // stub
+        $sql = "SELECT u.city, COUNT(DISTINCT u.id) AS active_users,
+                       COUNT(t.id) AS exchanges_in_city
+                FROM users u
+                LEFT JOIN exchange_requests er ON er.requester_id = u.id
+                LEFT JOIN transactions t ON t.exchange_request_id = er.id AND t.status = 'completed'
+                WHERE u.created_at BETWEEN :from AND :to
+                GROUP BY u.city ORDER BY active_users DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':from' => $fromDt, ':to' => $toDt]);
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -107,18 +127,29 @@ class ReportModel {
      * @return array
      */
     public function getActivityLog(?int $recordId = null, ?string $recordType = null): array {
-        // TODO (DB):
-        // Assumes an `activity_log` table with columns:
-        //   id, actor_id (FK→users), record_type, record_id, action, note, created_at
-        //
-        // SQL: SELECT al.*, u.name AS actor_name
-        //      FROM activity_log al
-        //      JOIN users u ON u.id = al.actor_id
-        //      WHERE (record_id = :id OR :id IS NULL)
-        //      AND   (record_type = :type OR :type IS NULL)
-        //      ORDER BY al.created_at DESC
+        if (!$this->db) return [];
+        $where  = [];
+        $params = [];
+        if ($recordId !== null) {
+            $where[] = 'al.record_id = :record_id';
+            $params[':record_id'] = $recordId;
+        }
+        if ($recordType !== null) {
+            $where[] = 'al.record_type = :record_type';
+            $params[':record_type'] = $recordType;
+        }
 
-        return []; // stub
+        $sql = "SELECT al.*, u.name AS actor_name
+                FROM activity_log al
+                JOIN users u ON u.id = al.actor_id";
+        if ($where) {
+            $sql .= " WHERE " . implode(' AND ', $where);
+        }
+        $sql .= " ORDER BY al.created_at DESC LIMIT 100";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -133,13 +164,17 @@ class ReportModel {
      * @return bool
      */
     public function logActivity(int $actorId, string $recordType, int $recordId, string $action, string $note = ''): bool {
-        // TODO (DB):
-        // SQL: INSERT INTO activity_log (actor_id, record_type, record_id, action, note, created_at)
-        //      VALUES (:actor_id, :record_type, :record_id, :action, :note, NOW())
-        //
-        // $stmt = $this->db->prepare("...");
-        // return $stmt->execute([...]);
-
-        return false; // stub
+        if (!$this->db) return false;
+        $stmt = $this->db->prepare("
+            INSERT INTO activity_log (actor_id, record_type, record_id, action, note, created_at)
+            VALUES (:actor_id, :record_type, :record_id, :action, :note, NOW())
+        ");
+        return $stmt->execute([
+            ':actor_id'    => $actorId,
+            ':record_type' => $recordType,
+            ':record_id'   => $recordId,
+            ':action'      => $action,
+            ':note'        => $note,
+        ]);
     }
 }

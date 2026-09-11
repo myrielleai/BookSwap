@@ -15,6 +15,8 @@
 
 require_once __DIR__ . '/../middleware/auth_middleware.php';
 require_once __DIR__ . '/../models/TransactionModel.php';
+require_once __DIR__ . '/../models/ExchangeModel.php';
+require_once __DIR__ . '/../models/ListingModel.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/NotificationModel.php';
 require_once __DIR__ . '/../models/ReportModel.php';
@@ -25,12 +27,16 @@ require_once __DIR__ . '/../config/constants.php';
 class TransactionController {
 
     private TransactionModel  $transactionModel;
+    private ExchangeModel     $exchangeModel;
+    private ListingModel      $listingModel;
     private UserModel         $userModel;
     private NotificationModel $notificationModel;
     private ReportModel       $reportModel;
 
     public function __construct() {
         $this->transactionModel  = new TransactionModel();
+        $this->exchangeModel     = new ExchangeModel();
+        $this->listingModel      = new ListingModel();
         $this->userModel         = new UserModel();
         $this->notificationModel = new NotificationModel();
         $this->reportModel       = new ReportModel();
@@ -51,9 +57,14 @@ class TransactionController {
 
         // Permission check: Staff/Admin see all; Customers see only their own.
         if ($authUser['role'] === ROLE_CUSTOMER) {
-            // TODO: Verify that $authUser['sub'] is one of the two parties
-            //       by checking the exchange_request's requester_id and target listing owner.
-            //       If not a party, call sendForbidden().
+            $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
+            $targetListing = $exchangeReq ? $this->listingModel->findById((int) $exchangeReq['target_listing_id']) : null;
+            $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($exchangeReq['target_owner_id'] ?? 0);
+            $requesterId = $exchangeReq ? (int) $exchangeReq['requester_id'] : 0;
+
+            if ($authUser['sub'] !== $ownerId && $authUser['sub'] !== $requesterId) {
+                sendForbidden('You are not authorized to view this transaction.');
+            }
         }
 
         sendSuccess($tx, 'Transaction retrieved.');
@@ -69,7 +80,7 @@ class TransactionController {
      */
     public function confirmReceipt(int $id): void {
         $authUser = requireAuth(ROLE_CUSTOMER);
-        $userId   = $authUser['sub'];
+        $userId   = (int) $authUser['sub'];
 
         $tx = $this->transactionModel->findById($id);
         if ($tx === null) sendNotFound('Transaction not found.');
@@ -77,10 +88,19 @@ class TransactionController {
             sendError('Receipt can only be confirmed for transactions in Scheduled status.', 409);
         }
 
-        // TODO: Determine if the confirming user is Party A (listing owner) or Party B (requester).
-        // Fetch the exchange_request to compare requester_id and target listing's user_id.
-        // $isPartyA = ($userId === $targetListingOwnerId);
-        $isPartyA = true; // stub — replace with real check
+        $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
+        if (!$exchangeReq) sendNotFound('Exchange request associated with transaction not found.');
+
+        $targetListing = $this->listingModel->findById((int) $exchangeReq['target_listing_id']);
+        $ownerId       = $targetListing ? (int) $targetListing['user_id'] : (int) ($exchangeReq['target_owner_id'] ?? 0);
+        $requesterId   = (int) $exchangeReq['requester_id'];
+
+        if ($userId !== $ownerId && $userId !== $requesterId) {
+            sendForbidden('You are not a participant in this transaction.');
+        }
+
+        // Party A = target listing owner; Party B = requester
+        $isPartyA = ($userId === $ownerId);
 
         $this->transactionModel->confirmReceipt($id, $isPartyA);
 
@@ -89,20 +109,30 @@ class TransactionController {
             $this->transactionModel->updateStatus($id, TX_COMPLETED);
 
             // Increment the exchange count on both users' profiles.
-            // TODO: Fetch both user IDs from the exchange_request record.
-            // $this->userModel->incrementExchangeCount($requesterId);
-            // $this->userModel->incrementExchangeCount($ownerId);
+            $this->userModel->incrementExchangeCount($requesterId);
+            $this->userModel->incrementExchangeCount($ownerId);
+
+            // Mark both listings as completed/archived or exchanged
+            $this->listingModel->updateStatus((int) $exchangeReq['target_listing_id'], LISTING_ARCHIVED);
+            $this->listingModel->updateStatus((int) $exchangeReq['offered_listing_id'], LISTING_ARCHIVED);
 
             // Notify both parties of completion.
             $this->notificationModel->create(
-                $userId,
+                $requesterId,
                 'exchange_completed',
-                'Your exchange has been marked as completed. Thank you for using BookSwap!',
+                'Your book exchange has been completed successfully! Thank you for using BookSwap.',
+                'transaction',
+                $id
+            );
+            $this->notificationModel->create(
+                $ownerId,
+                'exchange_completed',
+                'Your book exchange has been completed successfully! Thank you for using BookSwap.',
                 'transaction',
                 $id
             );
 
-            $this->reportModel->logActivity($userId, 'transaction', $id, 'completed', 'Both parties confirmed.');
+            $this->reportModel->logActivity($userId, 'transaction', $id, 'completed', 'Both parties confirmed receipt.');
         }
 
         sendSuccess(null, 'Receipt confirmed. Waiting for the other party to confirm.');
@@ -145,19 +175,17 @@ class TransactionController {
             "Reason: $reason | Details: $details"
         );
 
-        // TODO (DB): Optionally create a dedicated `disputes` table and insert here.
-
-        // Notify all Staff members that a dispute was filed.
-        // TODO: Query for all active Staff user IDs and notify each one.
-        // foreach ($staffUsers as $staff) {
-        //     $this->notificationModel->create(
-        //         $staff['id'],
-        //         'dispute_filed',
-        //         "A dispute was filed on transaction #$id. Reason: $reason",
-        //         'transaction',
-        //         $id
-        //     );
-        // }
+        // Notify all active Staff and Admin members that a dispute was filed.
+        $staffUsers = $this->userModel->getAll(ACCOUNT_ACTIVE, ROLE_STAFF);
+        foreach ($staffUsers as $staff) {
+            $this->notificationModel->create(
+                (int) $staff['id'],
+                'dispute_filed',
+                "A dispute was filed on transaction #$id. Reason: $reason",
+                'transaction',
+                $id
+            );
+        }
 
         sendSuccess(null, 'Dispute filed. A moderator will review it and contact you.');
     }

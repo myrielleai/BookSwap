@@ -67,6 +67,8 @@ $routes = [
     'PUT    /api/listings/{id}'                => ['ListingController', 'update'],
     'DELETE /api/listings/{id}'                => ['ListingController', 'withdraw'],
     'POST   /api/listings/{id}/watchlist'      => ['ListingController', 'addToWatchlist'],
+    'DELETE /api/listings/{id}/watchlist'      => ['ListingController', 'removeFromWatchlist'],
+    'GET    /api/user/watchlist'               => ['ListingController', 'getWatchlist'],
 
     // ── Customer: Exchange Requests ───────────────────────────────────────────
     'POST /api/exchanges'                  => ['ExchangeController', 'sendRequest'],
