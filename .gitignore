@@ -1,0 +1,3 @@
+# Book photos uploaded at runtime (UPLOAD_DIR in backend/config/constants.php).
+# User content, not source code.
+uploads/

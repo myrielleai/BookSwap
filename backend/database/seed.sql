@@ -26,16 +26,16 @@ INSERT INTO meetup_locations (id, name, address, is_active) VALUES
 
 -- 4. Users (All passwords hashed for 'Password123!')
 INSERT INTO users (id, name, email, id_number, college, program, year_level, phone, password_hash, role, status, city, exchange_count, created_at) VALUES
-(1, 'System Administrator', 'admin@mymail.mapua.edu.ph', '2020100001', 'SOIT', 'BSIT', 'Faculty', '09170000001', '$2y$10$wE8wQWz4K9t7pQ.K6Z1R5u9Dq9o9uW5p1L2v7X0J4m1A2B3C4D5E6', 'admin', 'active', 'Manila', 0, NOW()),
-(2, 'Gabriel Cruz (Moderator)', 'mod.cruz@mymail.mapua.edu.ph', '2022108842', 'SOIT', 'BSIT', '3rd Year', '09170000002', '$2y$10$wE8wQWz4K9t7pQ.K6Z1R5u9Dq9o9uW5p1L2v7X0J4m1A2B3C4D5E6', 'staff', 'active', 'Makati', 12, NOW()),
-(3, 'Irish Gail A. De Leon', 'ideleon@mymail.mapua.edu.ph', '2024106233', 'SOIT', 'BSIT', '2nd Year', '09181112233', '$2y$10$wE8wQWz4K9t7pQ.K6Z1R5u9Dq9o9uW5p1L2v7X0J4m1A2B3C4D5E6', 'customer', 'active', 'Manila', 5, NOW()),
-(4, 'Marc Felipe', 'mfelipe@mymail.mapua.edu.ph', '2024101658', 'SOIT', 'BSIT', '2nd Year', '09192223344', '$2y$10$wE8wQWz4K9t7pQ.K6Z1R5u9Dq9o9uW5p1L2v7X0J4m1A2B3C4D5E6', 'customer', 'active', 'Pasig', 4, NOW()),
-(5, 'Pending Student User', 'pending@mymail.mapua.edu.ph', '2025109988', 'SOCIT', 'BSCS', '1st Year', '09203334455', '$2y$10$wE8wQWz4K9t7pQ.K6Z1R5u9Dq9o9uW5p1L2v7X0J4m1A2B3C4D5E6', 'customer', 'pending', 'Quezon City', 0, NOW());
+(1, 'System Administrator', 'admin@mymail.mapua.edu.ph', '2020100001', 'SOIT', 'BSIT', 'Faculty', '09170000001', '$2y$10$UWajBDtUWMcj9Q5ys.ikuOFkzViMRoIzeRR.LyKPRfmexyOtcDLd6', 'admin', 'active', 'Manila', 0, NOW()),
+(2, 'Gabriel Cruz (Moderator)', 'mod.cruz@mymail.mapua.edu.ph', '2022108842', 'SOIT', 'BSIT', '3rd Year', '09170000002', '$2y$10$MfsWoSY777XwGY9cN0mEauMLRZYFc3fuhINmlY4BDNqhrrc4fxC1W', 'staff', 'active', 'Makati', 12, NOW()),
+(3, 'Irish Gail A. De Leon', 'ideleon@mymail.mapua.edu.ph', '2024106233', 'SOIT', 'BSIT', '2nd Year', '09181112233', '$2y$10$YOvRPXQnk0OnfI2KJFKVtumHBeV7RVInFp.VdlREi3JTwauKphDae', 'customer', 'active', 'Manila', 5, NOW()),
+(4, 'Marc Felipe', 'mfelipe@mymail.mapua.edu.ph', '2024101658', 'SOIT', 'BSIT', '2nd Year', '09192223344', '$2y$10$UiFY59K0xCPrbH2dS4SKhuOJwXgciWFSd8Iwr5NiRqqarq6DVh2Ka', 'customer', 'active', 'Pasig', 4, NOW()),
+(5, 'Pending Student User', 'pending@mymail.mapua.edu.ph', '2025109988', 'SOCIT', 'BSCS', '1st Year', '09203334455', '$2y$10$BewSgFl2f/LSiTTh6xbk2u5J5R.A20neP4NKlp1RWOWy6xFSStGx.', 'customer', 'pending', 'Quezon City', 0, NOW());
 
 -- 5. Listings
 INSERT INTO listings (id, user_id, title, author, edition, publisher, genre_id, condition_id, preferred_return, is_open_offer, photo_path, status, created_at) VALUES
-(1, 3, 'Introduction to Algorithms', 'Thomas H. Cormen', '4th Edition', 'MIT Press', 1, 1, 'Database Systems or Web Systems reference', 0, '/uploads/listings/cormen_algo.jpg', 'available', NOW()),
-(2, 4, 'Database System Concepts', 'Abraham Silberschatz', '7th Edition', 'McGraw-Hill', 1, 2, 'Algorithms or Discrete Math reference', 0, '/uploads/listings/silberschatz_db.jpg', 'available', NOW()),
+(1, 3, 'Introduction to Algorithms', 'Thomas H. Cormen', '4th Edition', 'MIT Press', 1, 1, 'Database Systems or Web Systems reference', 0, '/uploads/listings/cormen_algo.jpg', 'locked', NOW()),
+(2, 4, 'Database System Concepts', 'Abraham Silberschatz', '7th Edition', 'McGraw-Hill', 1, 2, 'Algorithms or Discrete Math reference', 0, '/uploads/listings/silberschatz_db.jpg', 'locked', NOW()),
 (3, 3, 'Computer Networks', 'Andrew S. Tanenbaum', '5th Edition', 'Pearson', 1, 3, 'Open to any IT reference', 1, '/uploads/listings/tanenbaum_networks.jpg', 'available', NOW());
 
 -- 6. Exchange Requests

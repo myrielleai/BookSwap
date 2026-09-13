@@ -85,10 +85,10 @@ class ListingController {
             sendError('A clear photo of the book is required.', 422, ['photo' => 'Photo is required.']);
         }
 
-        $photoResult = handlePhotoUpload($_FILES['photo']);
-        if (!$photoResult['success']) {
-            sendError($photoResult['message'], 422);
-        }
+        // saveBookPhoto() re-checks the size, verifies the real MIME type with finfo
+        // (the browser-supplied type is not trusted), stores the file under UPLOAD_DIR,
+        // and sends its own 422/500 response if any of that fails.
+        $photoPath = saveBookPhoto('photo');
 
         $newId = $this->listingModel->create([
             'user_id'          => (int) $authUser['sub'],
@@ -100,7 +100,7 @@ class ListingController {
             'condition_id'     => (int) $_POST['condition_id'],
             'preferred_return' => sanitizeString($_POST['preferred_return'] ?? ''),
             'is_open_offer'    => !empty($_POST['is_open_offer']),
-            'photo_path'       => $photoResult['path'],
+            'photo_path'       => $photoPath,
         ]);
 
         sendSuccess(['listing_id' => $newId], 'Listing submitted for staff verification.', 201);

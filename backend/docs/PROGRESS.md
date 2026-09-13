@@ -78,7 +78,7 @@ Completed the full database schema implementation, seed data generator, ERD docu
    - 11 core tables strictly normalized according to the project proposal ERD: `users`, `categories`, `conditions`, `meetup_locations`, `listings`, `exchange_requests`, `transactions`, `handover_slots`, `notifications`, `activity_log`, and `watchlist`.
    - Foreign key constraints with cascading rules and indexes for optimized query performance on `created_at`, `status`, and relational lookup keys.
 2. **Comprehensive Seed Data (`backend/database/seed.sql`)**:
-   - Seeded active Administrator, Staff/Moderator, and verified Customer test accounts with bcrypt password hashes (`password123`).
+   - Seeded active Administrator, Staff/Moderator, and verified Customer test accounts with bcrypt password hashes (`Password123!`).
    - Populated standard genres (Academic, Computer Science, Engineering, Mathematics, Literature, General Education), condition grades, and designated campus meetup locations.
    - Populated sample listings across various statuses, complete exchange request cycles, active transactions, and audit trail logs.
 3. **Live PDO Singleton (`backend/config/database.php`)**:
