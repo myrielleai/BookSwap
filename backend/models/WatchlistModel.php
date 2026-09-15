@@ -5,7 +5,11 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * All database operations related to the `watchlist` table.
  *
- * TABLE ASSUMED: watchlist
+ * The watchlist resolves the many-to-many relationship between members and
+ * listings. Watchers are notified when a watched book becomes available
+ * (NotificationModel::notifyWatchers()).
+ *
+ * TABLE: watchlist
  *   id, user_id (FK→users), listing_id (FK→listings), created_at
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -14,7 +18,7 @@ require_once __DIR__ . '/../config/database.php';
 
 class WatchlistModel {
 
-    private ?PDO $db;
+    private PDO $db;
 
     public function __construct() {
         $this->db = getDBConnection();
@@ -22,19 +26,16 @@ class WatchlistModel {
 
     /**
      * Add a listing to a user's watchlist.
-     * Uses INSERT IGNORE to gracefully handle duplicates.
+     * INSERT IGNORE makes a repeated add harmless (unique user + listing key).
      *
      * @param int $userId
      * @param int $listingId
-     * @return bool
      */
-    public function add(int $userId, int $listingId): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("
-            INSERT IGNORE INTO watchlist (user_id, listing_id, created_at)
-            VALUES (:uid, :lid, NOW())
-        ");
-        return $stmt->execute([':uid' => $userId, ':lid' => $listingId]);
+    public function add(int $userId, int $listingId): void {
+        runQuery(
+            "INSERT IGNORE INTO watchlist (user_id, listing_id, created_at) VALUES (:user_id, :listing_id, NOW())",
+            [':user_id' => $userId, ':listing_id' => $listingId]
+        );
     }
 
     /**
@@ -42,60 +43,47 @@ class WatchlistModel {
      *
      * @param int $userId
      * @param int $listingId
-     * @return bool
      */
-    public function remove(int $userId, int $listingId): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("DELETE FROM watchlist WHERE user_id = :uid AND listing_id = :lid");
-        return $stmt->execute([':uid' => $userId, ':lid' => $listingId]);
+    public function remove(int $userId, int $listingId): void {
+        runQuery(
+            "DELETE FROM watchlist WHERE user_id = :user_id AND listing_id = :listing_id",
+            [':user_id' => $userId, ':listing_id' => $listingId]
+        );
     }
 
     /**
-     * Get all watchlisted listings for a user.
+     * All watchlisted listings for a user, most recently added first.
      *
      * @param int $userId
      * @return array
      */
     public function getByUserId(int $userId): array {
-        if (!$this->db) return [];
         $sql = "SELECT w.id AS watchlist_id, w.created_at AS watchlisted_at,
-                       l.*, u.name AS owner_name, c.name AS genre_name, cond.label AS condition_label
+                       l.id, l.title, l.author, l.status, l.user_id,
+                       u.name AS owner_name, g.name AS genre_name, c.label AS condition_label,
+                       (SELECT p.file_path FROM listing_photos p
+                         WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo
                 FROM watchlist w
-                JOIN listings l ON l.id = w.listing_id
-                JOIN users u ON u.id = l.user_id
-                LEFT JOIN categories c ON c.id = l.genre_id
-                LEFT JOIN conditions cond ON cond.id = l.condition_id
-                WHERE w.user_id = :uid
+                JOIN listings l   ON l.id = w.listing_id
+                JOIN users u      ON u.id = l.user_id
+                JOIN genres g     ON g.id = l.genre_id
+                JOIN conditions c ON c.id = l.condition_id
+                WHERE w.user_id = :user_id
                 ORDER BY w.created_at DESC";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':uid' => $userId]);
-        return $stmt->fetchAll() ?: [];
+        return runQuery($sql, [':user_id' => $userId])->fetchAll();
     }
 
     /**
-     * Check if a listing is watchlisted by a user.
+     * Whether a listing is on a user's watchlist.
      *
      * @param int $userId
      * @param int $listingId
      * @return bool
      */
     public function isWatchlisted(int $userId, int $listingId): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM watchlist WHERE user_id = :uid AND listing_id = :lid");
-        $stmt->execute([':uid' => $userId, ':lid' => $listingId]);
-        return (int) $stmt->fetchColumn() > 0;
-    }
-
-    /**
-     * Get user IDs watching a specific listing (for notifications when status changes).
-     *
-     * @param int $listingId
-     * @return array
-     */
-    public function getUsersWatchingListing(int $listingId): array {
-        if (!$this->db) return [];
-        $stmt = $this->db->prepare("SELECT user_id FROM watchlist WHERE listing_id = :lid");
-        $stmt->execute([':lid' => $listingId]);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        return (int) runQuery(
+            "SELECT COUNT(*) FROM watchlist WHERE user_id = :user_id AND listing_id = :listing_id",
+            [':user_id' => $userId, ':listing_id' => $listingId]
+        )->fetchColumn() > 0;
     }
 }

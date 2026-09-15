@@ -3,7 +3,11 @@
 /**
  * ExchangeController.php
  * ─────────────────────────────────────────────────────────────────────────────
- * Handles the Customer side of the exchange request workflow.
+ * Handles the member side of the exchange request workflow.
+ *
+ * Phase 1 §3.3.4–§3.3.5 and §4.4: a member sends a request offering one of
+ * their own verified books; the owner of the requested book accepts or
+ * declines it. Staff are not involved in that decision.
  *
  * Endpoints (defined in routes/api.php):
  *   POST /api/exchanges                  → sendRequest()
@@ -17,36 +21,43 @@
 require_once __DIR__ . '/../middleware/auth_middleware.php';
 require_once __DIR__ . '/../models/ExchangeModel.php';
 require_once __DIR__ . '/../models/ListingModel.php';
+require_once __DIR__ . '/../models/TransactionModel.php';
 require_once __DIR__ . '/../models/NotificationModel.php';
 require_once __DIR__ . '/../models/ReportModel.php';
+require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/constants.php';
 
 class ExchangeController {
 
     private ExchangeModel     $exchangeModel;
     private ListingModel      $listingModel;
+    private TransactionModel  $transactionModel;
     private NotificationModel $notificationModel;
     private ReportModel       $reportModel;
+    private UserModel         $userModel;
 
     public function __construct() {
         $this->exchangeModel     = new ExchangeModel();
         $this->listingModel      = new ListingModel();
+        $this->transactionModel  = new TransactionModel();
         $this->notificationModel = new NotificationModel();
         $this->reportModel       = new ReportModel();
+        $this->userModel         = new UserModel();
     }
 
     /**
      * POST /api/exchanges
-     * A Customer sends an exchange request on a listing.
+     * A member sends an exchange request on a listing.
      * Accepts: { target_listing_id, offered_listing_id, message? }
      *
      * Business rules enforced here:
      *   - Both listings must be in LISTING_AVAILABLE status.
      *   - The requester must own the offered listing.
-     *   - A user can have at most MAX_ACTIVE_REQUESTS (1) active request per target.
-     *   - A user cannot request their own listing.
+     *   - A member cannot request their own listing.
+     *   - At most one active (pending or accepted) request per target listing.
      */
     public function sendRequest(): void {
         $authUser = requireAuth(ROLE_CUSTOMER);
@@ -54,27 +65,39 @@ class ExchangeController {
 
         $body   = getRequestBody();
         $errors = [];
-        validateRequired(['target_listing_id', 'offered_listing_id'], $body, $errors);
-        if (!empty($errors)) sendError('Validation failed.', 422, $errors);
-
-        $targetId  = (int) $body['target_listing_id'];
-        $offeredId = (int) $body['offered_listing_id'];
+        $targetId  = readPositiveInt($body, 'target_listing_id', $errors);
+        $offeredId = readPositiveInt($body, 'offered_listing_id', $errors);
+        foreach (['target_listing_id' => $targetId, 'offered_listing_id' => $offeredId] as $field => $value) {
+            if ($value === null && !isset($errors[$field])) {
+                $errors[$field] = "$field is required.";
+            }
+        }
+        $message = sanitizeString($body['message'] ?? '');
+        validateMaxLength('message', $message, 500, $errors);
+        if (!empty($errors)) {
+            sendError('Validation failed.', 422, $errors);
+        }
+        if ($targetId === $offeredId) {
+            sendError('The offered book must be different from the requested book.', 422);
+        }
 
         // Cannot request your own listing.
         $targetListing = $this->listingModel->findById($targetId);
-        if ($targetListing === null) sendNotFound('Target listing not found.');
+        if ($targetListing === null) {
+            sendNotFound('Target listing not found.');
+        }
         if ((int) $targetListing['user_id'] === $userId) {
             sendError('You cannot send an exchange request on your own listing.', 422);
         }
-
-        // Target must be available.
         if ($targetListing['status'] !== LISTING_AVAILABLE) {
             sendError('The selected listing is not currently available for exchange.', 409);
         }
 
         // Offered listing must belong to the requester and be available.
         $offeredListing = $this->listingModel->findById($offeredId);
-        if ($offeredListing === null) sendNotFound('Offered listing not found.');
+        if ($offeredListing === null) {
+            sendNotFound('Offered listing not found.');
+        }
         if ((int) $offeredListing['user_id'] !== $userId) {
             sendForbidden('You may only offer your own listings.');
         }
@@ -82,35 +105,34 @@ class ExchangeController {
             sendError('Your offered listing is not available (it may already be part of an active exchange).', 409);
         }
 
-        // Enforce one-active-request-per-target rule.
         if ($this->exchangeModel->hasActiveRequest($userId, $targetId)) {
             sendError('You already have an active request on this listing.', 409);
         }
 
-        $requestId = $this->exchangeModel->create([
-            'requester_id'      => $userId,
-            'target_listing_id' => $targetId,
-            'offered_listing_id'=> $offeredId,
-            'message'           => sanitizeString($body['message'] ?? ''),
-        ]);
+        $requestId = withTransaction(function () use ($userId, $targetId, $offeredId, $message) {
+            $requestId = $this->exchangeModel->create([
+                'requester_id'       => $userId,
+                'target_listing_id'  => $targetId,
+                'offered_listing_id' => $offeredId,
+                'message'            => $message,
+            ]);
+            $this->reportModel->logActivity($userId, 'request', $requestId, 'submitted', '');
+            return $requestId;
+        });
 
-        // Notify the listing owner that they have an incoming request.
         $this->notificationModel->create(
             (int) $targetListing['user_id'],
             'new_exchange_request',
-            "Someone wants to exchange for your listing \"{$targetListing['title']}\".",
+            "Someone wants to exchange \"{$offeredListing['title']}\" for your listing \"{$targetListing['title']}\".",
             'request',
             $requestId
         );
 
-        $this->reportModel->logActivity($userId, 'request', $requestId, 'submitted', '');
-
-        sendSuccess(['request_id' => $requestId], 'Exchange request submitted.', 201);
+        sendSuccess(['request_id' => $requestId], 'Exchange request sent to the listing owner.', 201);
     }
 
     /**
      * GET /api/exchanges/{id}
-     * Returns details of a single exchange request.
      * Only the requester, the listing owner, or Staff/Admin may view.
      *
      * @param int $id
@@ -118,14 +140,9 @@ class ExchangeController {
     public function show(int $id): void {
         $authUser = requireAuth();
 
-        $request = $this->exchangeModel->findById($id);
-        if ($request === null) sendNotFound('Exchange request not found.');
+        $request = $this->findRequestOr404($id);
 
-        $targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
-        $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($request['target_owner_id'] ?? 0);
-
-        // Permission: must be requester, target owner, or Staff/Admin.
-        $isParty = in_array((int) $authUser['sub'], [(int) $request['requester_id'], $ownerId], true);
+        $isParty = in_array($authUser['sub'], [(int) $request['requester_id'], (int) $request['target_owner_id']], true);
         $isStaff = in_array($authUser['role'], [ROLE_STAFF, ROLE_ADMIN], true);
 
         if (!$isParty && !$isStaff) {
@@ -137,48 +154,90 @@ class ExchangeController {
 
     /**
      * PUT /api/exchanges/{id}/accept
-     * The listing owner accepts an endorsed request.
-     * The request must be in REQUEST_ENDORSED status (Staff has already reviewed it).
+     * The listing owner accepts a pending request.
+     *
+     * In one database transaction (Phase 1 §3.2.3, §3.3.5):
+     *   1. both books are locked, and only if both are still available;
+     *   2. the request is marked accepted;
+     *   3. the transaction is opened in the Accepted state;
+     *   4. every other pending request involving either book is declined.
+     * If any step fails, none of it is saved.
      *
      * @param int $id
      */
     public function acceptRequest(int $id): void {
         $authUser = requireAuth(ROLE_CUSTOMER);
 
-        $request = $this->exchangeModel->findById($id);
-        if ($request === null) sendNotFound('Exchange request not found.');
+        $request = $this->findRequestOr404($id);
 
-        // Only the listing owner can accept.
-        $targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
-        $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($request['target_owner_id'] ?? 0);
-        if ($ownerId !== (int) $authUser['sub']) {
+        if ((int) $request['target_owner_id'] !== $authUser['sub']) {
             sendForbidden('Only the listing owner can accept this exchange request.');
         }
-
-        if ($request['status'] !== REQUEST_ENDORSED) {
-            sendError('This request has not been endorsed by a moderator yet and cannot be accepted.', 409);
+        if ($request['status'] !== REQUEST_PENDING) {
+            sendError('This request is no longer pending.', 409);
         }
 
-        $this->exchangeModel->updateStatus($id, REQUEST_ACCEPTED);
+        $bookIds = [(int) $request['target_listing_id'], (int) $request['offered_listing_id']];
 
-        // Notify the requester.
+        $result = withTransaction(function () use ($id, $bookIds, $authUser) {
+            if (!$this->exchangeModel->markAccepted($id)) {
+                throw new ApiException('This request is no longer pending.', 409);
+            }
+            if ($this->listingModel->lockAvailable($bookIds) !== count($bookIds)) {
+                throw new ApiException('Both books must still be available to accept this exchange.', 409);
+            }
+
+            $transactionId = $this->transactionModel->create($id);
+
+            $declined = $this->exchangeModel->declineCompeting(
+                $id,
+                $bookIds,
+                'Automatically declined: one of these books was accepted in another exchange.'
+            );
+
+            $this->reportModel->logActivity($authUser['sub'], 'request', $id, 'accepted', "Transaction #$transactionId opened");
+
+            return ['transaction_id' => $transactionId, 'declined' => $declined];
+        });
+
         $this->notificationModel->create(
             (int) $request['requester_id'],
             'request_accepted',
-            'Your exchange request was accepted by the listing owner. A moderator will now schedule your handover.',
+            "Your exchange request for \"{$request['target_title']}\" was accepted. A moderator will schedule your handover.",
             'request',
             $id
         );
 
-        $this->reportModel->logActivity($authUser['sub'], 'request', $id, 'accepted', '');
+        foreach ($result['declined'] as $declined) {
+            $this->notificationModel->create(
+                (int) $declined['requester_id'],
+                'request_declined',
+                "Your exchange request for \"{$declined['target_title']}\" was declined automatically because one of the books was accepted in another exchange.",
+                'request',
+                (int) $declined['id']
+            );
+        }
 
-        sendSuccess(null, 'Request accepted. A moderator will schedule the handover.');
+        // Phase 1 §3.2.6: newly accepted exchanges appear on the moderation dashboard.
+        $this->notificationModel->notifyMany(
+            $this->userModel->getActiveIdsByRole(ROLE_STAFF),
+            'exchange_awaiting_schedule',
+            "Transaction #{$result['transaction_id']} was accepted and needs a handover slot.",
+            'transaction',
+            $result['transaction_id']
+        );
+
+        sendSuccess([
+            'transaction_id'         => $result['transaction_id'],
+            'auto_declined_requests' => count($result['declined']),
+        ], 'Request accepted. A moderator will schedule the handover.');
     }
 
     /**
      * PUT /api/exchanges/{id}/decline
-     * The listing owner declines a request.
-     * Accepts: { reason: string } — a selectable reason is shown to the requester.
+     * The listing owner declines a pending request with a selectable reason.
+     * Accepts: { reason: one of DECLINE_REASONS keys, note?: string }
+     * A note is required when the reason is 'other'.
      *
      * @param int $id
      */
@@ -188,64 +247,90 @@ class ExchangeController {
         $body   = getRequestBody();
         $errors = [];
         validateRequired(['reason'], $body, $errors);
-        if (!empty($errors)) sendError('A decline reason is required.', 422, $errors);
+        if (empty($errors)) {
+            validateInList('reason', $body['reason'], array_keys(DECLINE_REASONS), $errors);
+        }
+        $note = sanitizeString($body['note'] ?? '');
+        validateMaxLength('note', $note, 200, $errors);
+        if (($body['reason'] ?? null) === 'other' && $note === '') {
+            $errors['note'] = "A note is required when the reason is 'other'.";
+        }
+        if (!empty($errors)) {
+            sendError('A valid decline reason is required.', 422, $errors);
+        }
 
-        $request = $this->exchangeModel->findById($id);
-        if ($request === null) sendNotFound('Exchange request not found.');
+        $request = $this->findRequestOr404($id);
 
-        // Only the listing owner may decline.
-        $targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
-        $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($request['target_owner_id'] ?? 0);
-        if ($ownerId !== (int) $authUser['sub']) {
+        if ((int) $request['target_owner_id'] !== $authUser['sub']) {
             sendForbidden('Only the listing owner can decline this exchange request.');
         }
 
-        if (!in_array($request['status'], [REQUEST_PENDING, REQUEST_ENDORSED], true)) {
-            sendError('This request cannot be declined in its current state.', 409);
+        $reasonText = $body['reason'] === 'other'
+            ? $note
+            : trim(DECLINE_REASONS[$body['reason']] . ' ' . $note);
+
+        $declined = withTransaction(function () use ($id, $reasonText, $authUser) {
+            if (!$this->exchangeModel->markDeclined($id, $reasonText)) {
+                return false;
+            }
+            $this->reportModel->logActivity($authUser['sub'], 'request', $id, 'declined', $reasonText);
+            return true;
+        });
+
+        if (!$declined) {
+            sendError('This request is no longer pending.', 409);
         }
 
-        $reason = sanitizeString($body['reason']);
-        $this->exchangeModel->updateStatus($id, REQUEST_DECLINED, $reason);
-
-        // Notify the requester with the reason.
         $this->notificationModel->create(
             (int) $request['requester_id'],
             'request_declined',
-            "Your exchange request was declined. Reason: $reason",
+            "Your exchange request for \"{$request['target_title']}\" was declined. Reason: $reasonText",
             'request',
             $id
         );
-
-        $this->reportModel->logActivity($authUser['sub'], 'request', $id, 'declined', $reason);
 
         sendSuccess(null, 'Request declined.');
     }
 
     /**
      * PUT /api/exchanges/{id}/withdraw
-     * The requester withdraws their own pending request before Staff endorsement.
+     * The requester withdraws their request before the owner responds.
      *
      * @param int $id
      */
     public function withdrawRequest(int $id): void {
         $authUser = requireAuth(ROLE_CUSTOMER);
 
-        $request = $this->exchangeModel->findById($id);
-        if ($request === null) sendNotFound('Exchange request not found.');
+        $request = $this->findRequestOr404($id);
 
-        // Only the requester may withdraw.
         if ((int) $request['requester_id'] !== $authUser['sub']) {
             sendForbidden('You may only withdraw your own requests.');
         }
 
-        // Can only withdraw before Staff endorsement.
-        if ($request['status'] !== REQUEST_PENDING) {
-            sendError('This request can no longer be withdrawn (it has already been endorsed or processed).', 409);
+        $withdrawn = withTransaction(function () use ($id, $authUser) {
+            if (!$this->exchangeModel->setStatusIfPending($id, REQUEST_WITHDRAWN)) {
+                return false;
+            }
+            $this->reportModel->logActivity($authUser['sub'], 'request', $id, 'withdrawn', '');
+            return true;
+        });
+
+        if (!$withdrawn) {
+            sendError('This request can no longer be withdrawn (the owner has already responded).', 409);
         }
 
-        $this->exchangeModel->updateStatus($id, REQUEST_WITHDRAWN);
-        $this->reportModel->logActivity($authUser['sub'], 'request', $id, 'withdrawn', '');
-
         sendSuccess(null, 'Exchange request withdrawn.');
+    }
+
+    /**
+     * @param int $id
+     * @return array Request row.
+     */
+    private function findRequestOr404(int $id): array {
+        $request = $this->exchangeModel->findById($id);
+        if ($request === null) {
+            sendNotFound('Exchange request not found.');
+        }
+        return $request;
     }
 }

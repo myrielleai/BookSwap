@@ -5,20 +5,33 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * All database operations related to the `users` table.
  *
- * Implemented with live PDO operations for Member 4 (Database & API integration).
+ * TABLE: users
+ *   id, name, email, phone, password_hash, role, status, city,
+ *   favorite_genres (comma-separated genre IDs), created_at, updated_at
  *
- * TABLE ASSUMED: users
- *   id, name, email, phone, password_hash, role, status,
- *   city, favorite_genres (JSON or comma-separated), exchange_count,
- *   created_at, updated_at
+ * A member's completed-exchange count (Phase 1 §3.3.1) is not stored. It is
+ * counted from completed transactions, so it can never drift out of step with
+ * the exchanges that actually happened.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/constants.php';
 
 class UserModel {
 
-    private ?PDO $db;
+    private PDO $db;
+
+    // Completed exchanges where the user was the requester or owned the
+    // requested book. Correlated on the outer alias `u`.
+    private const COMPLETED_EXCHANGES_SQL = "(
+        SELECT COUNT(*)
+        FROM transactions t
+        JOIN exchange_requests er ON er.id = t.exchange_request_id
+        JOIN listings tl          ON tl.id = er.target_listing_id
+        WHERE t.status = 'completed'
+          AND (er.requester_id = u.id OR tl.user_id = u.id)
+    )";
 
     public function __construct() {
         $this->db = getDBConnection();
@@ -27,153 +40,192 @@ class UserModel {
     // ── Read ──────────────────────────────────────────────────────────────────
 
     /**
-     * Find a user by their primary key.
+     * Find a user by primary key, with their completed-exchange count.
      *
-     * @param int $id User's primary key.
-     * @return array|null User row or null if not found.
+     * @param int $id
+     * @return array|null
      */
     public function findById(int $id): ?array {
-        if (!$this->db) return null;
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = :id LIMIT 1");
-        $stmt->execute([':id' => $id]);
-        $result = $stmt->fetch();
-        return $result ?: null;
+        $sql = "SELECT u.*, " . self::COMPLETED_EXCHANGES_SQL . " AS completed_exchanges
+                FROM users u
+                WHERE u.id = :id LIMIT 1";
+        return runQuery($sql, [':id' => $id])->fetch() ?: null;
     }
 
     /**
-     * Find a user by their email address.
-     * Used during login to retrieve the stored password hash.
+     * Find a user by email address. Used at login to read the password hash.
      *
-     * @param string $email
+     * @param string $email Already lower-cased.
      * @return array|null
      */
     public function findByEmail(string $email): ?array {
-        if (!$this->db) return null;
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
-        $stmt->execute([':email' => $email]);
-        $result = $stmt->fetch();
-        return $result ?: null;
+        return runQuery("SELECT * FROM users WHERE email = :email LIMIT 1", [':email' => $email])->fetch() ?: null;
     }
 
     /**
-     * Get all users — used by Admin for the user management screen.
-     * Optionally filter by status or role.
+     * Search users for the Admin user-management screen.
      *
-     * @param string|null $status  Filter by account status (e.g., 'pending').
-     * @param string|null $role    Filter by role (e.g., 'customer').
-     * @return array               List of user rows.
+     * @param array       $query readListQuery() output: keyword, status, dates, sort, paging.
+     * @param string|null $role  Optional role filter.
+     * @return array ['rows' => array, 'total' => int]
      */
-    public function getAll(?string $status = null, ?string $role = null): array {
-        if (!$this->db) return [];
+    public function search(array $query, ?string $role): array {
         $where  = [];
         $params = [];
-        if ($status) { $where[] = 'status = :status'; $params[':status'] = $status; }
-        if ($role)   { $where[] = 'role = :role';     $params[':role']   = $role;   }
-        $sql = 'SELECT id, name, email, phone, role, status, city, exchange_count, created_at FROM users';
-        if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
-        $sql .= ' ORDER BY created_at DESC';
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll() ?: [];
+
+        if ($query['keyword'] !== '') {
+            $where[] = '(u.name LIKE :kw_name OR u.email LIKE :kw_email)';
+            $params[':kw_name']  = likeContains($query['keyword']);
+            $params[':kw_email'] = likeContains($query['keyword']);
+        }
+        if ($query['status'] !== null) {
+            $where[] = 'u.status = :status';
+            $params[':status'] = $query['status'];
+        }
+        if ($role !== null) {
+            $where[] = 'u.role = :role';
+            $params[':role'] = $role;
+        }
+        if ($query['date_from'] !== null) {
+            $where[] = 'u.created_at >= :date_from';
+            $params[':date_from'] = $query['date_from'] . ' 00:00:00';
+        }
+        if ($query['date_to'] !== null) {
+            $where[] = 'u.created_at <= :date_to';
+            $params[':date_to'] = $query['date_to'] . ' 23:59:59';
+        }
+
+        $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+        $orderSql = [
+            'newest' => 'u.created_at DESC, u.id DESC',
+            'oldest' => 'u.created_at ASC, u.id ASC',
+            'name'   => 'u.name ASC, u.id ASC',
+        ][$query['sort']];
+
+        return fetchPage(
+            "SELECT u.id, u.name, u.email, u.phone, u.role, u.status, u.city, u.created_at,
+                    " . self::COMPLETED_EXCHANGES_SQL . " AS completed_exchanges
+             FROM users u $whereSql
+             ORDER BY $orderSql",
+            "SELECT COUNT(*) FROM users u $whereSql",
+            $params,
+            $query
+        );
+    }
+
+    /**
+     * Number of active Administrator accounts.
+     *
+     * @return int
+     */
+    public function countActiveAdmins(): int {
+        return (int) runQuery(
+            "SELECT COUNT(*) FROM users WHERE role = :role AND status = :status",
+            [':role' => ROLE_ADMIN, ':status' => ACCOUNT_ACTIVE]
+        )->fetchColumn();
+    }
+
+    /**
+     * IDs of active users holding a role, used to notify every moderator or admin.
+     *
+     * @param string $role
+     * @return int[]
+     */
+    public function getActiveIdsByRole(string $role): array {
+        $ids = runQuery(
+            "SELECT id FROM users WHERE role = :role AND status = :status",
+            [':role' => $role, ':status' => ACCOUNT_ACTIVE]
+        )->fetchAll(PDO::FETCH_COLUMN);
+        return array_map('intval', $ids);
+    }
+
+    /**
+     * True while the user is part of an accepted or scheduled exchange.
+     * Self-deactivation is refused in that state.
+     *
+     * @param int $userId
+     * @return bool
+     */
+    public function hasActiveTransaction(int $userId): bool {
+        $sql = "SELECT COUNT(*)
+                FROM transactions t
+                JOIN exchange_requests er ON er.id = t.exchange_request_id
+                JOIN listings tl          ON tl.id = er.target_listing_id
+                WHERE t.status IN ('accepted', 'scheduled')
+                  AND (er.requester_id = :requester_id OR tl.user_id = :owner_id)";
+        return (int) runQuery($sql, [':requester_id' => $userId, ':owner_id' => $userId])->fetchColumn() > 0;
     }
 
     // ── Write ─────────────────────────────────────────────────────────────────
 
     /**
      * Insert a new user row (registration).
-     * Status is set to 'pending' — Admin must approve before the account is active.
+     * Status is 'pending' — an Admin must approve before the account is active.
      *
-     * @param array $data Associative array with keys: name, email, phone, password_hash, city.
-     * @return int        The new user's auto-increment ID.
+     * @param array $data Keys: name, email, phone, password_hash, city.
+     * @return int        The new user's ID.
      */
     public function create(array $data): int {
-        if (!$this->db) return 0;
-        $stmt = $this->db->prepare("
+        runQuery("
             INSERT INTO users (name, email, phone, password_hash, role, status, city, created_at)
             VALUES (:name, :email, :phone, :password_hash, 'customer', 'pending', :city, NOW())
-        ");
-        $stmt->execute([
+        ", [
             ':name'          => $data['name'],
             ':email'         => $data['email'],
-            ':phone'         => $data['phone'] ?? null,
+            ':phone'         => $data['phone'] !== '' ? $data['phone'] : null,
             ':password_hash' => $data['password_hash'],
-            ':city'          => $data['city'] ?? null,
+            ':city'          => $data['city'] !== '' ? $data['city'] : null,
         ]);
         return (int) $this->db->lastInsertId();
     }
 
     /**
-     * Update a user's profile fields (name, phone, city, favorite_genres).
-     * Only the user themselves calls this; Admin uses updateStatus() / updateRole().
+     * Update a user's own profile fields.
      *
-     * @param int   $id   The user's primary key.
-     * @param array $data Fields to update.
-     * @return bool       True on success.
+     * @param int   $id
+     * @param array $data Keys: name, phone, city, favorite_genres (CSV of IDs or null).
      */
-    public function updateProfile(int $id, array $data): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("
+    public function updateProfile(int $id, array $data): void {
+        runQuery("
             UPDATE users
-            SET name=:name, phone=:phone, city=:city, favorite_genres=:genres, updated_at=NOW()
-            WHERE id=:id
-        ");
-        return $stmt->execute([
-            ':name'   => $data['name'],
-            ':phone'  => $data['phone'] ?? null,
-            ':city'   => $data['city']  ?? null,
-            ':genres' => $data['favorite_genres'] ?? null,
-            ':id'     => $id,
+            SET name = :name, phone = :phone, city = :city, favorite_genres = :favorite_genres, updated_at = NOW()
+            WHERE id = :id
+        ", [
+            ':name'            => $data['name'],
+            ':phone'           => $data['phone'] !== '' ? $data['phone'] : null,
+            ':city'            => $data['city'] !== '' ? $data['city'] : null,
+            ':favorite_genres' => $data['favorite_genres'],
+            ':id'              => $id,
         ]);
     }
 
     /**
-     * Update a user's account status (Admin action: approve, deactivate, reactivate).
+     * Update a user's account status (approve, deactivate, reactivate, suspend).
      *
-     * @param int    $id     The user's primary key.
+     * @param int    $id
      * @param string $status One of ACCOUNT_* constants.
-     * @return bool
      */
-    public function updateStatus(int $id, string $status): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE users SET status=:status, updated_at=NOW() WHERE id=:id");
-        return $stmt->execute([':status' => $status, ':id' => $id]);
+    public function updateStatus(int $id, string $status): void {
+        runQuery("UPDATE users SET status = :status, updated_at = NOW() WHERE id = :id", [':status' => $status, ':id' => $id]);
     }
 
     /**
      * Update a user's role (Admin-only: promote to staff, revoke staff).
      *
-     * @param int    $id   The user's primary key.
+     * @param int    $id
      * @param string $role One of ROLE_* constants.
-     * @return bool
      */
-    public function updateRole(int $id, string $role): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE users SET role=:role, updated_at=NOW() WHERE id=:id");
-        return $stmt->execute([':role' => $role, ':id' => $id]);
+    public function updateRole(int $id, string $role): void {
+        runQuery("UPDATE users SET role = :role, updated_at = NOW() WHERE id = :id", [':role' => $role, ':id' => $id]);
     }
 
     /**
-     * Store a new hashed password for the user (password reset flow).
+     * Store a new hashed password (password reset).
      *
-     * @param int    $id           User's primary key.
+     * @param int    $id
      * @param string $passwordHash New bcrypt hash.
-     * @return bool
      */
-    public function updatePassword(int $id, string $passwordHash): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE users SET password_hash=:hash, updated_at=NOW() WHERE id=:id");
-        return $stmt->execute([':hash' => $passwordHash, ':id' => $id]);
-    }
-
-    /**
-     * Increment the exchange_count for a user after a transaction completes.
-     *
-     * @param int $id User's primary key.
-     * @return bool
-     */
-    public function incrementExchangeCount(int $id): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE users SET exchange_count = exchange_count + 1, updated_at=NOW() WHERE id=:id");
-        return $stmt->execute([':id' => $id]);
+    public function updatePassword(int $id, string $passwordHash): void {
+        runQuery("UPDATE users SET password_hash = :hash, updated_at = NOW() WHERE id = :id", [':hash' => $passwordHash, ':id' => $id]);
     }
 }

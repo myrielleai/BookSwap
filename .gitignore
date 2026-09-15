@@ -1,3 +1,7 @@
 # Book photos uploaded at runtime (UPLOAD_DIR in backend/config/constants.php).
 # User content, not source code.
 uploads/
+
+# Machine-specific settings: JWT secret, debug flag, CORS origins, DB credentials.
+# Copy backend/config/local.example.php to create it.
+backend/config/local.php

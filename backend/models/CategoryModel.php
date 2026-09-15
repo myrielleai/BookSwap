@@ -3,153 +3,232 @@
 /**
  * CategoryModel.php
  * ─────────────────────────────────────────────────────────────────────────────
- * All database operations for taxonomy tables managed by the Administrator.
+ * Reference data managed by the Administrator (Phase 1 §3.1.3 and §3.1.6).
  *
- * Implemented with live PDO operations for Member 4 (Database & API integration).
+ * TABLES:
+ *   genres, formats, age_categories → id, name, is_active, created_at
+ *   conditions                      → id, label, description, is_active, created_at
+ *   meetup_locations                → id, name, address, city, is_active, created_at
  *
- * TABLES ASSUMED:
- *   categories       → id, name, type ('genre'|'age'|'format'), is_active, created_at
- *   conditions       → id, label ('Like New'|'Good'|'Fair'|'Heavily Used'), description, is_active
- *   meetup_locations → id, name, address, is_active
+ * Nothing here is ever deleted. Entries are retired (is_active = 0) so that
+ * listings created under them stay readable.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../helpers/response.php';
 
 class CategoryModel {
 
-    private ?PDO $db;
+    private PDO $db;
+
+    // Genres, formats, and age categories share one shape, so one set of
+    // methods serves all three. Only these table names can reach the SQL.
+    private const TAXONOMY_TABLES = [
+        'genre'        => 'genres',
+        'format'       => 'formats',
+        'age_category' => 'age_categories',
+    ];
 
     public function __construct() {
         $this->db = getDBConnection();
     }
 
-    // ── Categories (Genres / Age Groups / Formats) ────────────────────────────
+    // ── Genres, Formats, Age Categories ───────────────────────────────────────
 
     /**
-     * Get all active categories, optionally filtered by type.
+     * Active entries of a taxonomy, alphabetically.
      *
-     * @param string|null $type 'genre' | 'age' | 'format' | null (all)
+     * @param string $taxonomy 'genre' | 'format' | 'age_category'
      * @return array
      */
-    public function getCategories(?string $type = null): array {
-        if (!$this->db) return [];
-        $where  = ["is_active = 1"];
-        $params = [];
-        if ($type) {
-            $where[] = "type = :type";
-            $params[':type'] = $type;
-        }
-        $sql = "SELECT * FROM categories WHERE " . implode(' AND ', $where) . " ORDER BY name ASC";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll() ?: [];
+    public function listTaxonomy(string $taxonomy): array {
+        $table = $this->table($taxonomy);
+        return runQuery("SELECT id, name, is_active, created_at FROM $table WHERE is_active = 1 ORDER BY name ASC")->fetchAll();
     }
 
     /**
-     * Create a new category.
+     * Find a taxonomy entry, active or retired.
      *
-     * @param string $name
-     * @param string $type 'genre' | 'age' | 'format'
-     * @return int  New category's ID.
+     * @param string $taxonomy
+     * @param int    $id
+     * @return array|null
      */
-    public function createCategory(string $name, string $type): int {
-        if (!$this->db) return 0;
-        $stmt = $this->db->prepare("INSERT INTO categories (name, type, is_active, created_at) VALUES (:name, :type, 1, NOW())");
-        $stmt->execute([':name' => $name, ':type' => $type]);
+    public function findTaxonomy(string $taxonomy, int $id): ?array {
+        $table = $this->table($taxonomy);
+        return runQuery("SELECT id, name, is_active, created_at FROM $table WHERE id = :id LIMIT 1", [':id' => $id])->fetch() ?: null;
+    }
+
+    /**
+     * Whether an ID refers to an active entry (used to validate listing fields).
+     *
+     * @param string $taxonomy
+     * @param int    $id
+     * @return bool
+     */
+    public function isActiveTaxonomy(string $taxonomy, int $id): bool {
+        $entry = $this->findTaxonomy($taxonomy, $id);
+        return $entry !== null && (int) $entry['is_active'] === 1;
+    }
+
+    /**
+     * Add a taxonomy entry.
+     *
+     * @param string $taxonomy
+     * @param string $name
+     * @return int New ID.
+     */
+    public function createTaxonomy(string $taxonomy, string $name): int {
+        $table = $this->table($taxonomy);
+        $this->insertUnique(
+            "INSERT INTO $table (name, is_active, created_at) VALUES (:name, 1, NOW())",
+            [':name' => $name],
+            'An entry with that name already exists (it may be retired).'
+        );
         return (int) $this->db->lastInsertId();
     }
 
     /**
-     * Retire a category by marking it inactive.
-     * Historical listings referencing it are not changed.
+     * Retire a taxonomy entry. Listings that use it are unchanged.
      *
-     * @param int $id
-     * @return bool
+     * @param string $taxonomy
+     * @param int    $id
      */
-    public function retireCategory(int $id): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE categories SET is_active = 0 WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+    public function retireTaxonomy(string $taxonomy, int $id): void {
+        $table = $this->table($taxonomy);
+        runQuery("UPDATE $table SET is_active = 0 WHERE id = :id", [':id' => $id]);
     }
 
     // ── Condition Grades ──────────────────────────────────────────────────────
 
     /**
-     * Get all active condition grades (shown to users at listing time).
+     * Active condition grades, in their defined order (best to worst).
      *
      * @return array
      */
     public function getConditions(): array {
-        if (!$this->db) return [];
-        $stmt = $this->db->prepare("SELECT * FROM conditions WHERE is_active = 1 ORDER BY id ASC");
-        $stmt->execute();
-        return $stmt->fetchAll() ?: [];
+        return runQuery("SELECT * FROM conditions WHERE is_active = 1 ORDER BY id ASC")->fetchAll();
     }
 
     /**
-     * Create a new condition grade.
-     *
-     * @param string $label       Display label, e.g., "Like New".
-     * @param string $description Written description shown to users.
+     * @param int $id
+     * @return array|null
+     */
+    public function findCondition(int $id): ?array {
+        return runQuery("SELECT * FROM conditions WHERE id = :id LIMIT 1", [':id' => $id])->fetch() ?: null;
+    }
+
+    /**
+     * @param int $id
+     * @return bool
+     */
+    public function isActiveCondition(int $id): bool {
+        $condition = $this->findCondition($id);
+        return $condition !== null && (int) $condition['is_active'] === 1;
+    }
+
+    /**
+     * @param string $label       e.g. "Like New"
+     * @param string $description Rubric shown to members when listing.
      * @return int
      */
     public function createCondition(string $label, string $description): int {
-        if (!$this->db) return 0;
-        $stmt = $this->db->prepare("INSERT INTO conditions (label, description, is_active, created_at) VALUES (:label, :description, 1, NOW())");
-        $stmt->execute([':label' => $label, ':description' => $description]);
+        $this->insertUnique(
+            "INSERT INTO conditions (label, description, is_active, created_at) VALUES (:label, :description, 1, NOW())",
+            [':label' => $label, ':description' => $description],
+            'A condition grade with that label already exists (it may be retired).'
+        );
         return (int) $this->db->lastInsertId();
     }
 
     /**
-     * Retire a condition grade (mark inactive).
-     *
      * @param int $id
-     * @return bool
      */
-    public function retireCondition(int $id): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE conditions SET is_active = 0 WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+    public function retireCondition(int $id): void {
+        runQuery("UPDATE conditions SET is_active = 0 WHERE id = :id", [':id' => $id]);
     }
 
     // ── Meetup Locations ──────────────────────────────────────────────────────
 
     /**
-     * Get all active meetup locations (shown to Staff when scheduling handovers).
+     * Active meetup locations, alphabetically.
      *
      * @return array
      */
     public function getMeetupLocations(): array {
-        if (!$this->db) return [];
-        $stmt = $this->db->prepare("SELECT * FROM meetup_locations WHERE is_active = 1 ORDER BY name ASC");
-        $stmt->execute();
-        return $stmt->fetchAll() ?: [];
+        return runQuery("SELECT * FROM meetup_locations WHERE is_active = 1 ORDER BY name ASC")->fetchAll();
     }
 
     /**
-     * Add a new meetup location.
-     *
+     * @param int $id
+     * @return array|null
+     */
+    public function findMeetupLocation(int $id): ?array {
+        return runQuery("SELECT * FROM meetup_locations WHERE id = :id LIMIT 1", [':id' => $id])->fetch() ?: null;
+    }
+
+    /**
+     * @param int $id
+     * @return bool
+     */
+    public function isActiveLocation(int $id): bool {
+        $location = $this->findMeetupLocation($id);
+        return $location !== null && (int) $location['is_active'] === 1;
+    }
+
+    /**
      * @param string $name
      * @param string $address
+     * @param string $city
      * @return int
      */
-    public function createMeetupLocation(string $name, string $address): int {
-        if (!$this->db) return 0;
-        $stmt = $this->db->prepare("INSERT INTO meetup_locations (name, address, is_active, created_at) VALUES (:name, :address, 1, NOW())");
-        $stmt->execute([':name' => $name, ':address' => $address]);
+    public function createMeetupLocation(string $name, string $address, string $city): int {
+        runQuery(
+            "INSERT INTO meetup_locations (name, address, city, is_active, created_at) VALUES (:name, :address, :city, 1, NOW())",
+            [':name' => $name, ':address' => $address, ':city' => $city]
+        );
         return (int) $this->db->lastInsertId();
     }
 
     /**
-     * Retire a meetup location (mark inactive).
+     * Retire a location. Its open future slots stop being offered for scheduling.
      *
      * @param int $id
-     * @return bool
      */
-    public function retireMeetupLocation(int $id): bool {
-        if (!$this->db) return false;
-        $stmt = $this->db->prepare("UPDATE meetup_locations SET is_active = 0 WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+    public function retireMeetupLocation(int $id): void {
+        runQuery("UPDATE meetup_locations SET is_active = 0 WHERE id = :id", [':id' => $id]);
+    }
+
+    // ── Internals ─────────────────────────────────────────────────────────────
+
+    /**
+     * Map a taxonomy name to its table, refusing anything unknown.
+     *
+     * @param string $taxonomy
+     * @return string
+     */
+    private function table(string $taxonomy): string {
+        if (!isset(self::TAXONOMY_TABLES[$taxonomy])) {
+            throw new InvalidArgumentException("Unknown taxonomy: $taxonomy");
+        }
+        return self::TAXONOMY_TABLES[$taxonomy];
+    }
+
+    /**
+     * Run an INSERT, turning a duplicate-key error into a 409 response.
+     *
+     * @param string $sql
+     * @param array  $params
+     * @param string $duplicateMessage
+     */
+    private function insertUnique(string $sql, array $params, string $duplicateMessage): void {
+        try {
+            runQuery($sql, $params);
+        } catch (PDOException $e) {
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                throw new ApiException($duplicateMessage, 409);
+            }
+            throw $e;
+        }
     }
 }

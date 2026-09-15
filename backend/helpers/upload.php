@@ -3,81 +3,125 @@
 /**
  * upload.php
  * ─────────────────────────────────────────────────────────────────────────────
- * Book photo upload helper for BookSwap.
+ * Book photo uploads for BookSwap.
  *
- * Handles validation and saving of uploaded book photographs.
- * The returned file path is what gets stored in the `listings.photo_path` column.
+ * A listing needs at least one photograph of the actual copy (Phase 1 §3.3.2)
+ * and may have up to MAX_LISTING_PHOTOS. Each saved file becomes one row in
+ * listing_photos holding the relative path returned here.
  *
- * TODO (DB): When saving a listing, pass the returned path into ListingModel.
+ * Photos may be sent as a multi-file field (photos[]) or a single field (photo).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/response.php';
 
+// The stored extension is chosen from the detected MIME type, never taken from
+// the client's filename, so "shell.php" renamed to "cover.jpg" cannot keep a
+// dangerous extension.
+const PHOTO_EXTENSIONS = [
+    'image/jpeg' => 'jpg',
+    'image/png'  => 'png',
+    'image/webp' => 'webp',
+];
+
 /**
- * Validate and save an uploaded book photo.
+ * Collect uploaded photos from photos[] and/or photo, in the order sent.
+ * Empty file inputs (nothing chosen) are skipped.
  *
- * Expects the file to be in $_FILES under the given field name.
- * Returns the relative path to the saved file on success,
- * or calls sendError() and exits on failure.
- *
- * @param string $fieldName  The name attribute of the <input type="file"> field.
- * @return string            Relative path to the stored file (e.g., "uploads/books/abc123.jpg").
+ * @return array List of $_FILES-style entries.
  */
-function saveBookPhoto(string $fieldName = 'photo'): string {
-    // Check that a file was actually uploaded.
-    if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
-        sendError('A valid book photo is required.', 422);
+function collectUploadedPhotos(): array {
+    $files = [];
+
+    if (isset($_FILES['photos']) && is_array($_FILES['photos']['name'])) {
+        foreach ($_FILES['photos']['name'] as $i => $name) {
+            $files[] = [
+                'name'     => $name,
+                'tmp_name' => $_FILES['photos']['tmp_name'][$i],
+                'size'     => $_FILES['photos']['size'][$i],
+                'error'    => $_FILES['photos']['error'][$i],
+            ];
+        }
     }
 
-    $file     = $_FILES[$fieldName];
-    $maxBytes = UPLOAD_MAX_MB * 1024 * 1024;
-
-    // Validate file size.
-    if ($file['size'] > $maxBytes) {
-        sendError("Photo must not exceed " . UPLOAD_MAX_MB . " MB.", 422);
+    if (isset($_FILES['photo']) && !is_array($_FILES['photo']['name'])) {
+        $files[] = $_FILES['photo'];
     }
 
-    // Validate MIME type using finfo (more reliable than the client-provided type).
-    $finfo    = new finfo(FILEINFO_MIME_TYPE);
-    $mimeType = $finfo->file($file['tmp_name']);
-
-    if (!in_array($mimeType, UPLOAD_ALLOWED, true)) {
-        sendError('Only JPEG, PNG, and WebP photos are accepted.', 422);
-    }
-
-    // Build a unique filename to avoid collisions.
-    $extension    = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $uniqueName   = uniqid('book_', true) . '.' . strtolower($extension);
-    $uploadDir    = UPLOAD_DIR;
-    $absolutePath = $uploadDir . $uniqueName;
-
-    // Create the upload directory if it does not exist yet.
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
-
-    // Move the file from the temp location to permanent storage.
-    if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
-        sendError('Failed to save the photo. Please try again.', 500);
-    }
-
-    // Return a relative path suitable for storing in the database.
-    return 'uploads/books/' . $uniqueName;
+    return array_values(array_filter($files, fn(array $f): bool => $f['error'] !== UPLOAD_ERR_NO_FILE));
 }
 
 /**
- * Delete a previously uploaded book photo from the filesystem.
- * Called when a listing is withdrawn or a photo is replaced.
+ * Validate every uploaded photo, then store them all.
  *
- * @param string $relativePath The relative path stored in the database.
+ * All files are checked before any is moved, so a bad third photo does not
+ * leave the first two orphaned on disk. Sends 422 and exits on the first problem.
+ *
+ * @return string[] Relative paths such as "uploads/books/book_3f9a....jpg".
  */
-function deleteBookPhoto(string $relativePath): void {
-    // Resolve to an absolute path (backend/ is two levels up from helpers/).
-    $absolutePath = __DIR__ . '/../../' . $relativePath;
+function saveBookPhotos(): array {
+    $files = collectUploadedPhotos();
 
-    if (file_exists($absolutePath)) {
-        unlink($absolutePath);
+    if (count($files) === 0) {
+        sendError('At least one clear photo of the book is required.', 422, ['photos' => 'At least one photo is required.']);
+    }
+    if (count($files) > MAX_LISTING_PHOTOS) {
+        sendError('A listing may have at most ' . MAX_LISTING_PHOTOS . ' photos.', 422, ['photos' => 'Too many photos.']);
+    }
+
+    $maxBytes = UPLOAD_MAX_MB * 1024 * 1024;
+    $finfo    = new finfo(FILEINFO_MIME_TYPE);
+    $checked  = [];
+
+    foreach ($files as $i => $file) {
+        $label = 'Photo ' . ($i + 1);
+
+        if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            sendError("$label could not be uploaded.", 422, ['photos' => "$label failed to upload."]);
+        }
+        if ($file['size'] > $maxBytes) {
+            sendError("$label must not exceed " . UPLOAD_MAX_MB . ' MB.', 422, ['photos' => "$label is too large."]);
+        }
+
+        // finfo reads the file's actual bytes; the browser-supplied type is not trusted.
+        $mime = $finfo->file($file['tmp_name']);
+        if (!is_string($mime) || !array_key_exists($mime, PHOTO_EXTENSIONS)) {
+            sendError("$label must be a JPEG, PNG, or WebP image.", 422, ['photos' => "$label has an unsupported type."]);
+        }
+
+        $checked[] = ['tmp' => $file['tmp_name'], 'ext' => PHOTO_EXTENSIONS[$mime]];
+    }
+
+    if (!is_dir(UPLOAD_DIR)) {
+        mkdir(UPLOAD_DIR, 0755, true);
+    }
+
+    $paths = [];
+    foreach ($checked as $photo) {
+        $name = 'book_' . bin2hex(random_bytes(12)) . '.' . $photo['ext'];
+        if (!move_uploaded_file($photo['tmp'], UPLOAD_DIR . $name)) {
+            deleteBookPhotos($paths);
+            sendError('Failed to save the photos. Please try again.', 500);
+        }
+        $paths[] = 'uploads/books/' . $name;
+    }
+
+    return $paths;
+}
+
+/**
+ * Delete stored photos, for example when the database insert that would have
+ * referenced them fails.
+ *
+ * @param string[] $relativePaths Paths as returned by saveBookPhotos().
+ */
+function deleteBookPhotos(array $relativePaths): void {
+    foreach ($relativePaths as $path) {
+        // backend/helpers → project root is two levels up.
+        $absolutePath = __DIR__ . '/../../' . $path;
+        if (is_file($absolutePath)) {
+            unlink($absolutePath);
+        }
     }
 }

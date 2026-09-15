@@ -3,40 +3,38 @@
 /**
  * TransactionController.php
  * ─────────────────────────────────────────────────────────────────────────────
- * Handles Customer-facing transaction actions (receipt confirmation and dispute filing).
- * Staff actions (status changes, scheduling) are in StaffController.
+ * Member-facing transaction actions: viewing an exchange and confirming receipt.
+ *
+ * Phase 1 §4.2: members cannot change a transaction's state. Confirming
+ * receipt only records their side; a moderator then records completion
+ * (StaffController::updateTransactionStatus). Reports about an exchange are
+ * filed through POST /api/reports.
  *
  * Endpoints (defined in routes/api.php):
  *   GET /api/transactions/{id}           → show()
  *   PUT /api/transactions/{id}/confirm   → confirmReceipt()
- *   POST /api/transactions/{id}/dispute  → fileDispute()
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 require_once __DIR__ . '/../middleware/auth_middleware.php';
 require_once __DIR__ . '/../models/TransactionModel.php';
-require_once __DIR__ . '/../models/ExchangeModel.php';
-require_once __DIR__ . '/../models/ListingModel.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/NotificationModel.php';
 require_once __DIR__ . '/../models/ReportModel.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/constants.php';
 
 class TransactionController {
 
     private TransactionModel  $transactionModel;
-    private ExchangeModel     $exchangeModel;
-    private ListingModel      $listingModel;
     private UserModel         $userModel;
     private NotificationModel $notificationModel;
     private ReportModel       $reportModel;
 
     public function __construct() {
         $this->transactionModel  = new TransactionModel();
-        $this->exchangeModel     = new ExchangeModel();
-        $this->listingModel      = new ListingModel();
         $this->userModel         = new UserModel();
         $this->notificationModel = new NotificationModel();
         $this->reportModel       = new ReportModel();
@@ -44,8 +42,12 @@ class TransactionController {
 
     /**
      * GET /api/transactions/{id}
-     * Return full detail of a transaction.
-     * Only parties in the transaction or Staff/Admin may view.
+     * Full detail of an exchange. Only its two members or Staff/Admin may view.
+     *
+     * Contact numbers follow Phase 1 §4.2 and §4.3: each member sees only the
+     * other member's number (the request has been accepted, or no transaction
+     * would exist). A moderator sees numbers only for exchanges they handle;
+     * Administrators always do.
      *
      * @param int $id
      */
@@ -53,18 +55,26 @@ class TransactionController {
         $authUser = requireAuth();
 
         $tx = $this->transactionModel->findById($id);
-        if ($tx === null) sendNotFound('Transaction not found.');
+        if ($tx === null) {
+            sendNotFound('Transaction not found.');
+        }
 
-        // Permission check: Staff/Admin see all; Customers see only their own.
-        if ($authUser['role'] === ROLE_CUSTOMER) {
-            $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
-            $targetListing = $exchangeReq ? $this->listingModel->findById((int) $exchangeReq['target_listing_id']) : null;
-            $ownerId = $targetListing ? (int) $targetListing['user_id'] : (int) ($exchangeReq['target_owner_id'] ?? 0);
-            $requesterId = $exchangeReq ? (int) $exchangeReq['requester_id'] : 0;
+        $isOwner     = $authUser['sub'] === (int) $tx['owner_id'];
+        $isRequester = $authUser['sub'] === (int) $tx['requester_id'];
+        $isStaff     = in_array($authUser['role'], [ROLE_STAFF, ROLE_ADMIN], true);
 
-            if ($authUser['sub'] !== $ownerId && $authUser['sub'] !== $requesterId) {
-                sendForbidden('You are not authorized to view this transaction.');
-            }
+        if (!$isOwner && !$isRequester && !$isStaff) {
+            sendForbidden('You are not authorized to view this transaction.');
+        }
+
+        if ($isOwner || $isRequester) {
+            $tx['your_role']   = $isOwner ? 'owner' : 'requester';
+            $tx['counterpart'] = $isOwner
+                ? ['name' => $tx['requester_name'], 'phone' => $tx['requester_phone']]
+                : ['name' => $tx['owner_name'], 'phone' => $tx['owner_phone']];
+            unset($tx['requester_phone'], $tx['owner_phone']);
+        } elseif ($authUser['role'] !== ROLE_ADMIN && (int) $tx['handled_by'] !== $authUser['sub']) {
+            unset($tx['requester_phone'], $tx['owner_phone']);
         }
 
         sendSuccess($tx, 'Transaction retrieved.');
@@ -72,121 +82,60 @@ class TransactionController {
 
     /**
      * PUT /api/transactions/{id}/confirm
-     * Customer confirms receipt of the book after the physical handover.
-     * When both parties confirm, the transaction is marked TX_COMPLETED and
-     * the exchange counts on both user profiles are incremented.
+     * A member confirms they received their book after the handover.
+     * When both have confirmed, the handling moderator is told the exchange is
+     * ready to be recorded as completed.
      *
      * @param int $id
      */
     public function confirmReceipt(int $id): void {
         $authUser = requireAuth(ROLE_CUSTOMER);
-        $userId   = (int) $authUser['sub'];
+        $userId   = $authUser['sub'];
 
         $tx = $this->transactionModel->findById($id);
-        if ($tx === null) sendNotFound('Transaction not found.');
-        if ($tx['status'] !== TX_SCHEDULED) {
-            sendError('Receipt can only be confirmed for transactions in Scheduled status.', 409);
+        if ($tx === null) {
+            sendNotFound('Transaction not found.');
         }
 
-        $exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
-        if (!$exchangeReq) sendNotFound('Exchange request associated with transaction not found.');
-
-        $targetListing = $this->listingModel->findById((int) $exchangeReq['target_listing_id']);
-        $ownerId       = $targetListing ? (int) $targetListing['user_id'] : (int) ($exchangeReq['target_owner_id'] ?? 0);
-        $requesterId   = (int) $exchangeReq['requester_id'];
-
-        if ($userId !== $ownerId && $userId !== $requesterId) {
+        $isOwner = $userId === (int) $tx['owner_id'];
+        if (!$isOwner && $userId !== (int) $tx['requester_id']) {
             sendForbidden('You are not a participant in this transaction.');
         }
+        if ($tx['status'] !== TX_SCHEDULED) {
+            sendError('Receipt can only be confirmed for a scheduled handover.', 409);
+        }
+        if ((int) $tx[$isOwner ? 'owner_confirmed' : 'requester_confirmed'] === 1) {
+            sendError('You have already confirmed receipt for this exchange.', 409);
+        }
 
-        // Party A = target listing owner; Party B = requester
-        $isPartyA = ($userId === $ownerId);
+        withTransaction(function () use ($id, $isOwner, $userId) {
+            $this->transactionModel->confirmReceipt($id, $isOwner);
+            $this->reportModel->logActivity($userId, 'transaction', $id, 'receipt_confirmed', $isOwner ? 'owner' : 'requester');
+        });
 
-        $this->transactionModel->confirmReceipt($id, $isPartyA);
+        $requesterConfirmed = $isOwner ? (int) $tx['requester_confirmed'] === 1 : true;
+        $ownerConfirmed     = $isOwner ? true : (int) $tx['owner_confirmed'] === 1;
+        $bothConfirmed      = $requesterConfirmed && $ownerConfirmed;
 
-        // If both parties have now confirmed, complete the transaction.
-        if ($this->transactionModel->bothPartiesConfirmed($id)) {
-            $this->transactionModel->updateStatus($id, TX_COMPLETED);
+        if ($bothConfirmed) {
+            $staffIds = $tx['handled_by'] !== null
+                ? [(int) $tx['handled_by']]
+                : $this->userModel->getActiveIdsByRole(ROLE_STAFF);
 
-            // Increment the exchange count on both users' profiles.
-            $this->userModel->incrementExchangeCount($requesterId);
-            $this->userModel->incrementExchangeCount($ownerId);
-
-            // Mark both listings as completed/archived or exchanged
-            $this->listingModel->updateStatus((int) $exchangeReq['target_listing_id'], LISTING_ARCHIVED);
-            $this->listingModel->updateStatus((int) $exchangeReq['offered_listing_id'], LISTING_ARCHIVED);
-
-            // Notify both parties of completion.
-            $this->notificationModel->create(
-                $requesterId,
-                'exchange_completed',
-                'Your book exchange has been completed successfully! Thank you for using BookSwap.',
+            $this->notificationModel->notifyMany(
+                $staffIds,
+                'exchange_ready_to_complete',
+                "Both members confirmed receipt for transaction #$id. It is ready to be marked completed.",
                 'transaction',
                 $id
             );
-            $this->notificationModel->create(
-                $ownerId,
-                'exchange_completed',
-                'Your book exchange has been completed successfully! Thank you for using BookSwap.',
-                'transaction',
-                $id
-            );
-
-            $this->reportModel->logActivity($userId, 'transaction', $id, 'completed', 'Both parties confirmed receipt.');
         }
 
-        sendSuccess(null, 'Receipt confirmed. Waiting for the other party to confirm.');
-    }
-
-    /**
-     * POST /api/transactions/{id}/dispute
-     * Customer files a dispute (misdescribed condition, no-show, etc.).
-     * Accepts: { reason, details }
-     * The dispute is logged and visible to Staff for resolution.
-     *
-     * @param int $id
-     */
-    public function fileDispute(int $id): void {
-        $authUser = requireAuth(ROLE_CUSTOMER);
-
-        $body   = getRequestBody();
-        $errors = [];
-        validateRequired(['reason', 'details'], $body, $errors);
-        if (!empty($errors)) sendError('Validation failed.', 422, $errors);
-
-        $tx = $this->transactionModel->findById($id);
-        if ($tx === null) sendNotFound('Transaction not found.');
-
-        // A dispute can be filed on a Scheduled or Completed transaction.
-        $disputableStatuses = [TX_SCHEDULED, TX_COMPLETED];
-        if (!in_array($tx['status'], $disputableStatuses, true)) {
-            sendError('A dispute cannot be filed on this transaction in its current state.', 409);
-        }
-
-        $reason  = sanitizeString($body['reason']);
-        $details = sanitizeString($body['details']);
-
-        // Log the dispute in the activity log so Staff can find and resolve it.
-        $this->reportModel->logActivity(
-            $authUser['sub'],
-            'transaction',
-            $id,
-            'dispute_filed',
-            "Reason: $reason | Details: $details"
+        sendSuccess(
+            ['requester_confirmed' => $requesterConfirmed, 'owner_confirmed' => $ownerConfirmed],
+            $bothConfirmed
+                ? 'Receipt confirmed. Both members have confirmed; a moderator will record the exchange as completed.'
+                : 'Receipt confirmed. Waiting for the other member to confirm.'
         );
-
-        // Notify all active Staff and Admin members that a dispute was filed.
-        $staffUsers = $this->userModel->getAll(ACCOUNT_ACTIVE, ROLE_STAFF);
-        foreach ($staffUsers as $staff) {
-            $this->notificationModel->create(
-                (int) $staff['id'],
-                'dispute_filed',
-                "A dispute was filed on transaction #$id. Reason: $reason",
-                'transaction',
-                $id
-            );
-        }
-
-        sendSuccess(null, 'Dispute filed. A moderator will review it and contact you.');
     }
 }

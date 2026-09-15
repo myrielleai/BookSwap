@@ -138,3 +138,59 @@ Completed the full database schema implementation, seed data generator, ERD docu
 - [ ] Replace default `JWT_SECRET` with generated production secret in `config/constants.php`
 - [ ] Harden CORS to production Vercel frontend URL in `index.php`
 - [ ] Deploy database and backend to live server (InfinityFree)
+
+---
+
+## Session 3 — 2026-09-15 (Phase 2 completion, aligned to the Phase 1 document)
+
+### What Changed and Why
+
+The Session 1–2 backend was built from an older campus (ULSVO) design. It was rebuilt against **[Phase 1] BookSwap_Project_Document_Group_3.pdf** (text, Figure 1 architecture, Figure 2 ERD) and the gaps in the **Final Project Guide** were closed.
+
+**Database, now matching the Phase 1 ERD (16 tables, 24 foreign keys, 4 CHECK constraints)**
+- `categories` split into `genres`, `formats`, `age_categories`; listings carry all three plus `verified_by`.
+- New `listing_photos` (1–5 photos per listing), `reports` (disputes, no-shows, inappropriate listings, spam requests), and `user_sessions`.
+- `handover_slots` is now an Administrator-defined pool; transactions book a slot and store both receipt confirmations and `completed_at`.
+- Campus-era user columns and the stored `exchange_count` removed; completed exchanges are counted from transactions.
+- Column names kept where the ERD only renames them; the Phase 2 document carries the ERD-to-schema name map.
+
+**Workflow, now following Phase 1 rules**
+- Requests are decided by the listing owner only; the staff endorsement step is gone (§3.2.2, §4.4).
+- Transactions run Accepted → Scheduled → Completed | Cancelled (§3.2.3). Acceptance locks both books, opens the transaction, and auto-declines competing requests in one database transaction.
+- Only Staff change transaction state (§4.2); members confirm receipt, then Staff record completion.
+- Staff cannot verify, schedule, reschedule, complete, cancel, or record a no-show on anything they are part of (§4.5).
+- Unanswered requests expire, watchers are notified when a book becomes available, members can deactivate their own account, and counterpart phone numbers are shared only after acceptance.
+
+**Guide requirements**
+- Sessions: each JWT is tied to a `user_sessions` row, so logout, deactivation, role change, and password reset end sessions immediately.
+- Search, filter, sort, pagination on the catalogue and every staff/admin list, with whitelisted sort and status values and validated dates.
+- Admin dashboard (totals, 12-month chart data, most requested genres, recent activity) and reports by genre, city, and age group.
+- Global JSON error handling, security headers, CORS allow-list, output escaping, and the JWT secret moved to `config/local.php` (not committed).
+
+### New Files in Session 3
+
+| Layer | File | Purpose |
+|---|---|---|
+| Config | `config/local.example.php` | Template for the uncommitted `config/local.php` (secret, debug, CORS, DB) |
+| Helper | `helpers/errors.php` | Global exception, warning, and fatal-error handling |
+| Model | `models/SessionModel.php` | Server-side sessions behind JWTs |
+| Model | `models/HandoverSlotModel.php` | Administrator-defined handover slot pool |
+| Model | `models/IncidentReportModel.php` | Member and staff reports (`reports` table) |
+
+All other backend files, `database/schema.sql`, `database/seed.sql`, and `docs/images/*.png` (replaced with the Phase 1 figures) were rewritten or updated.
+
+### Verification
+
+Local Apache/MariaDB/PHP, live database, 234 end-to-end checks across authentication and sessions, role-based access, search and pagination, dashboard and reports, listings, requests, transactions, reports, reference data, accounts, and error handling. All 234 pass. Two defects found during the run were fixed:
+- An accepted request whose exchange was later cancelled still counted as "active", blocking the member from requesting that book again.
+- Creating a handover slot returned 500 because an en dash directly after `$startTime` in a string was read as part of the variable name.
+
+### Integration Checklist Status
+
+- [x] Replace default `JWT_SECRET` — now read from `config/local.php`; login is refused while the placeholder is in use
+- [x] Harden CORS — origins come from `CORS_ORIGINS` in `config/local.php` instead of `*`
+- [ ] Add the production Vercel URL to `CORS_ORIGINS` on the live server
+- [ ] Integrate SendGrid or Mailgun for external transactional emails (in-app notifications are fully active)
+- [ ] OAuth 2.0 (Google / Facebook) login from Figure 1
+- [ ] Deploy database and backend to live server (InfinityFree)
+- [ ] Update `docs/ERD_DATA_DICTIONARY.md` and `docs/DB_API_GUIDE.md`, which still describe the Session 1–2 design

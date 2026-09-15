@@ -48,68 +48,86 @@ $routes = [
     'GET  /api/listings/{id}'  => ['ListingController', 'show'],
 
     // ── Public Taxonomy (no auth) ─────────────────────────────────────────────
-    'GET  /api/categories'        => ['CategoryController', 'listCategories'],
+    'GET  /api/genres'            => ['CategoryController', 'listGenres'],
+    'GET  /api/formats'           => ['CategoryController', 'listFormats'],
+    'GET  /api/age-categories'    => ['CategoryController', 'listAgeCategories'],
     'GET  /api/conditions'        => ['CategoryController', 'listConditions'],
     'GET  /api/meetup-locations'  => ['CategoryController', 'listMeetupLocations'],
 
-    // ── Customer: Profile & Dashboard ─────────────────────────────────────────
-    'GET  /api/user/profile'    => ['UserController', 'getProfile'],
-    'PUT  /api/user/profile'    => ['UserController', 'updateProfile'],
-    'GET  /api/user/dashboard'  => ['UserController', 'dashboard'],
+    // ── Member: Profile, Dashboard, Account ───────────────────────────────────
+    'GET  /api/user/profile'     => ['UserController', 'getProfile'],
+    'PUT  /api/user/profile'     => ['UserController', 'updateProfile'],
+    'GET  /api/user/dashboard'   => ['UserController', 'dashboard'],
+    'PUT  /api/user/deactivate'  => ['UserController', 'deactivateAccount'],
 
-    // ── Customer: Notifications ────────────────────────────────────────────────
-    'GET  /api/user/notifications'                 => ['UserController', 'getNotifications'],
-    'PUT  /api/user/notifications/{id}/read'       => ['UserController', 'markNotificationRead'],
-    'PUT  /api/user/notifications/read-all'        => ['UserController', 'markAllNotificationsRead'],
+    // ── Member: Notifications ─────────────────────────────────────────────────
+    'GET  /api/user/notifications'            => ['UserController', 'getNotifications'],
+    'PUT  /api/user/notifications/{id}/read'  => ['UserController', 'markNotificationRead'],
+    'PUT  /api/user/notifications/read-all'   => ['UserController', 'markAllNotificationsRead'],
 
-    // ── Customer: Listings ────────────────────────────────────────────────────
-    'POST   /api/listings'                     => ['ListingController', 'create'],
-    'PUT    /api/listings/{id}'                => ['ListingController', 'update'],
-    'DELETE /api/listings/{id}'                => ['ListingController', 'withdraw'],
-    'POST   /api/listings/{id}/watchlist'      => ['ListingController', 'addToWatchlist'],
-    'DELETE /api/listings/{id}/watchlist'      => ['ListingController', 'removeFromWatchlist'],
-    'GET    /api/user/watchlist'               => ['ListingController', 'getWatchlist'],
+    // ── Member: Listings & Watchlist ──────────────────────────────────────────
+    'POST   /api/listings'                 => ['ListingController', 'create'],
+    'PUT    /api/listings/{id}'            => ['ListingController', 'update'],
+    'DELETE /api/listings/{id}'            => ['ListingController', 'withdraw'],
+    'POST   /api/listings/{id}/watchlist'  => ['ListingController', 'addToWatchlist'],
+    'DELETE /api/listings/{id}/watchlist'  => ['ListingController', 'removeFromWatchlist'],
+    'GET    /api/user/watchlist'           => ['ListingController', 'getWatchlist'],
 
-    // ── Customer: Exchange Requests ───────────────────────────────────────────
-    'POST /api/exchanges'                  => ['ExchangeController', 'sendRequest'],
-    'GET  /api/exchanges/{id}'             => ['ExchangeController', 'show'],
-    'PUT  /api/exchanges/{id}/accept'      => ['ExchangeController', 'acceptRequest'],
-    'PUT  /api/exchanges/{id}/decline'     => ['ExchangeController', 'declineRequest'],
-    'PUT  /api/exchanges/{id}/withdraw'    => ['ExchangeController', 'withdrawRequest'],
+    // ── Member: Exchange Requests (decided by the listing owner) ──────────────
+    'POST /api/exchanges'                => ['ExchangeController', 'sendRequest'],
+    'GET  /api/exchanges/{id}'           => ['ExchangeController', 'show'],
+    'PUT  /api/exchanges/{id}/accept'    => ['ExchangeController', 'acceptRequest'],
+    'PUT  /api/exchanges/{id}/decline'   => ['ExchangeController', 'declineRequest'],
+    'PUT  /api/exchanges/{id}/withdraw'  => ['ExchangeController', 'withdrawRequest'],
 
-    // ── Customer: Transactions ────────────────────────────────────────────────
+    // ── Member: Transactions & Reports ────────────────────────────────────────
     'GET  /api/transactions/{id}'          => ['TransactionController', 'show'],
     'PUT  /api/transactions/{id}/confirm'  => ['TransactionController', 'confirmReceipt'],
-    'POST /api/transactions/{id}/dispute'  => ['TransactionController', 'fileDispute'],
+    'POST /api/reports'                    => ['UserController', 'fileReport'],
 
     // ── Staff: Moderation ─────────────────────────────────────────────────────
-    'GET /api/staff/dashboard'                          => ['StaffController', 'dashboard'],
-    'PUT /api/staff/listings/{id}/verify'               => ['StaffController', 'verifyListing'],
-    'PUT /api/staff/requests/{id}/endorse'              => ['StaffController', 'endorseRequest'],
-    'PUT /api/staff/transactions/{id}/status'           => ['StaffController', 'updateTransactionStatus'],
-    'POST /api/staff/transactions/{id}/schedule'        => ['StaffController', 'scheduleHandover'],
-    'PUT /api/staff/transactions/{id}/reschedule'       => ['StaffController', 'rescheduleHandover'],
-    'PUT /api/staff/transactions/{id}/no-show'          => ['StaffController', 'recordNoShow'],
+    'GET  /api/staff/dashboard'                     => ['StaffController', 'dashboard'],
+    'PUT  /api/staff/listings/{id}/verify'          => ['StaffController', 'verifyListing'],
+    'GET  /api/staff/requests'                      => ['StaffController', 'listRequests'],
+    'GET  /api/staff/transactions'                  => ['StaffController', 'listTransactions'],
+    'POST /api/staff/transactions/{id}/schedule'    => ['StaffController', 'scheduleHandover'],
+    'PUT  /api/staff/transactions/{id}/reschedule'  => ['StaffController', 'rescheduleHandover'],
+    'PUT  /api/staff/transactions/{id}/status'      => ['StaffController', 'updateTransactionStatus'],
+    'PUT  /api/staff/transactions/{id}/no-show'     => ['StaffController', 'recordNoShow'],
+    'GET  /api/staff/reports'                       => ['StaffController', 'listReports'],
+    'PUT  /api/staff/reports/{id}'                  => ['StaffController', 'resolveReport'],
+    'GET  /api/staff/handover-slots'                => ['CategoryController', 'listAvailableSlots'],
 
     // ── Admin: User Management ────────────────────────────────────────────────
-    'GET  /api/admin/users'                         => ['AdminController', 'listUsers'],
-    'PUT  /api/admin/users/{id}/status'             => ['AdminController', 'updateUserStatus'],
-    'PUT  /api/admin/users/{id}/role'               => ['AdminController', 'updateUserRole'],
-    'POST /api/admin/users/{id}/reset-password'     => ['AdminController', 'resetPassword'],
+    'GET  /api/admin/users'                      => ['AdminController', 'listUsers'],
+    'PUT  /api/admin/users/{id}/status'          => ['AdminController', 'updateUserStatus'],
+    'PUT  /api/admin/users/{id}/role'            => ['AdminController', 'updateUserRole'],
+    'POST /api/admin/users/{id}/reset-password'  => ['AdminController', 'resetPassword'],
 
-    // ── Admin: Taxonomy Management ────────────────────────────────────────────
-    'POST /api/admin/categories'                    => ['CategoryController', 'createCategory'],
-    'PUT  /api/admin/categories/{id}/retire'        => ['CategoryController', 'retireCategory'],
+    // ── Admin: Dashboard, Reports, Audit ──────────────────────────────────────
+    'GET /api/admin/dashboard'           => ['AdminController', 'dashboard'],
+    'GET /api/admin/reports/summary'     => ['AdminController', 'reportSummary'],
+    'GET /api/admin/reports/genres'      => ['AdminController', 'reportTopGenres'],
+    'GET /api/admin/reports/cities'      => ['AdminController', 'reportByCity'],
+    'GET /api/admin/reports/age-groups'  => ['AdminController', 'reportByAgeGroup'],
+    'GET /api/admin/activity-log'        => ['AdminController', 'activityLog'],
+
+    // ── Admin: Taxonomy & Reference Data ──────────────────────────────────────
+    'POST /api/admin/genres'                        => ['CategoryController', 'createGenre'],
+    'PUT  /api/admin/genres/{id}/retire'            => ['CategoryController', 'retireGenre'],
+    'POST /api/admin/formats'                       => ['CategoryController', 'createFormat'],
+    'PUT  /api/admin/formats/{id}/retire'           => ['CategoryController', 'retireFormat'],
+    'POST /api/admin/age-categories'                => ['CategoryController', 'createAgeCategory'],
+    'PUT  /api/admin/age-categories/{id}/retire'    => ['CategoryController', 'retireAgeCategory'],
     'POST /api/admin/conditions'                    => ['CategoryController', 'createCondition'],
     'PUT  /api/admin/conditions/{id}/retire'        => ['CategoryController', 'retireCondition'],
     'POST /api/admin/meetup-locations'              => ['CategoryController', 'createMeetupLocation'],
     'PUT  /api/admin/meetup-locations/{id}/retire'  => ['CategoryController', 'retireMeetupLocation'],
 
-    // ── Admin: Reports ────────────────────────────────────────────────────────
-    'GET /api/admin/reports/summary'    => ['AdminController', 'reportSummary'],
-    'GET /api/admin/reports/genres'     => ['AdminController', 'reportTopGenres'],
-    'GET /api/admin/reports/cities'     => ['AdminController', 'reportByCity'],
-    'GET /api/admin/activity-log'       => ['AdminController', 'activityLog'],
+    // ── Admin: Handover Slot Pool ─────────────────────────────────────────────
+    'GET  /api/admin/handover-slots'              => ['CategoryController', 'listSlots'],
+    'POST /api/admin/handover-slots'              => ['CategoryController', 'createSlot'],
+    'PUT  /api/admin/handover-slots/{id}/retire'  => ['CategoryController', 'retireSlot'],
 ];
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -127,7 +145,7 @@ function routeRequest(): void {
 
     foreach ($routes as $route => $handler) {
         // Normalize spaces in the route key (allows multi-space alignment above).
-        $parts      = preg_split('/\s+/', trim($route), 2);
+        $parts       = preg_split('/\s+/', trim($route), 2);
         $routeMethod = strtoupper($parts[0]);
         $routePath   = $parts[1];
 
