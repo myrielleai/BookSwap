@@ -1,4 +1,11 @@
 RewriteEngine On
+
+# Apache does not hand the Authorization header to PHP by default, so every
+# "Authorization: Bearer <token>" request would arrive signed-out (401).
+# Copy it into the environment, where getBearerToken() reads it.
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Send every request that is not a real file or folder to the front controller.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]

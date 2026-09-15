@@ -26,6 +26,15 @@ define('JWT_SECRET_PLACEHOLDER', 'REPLACE_WITH_A_STRONG_SECRET_KEY');
 defined('APP_DEBUG')    || define('APP_DEBUG', false);
 defined('JWT_SECRET')   || define('JWT_SECRET', JWT_SECRET_PLACEHOLDER);
 defined('CORS_ORIGINS') || define('CORS_ORIGINS', []);
+defined('APP_TIMEZONE') || define('APP_TIMEZONE', 'Asia/Manila');
+
+// ── Time Zone ─────────────────────────────────────────────────────────────────
+// PHP and the database must agree on "today". PHP picks dates for report ranges,
+// slot validation, and chart months, while SQL uses NOW() and CURDATE(); on a
+// server whose php.ini says Europe/Berlin and whose database runs in UTC, those
+// disagree by hours and a slot or report can fall on the wrong day.
+// getDBConnection() sets the same zone on every database session.
+date_default_timezone_set(APP_TIMEZONE);
 
 // ── User Roles ────────────────────────────────────────────────────────────────
 // Must match the `role` column values in the `users` table.

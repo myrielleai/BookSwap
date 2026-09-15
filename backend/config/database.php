@@ -46,6 +46,11 @@ function getDBConnection(): PDO {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
+
+        // Match NOW() and CURDATE() to PHP's APP_TIMEZONE. A numeric offset is
+        // used because shared hosts rarely load MySQL's named time zone tables.
+        $offset = (new DateTime('now', new DateTimeZone(APP_TIMEZONE)))->format('P');
+        $pdo->exec("SET time_zone = '$offset'");
     } catch (PDOException $e) {
         // Log the detail, but never send server or credential details to the client.
         error_log('[BookSwap DB Error] ' . $e->getMessage());

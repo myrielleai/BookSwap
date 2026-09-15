@@ -22,6 +22,9 @@ define('APP_DEBUG', false);
 // At least 32 characters of random data.
 define('JWT_SECRET', 'REPLACE_WITH_A_STRONG_SECRET_KEY');
 
+// Time zone shared by PHP and the database. Defaults to Asia/Manila if omitted.
+define('APP_TIMEZONE', 'Asia/Manila');
+
 // Browser origins allowed to call the API (the React dev server, the Vercel site).
 define('CORS_ORIGINS', [
     'http://localhost:5173',

@@ -13,6 +13,9 @@
 
 USE bookswap;
 
+-- Relative dates below use the same zone as the application (APP_TIMEZONE).
+SET time_zone = '+08:00';
+
 -- ── Taxonomies ────────────────────────────────────────────────────────────────
 INSERT INTO genres (id, name) VALUES
 (1, 'Fantasy'),

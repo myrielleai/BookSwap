@@ -194,3 +194,11 @@ Local Apache/MariaDB/PHP, live database, 234 end-to-end checks across authentica
 - [ ] OAuth 2.0 (Google / Facebook) login from Figure 1
 - [ ] Deploy database and backend to live server (InfinityFree)
 - [ ] Update `docs/ERD_DATA_DICTIONARY.md` and `docs/DB_API_GUIDE.md`, which still describe the Session 1–2 design
+
+### Deep Check — 2026-09-15
+
+Re-ran everything through real XAMPP Apache (not only PHP's built-in server) and added 34 security probes: SQL injection, forged/expired/`alg=none` tokens, mass assignment, access to other members' records, disguised PHP uploads, and stored XSS. Two deployment defects were found and fixed:
+- **Apache dropped the `Authorization` header**, so every protected endpoint would have returned 401 once deployed. `.htaccess` now passes it through.
+- **PHP and the database disagreed on the time** (php.ini Europe/Berlin vs. database Asia/Singapore, 6 hours apart), which could put slots and report ranges on the wrong day. Both now use `APP_TIMEZONE` (default `Asia/Manila`, set in `config/local.php`).
+
+After the fixes: 234/234 functional and 34/34 security checks pass on both Apache and the built-in server. Every route maps to a real method, and every non-public endpoint requires authentication.
