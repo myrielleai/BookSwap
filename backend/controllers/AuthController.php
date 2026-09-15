@@ -19,6 +19,7 @@
 require_once __DIR__ . '/../middleware/auth_middleware.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/SessionModel.php';
+require_once __DIR__ . '/../models/LoginAttemptModel.php';
 require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
@@ -26,12 +27,14 @@ require_once __DIR__ . '/../config/constants.php';
 
 class AuthController {
 
-    private UserModel    $userModel;
-    private SessionModel $sessionModel;
+    private UserModel         $userModel;
+    private SessionModel      $sessionModel;
+    private LoginAttemptModel $loginAttemptModel;
 
     public function __construct() {
-        $this->userModel    = new UserModel();
-        $this->sessionModel = new SessionModel();
+        $this->userModel         = new UserModel();
+        $this->sessionModel      = new SessionModel();
+        $this->loginAttemptModel = new LoginAttemptModel();
     }
 
     /**
@@ -113,11 +116,24 @@ class AuthController {
             sendError('Sign-in is unavailable: the server has no JWT secret configured.', 500);
         }
 
+        $email     = strtolower(sanitizeString($body['email']));
+        $ipAddress = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+
+        // ── Throttle repeated failures ────────────────────────────────────────
+        // Checked before the password, so guessing stops working even when a
+        // guess happens to be right.
+        $retryAfter = $this->loginAttemptModel->secondsUntilAllowed($email, $ipAddress);
+        if ($retryAfter > 0) {
+            header('Retry-After: ' . $retryAfter);
+            sendError('Too many failed sign-in attempts. Please try again in ' . (int) ceil($retryAfter / 60) . ' minute(s).', 429);
+        }
+
         // ── Look up the user ──────────────────────────────────────────────────
-        $user = $this->userModel->findByEmail(strtolower(sanitizeString($body['email'])));
+        $user = $this->userModel->findByEmail($email);
 
         // One message for both cases, so the response never reveals whether an email is registered.
         if ($user === null || !verifyPassword((string) $body['password'], $user['password_hash'])) {
+            $this->loginAttemptModel->record($email, $ipAddress, false);
             sendError('Invalid email or password.', 401);
         }
 
@@ -138,9 +154,10 @@ class AuthController {
             (int) $user['id'],
             $tokenId,
             $expiresAt,
-            (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+            $ipAddress,
             (string) ($_SERVER['HTTP_USER_AGENT'] ?? '')
         );
+        $this->loginAttemptModel->record($email, $ipAddress, true);
 
         $token = generateJWT((int) $user['id'], $user['role'], $tokenId, $expiresAt);
 

@@ -202,3 +202,14 @@ Re-ran everything through real XAMPP Apache (not only PHP's built-in server) and
 - **PHP and the database disagreed on the time** (php.ini Europe/Berlin vs. database Asia/Singapore, 6 hours apart), which could put slots and report ranges on the wrong day. Both now use `APP_TIMEZONE` (default `Asia/Manila`, set in `config/local.php`).
 
 After the fixes: 234/234 functional and 34/34 security checks pass on both Apache and the built-in server. Every route maps to a real method, and every non-public endpoint requires authentication.
+
+### Deep-Check Suggestions Implemented — 2026-09-15
+
+- **Sign-in throttling.** New `login_attempts` table and `models/LoginAttemptModel.php`. Five wrong passwords for an email (or twenty from one IP) within 15 minutes lock further attempts with HTTP 429 and `Retry-After`, even with the right password. Limits live in `config/constants.php`.
+- **Photo endpoint.** `GET /api/photos/{id}` serves listing photos from outside the web root, with the listing's visibility rules. Listings now include `cover_photo_id`.
+- **Subfolder installs.** The router strips the folder holding `index.php`, so the API works at `http://host/api/...` and at `http://host/<folder>/backend/api/...`.
+- **Stale documents replaced.** `docs/ERD_DATA_DICTIONARY.md` and `docs/DB_API_GUIDE.md` are regenerated from the live schema and route table; the root `BookSwap_Project_Document.md` now matches the official Phase 1 document.
+
+Verification: 243/243 functional and 40/40 security checks pass through Apache at the site root, Apache in a subfolder, and the PHP built-in server. The schema now has 17 tables and the API 66 routes.
+
+Still open: set the `MySQL80` Windows service to Manual on development machines so XAMPP MariaDB can use port 3306 after a reboot.

@@ -1,401 +1,193 @@
-# BookSwap Backend — Database & API Integration Guide
+# BookSwap Backend — Setup, Conventions, and API Reference
 
-> **Who this is for:** The groupmate responsible for connecting the MySQL database
-> and any third-party API calls (email, OAuth) to the backend that has already been built.
+Plain PHP 8 (no framework, no Composer) on MySQL 8.0 / MariaDB 10.4. The endpoint reference at the end is generated from `backend/routes/api.php`.
 
----
+## 1. Local setup (XAMPP)
 
-## Overview
+1. **Free port 3306.** If a separate MySQL 8.0 service (`MySQL80`) is installed, it starts on boot and blocks XAMPP's MariaDB. Set it to Manual (Services → MySQL80 → Startup type), or run once in an administrator terminal: `sc config MySQL80 start= demand`.
+2. **Create `backend/config/local.php`** by copying `local.example.php`, then set a real `JWT_SECRET` (`php -r "echo bin2hex(random_bytes(32));"`). Sign-in is refused while the placeholder secret is in place. The file is gitignored.
+3. **Load the database:** `mysql -u root < backend/database/schema.sql`, then `mysql -u root < backend/database/seed.sql`. Reloading resets all data.
+4. **Serve the API**, either:
+   - `php -S 127.0.0.1:8765 -t backend backend/index.php` → `http://127.0.0.1:8765/api/...`, or
+   - Apache: put the project under `htdocs` → `http://localhost/<folder>/backend/api/...` (`.htaccess` handles routing and the Authorization header).
 
-The backend is fully structured but runs without a live database right now.
-Every model method returns a stub value (`null`, `[]`, `0`, or `false`).
-Your job is to replace those stubs with real PDO queries and wire in any APIs.
+Seed accounts (password for all: `Password123!`):
 
-The good news: **you never need to touch controllers, routes, helpers, or middleware.**
-All your work goes inside `config/database.php` and the `models/` folder.
+| Email | Role | Notes |
+|---|---|---|
+| admin@bookswap.test | admin |  |
+| moderator@bookswap.test | staff | Handles most seeded exchanges |
+| moderator2@bookswap.test | staff |  |
+| ana@bookswap.test | customer | Favourite genres: Fantasy, Mystery |
+| marco@bookswap.test | customer |  |
+| bea@bookswap.test | customer |  |
+| jon@bookswap.test | customer |  |
+| pending@bookswap.test | customer | Pending approval, cannot sign in |
 
----
+## 2. Request lifecycle
 
-## Step 1 — Set Up the Database Connection
+`index.php` (error handling, security + CORS headers) → `routes/api.php` → controller → `requireAuth()` (token, session, account, role) → model (prepared SQL) → JSON response.
 
-Open [`config/database.php`](../config/database.php).
+## 3. Conventions for contributors
 
-Fill in your credentials:
+- **SQL only in models**, always through `runQuery()` with named placeholders (each name used once per statement). Use `fetchPage()` for lists, `bindInList()` for `IN (...)`, `likeContains()` for keyword search.
+- **Multi-table changes** go inside `withTransaction(function () { ... })`. Inside it, stop a request with `throw new ApiException('message', 409)`, never `sendError()`, so the rollback runs.
+- **List endpoints** call `readListQuery($sortOptions, $defaultSort, $statusOptions)` and answer with `sendPaginated($rows, paginationMeta($total, $query))`. Only whitelisted sort keys may reach `ORDER BY`.
+- **Constants** for every role, status, and limit live in `config/constants.php`.
+- **Audit:** every state change calls `ReportModel::logActivity()`.
+- **Strings:** wrap variables in braces when text follows immediately, e.g. `"{$start}–{$end}"`; PHP otherwise reads the following bytes as part of the variable name.
 
-```php
-define('DB_HOST', 'localhost');       // your MySQL host
-define('DB_NAME', 'bookswap');        // your database name
-define('DB_USER', 'your_username');   // your DB username
-define('DB_PASS', 'your_password');   // your DB password
-```
+## 4. Responses and errors
 
-Then **uncomment the PDO block** inside `getDBConnection()`:
+Success: `{ "success": true, "message": "...", "data": ... }`, plus `"meta": { page, per_page, total, total_pages }` on lists.
+Error: `{ "success": false, "message": "...", "errors"?: { field: message } }`.
 
-```php
-// Remove the comment markers around this block:
-try {
-    $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', DB_HOST, DB_NAME, DB_CHARSET);
-    $options = [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-    ];
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-} catch (PDOException $e) {
-    error_log('[BookSwap DB Error] ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed.']);
-    exit;
-}
-```
-
-Also **remove the `return null;` stub** at the bottom of the function.
-
----
-
-## Step 2 — Required Database Tables
-
-Create these tables in MySQL (via phpMyAdmin or an `.sql` file).
-The column names must match exactly what the model comments reference.
-
-### `users`
-```sql
-CREATE TABLE users (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
-    name            VARCHAR(100)  NOT NULL,
-    email           VARCHAR(255)  NOT NULL UNIQUE,
-    phone           VARCHAR(20),
-    password_hash   VARCHAR(255)  NOT NULL,
-    role            ENUM('admin','staff','customer') NOT NULL DEFAULT 'customer',
-    status          ENUM('pending','active','inactive','suspended') NOT NULL DEFAULT 'pending',
-    city            VARCHAR(100),
-    favorite_genres TEXT,
-    exchange_count  INT           NOT NULL DEFAULT 0,
-    created_at      DATETIME      NOT NULL,
-    updated_at      DATETIME
-);
-```
-
-### `categories`
-```sql
-CREATE TABLE categories (
-    id        INT AUTO_INCREMENT PRIMARY KEY,
-    name      VARCHAR(100) NOT NULL,
-    type      ENUM('genre','age','format') NOT NULL,
-    is_active TINYINT(1) NOT NULL DEFAULT 1,
-    created_at DATETIME NOT NULL
-);
-```
-
-### `conditions`
-```sql
-CREATE TABLE conditions (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    label       VARCHAR(50)  NOT NULL,
-    description TEXT         NOT NULL,
-    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
-    created_at  DATETIME     NOT NULL
-);
-```
-
-### `meetup_locations`
-```sql
-CREATE TABLE meetup_locations (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    name       VARCHAR(150) NOT NULL,
-    address    TEXT         NOT NULL,
-    is_active  TINYINT(1)   NOT NULL DEFAULT 1,
-    created_at DATETIME     NOT NULL
-);
-```
-
-### `listings`
-```sql
-CREATE TABLE listings (
-    id               INT AUTO_INCREMENT PRIMARY KEY,
-    user_id          INT          NOT NULL,
-    title            VARCHAR(255) NOT NULL,
-    author           VARCHAR(255) NOT NULL,
-    edition          VARCHAR(100),
-    publisher        VARCHAR(150),
-    genre_id         INT          NOT NULL,
-    condition_id     INT          NOT NULL,
-    preferred_return TEXT,
-    is_open_offer    TINYINT(1)   NOT NULL DEFAULT 0,
-    photo_path       VARCHAR(500) NOT NULL,
-    status           ENUM('unverified','available','locked','returned','rejected','archived','withdrawn') NOT NULL DEFAULT 'unverified',
-    staff_note       TEXT,
-    created_at       DATETIME     NOT NULL,
-    updated_at       DATETIME,
-    FOREIGN KEY (user_id)      REFERENCES users(id),
-    FOREIGN KEY (genre_id)     REFERENCES categories(id),
-    FOREIGN KEY (condition_id) REFERENCES conditions(id)
-);
-```
-
-### `exchange_requests`
-```sql
-CREATE TABLE exchange_requests (
-    id                  INT AUTO_INCREMENT PRIMARY KEY,
-    requester_id        INT  NOT NULL,
-    target_listing_id   INT  NOT NULL,
-    offered_listing_id  INT  NOT NULL,
-    message             TEXT,
-    status              ENUM('pending','endorsed','accepted','declined','rejected','held','withdrawn','cancelled') NOT NULL DEFAULT 'pending',
-    decline_reason      TEXT,
-    staff_note          TEXT,
-    created_at          DATETIME NOT NULL,
-    updated_at          DATETIME,
-    FOREIGN KEY (requester_id)       REFERENCES users(id),
-    FOREIGN KEY (target_listing_id)  REFERENCES listings(id),
-    FOREIGN KEY (offered_listing_id) REFERENCES listings(id)
-);
-```
-
-### `transactions`
-```sql
-CREATE TABLE transactions (
-    id                  INT AUTO_INCREMENT PRIMARY KEY,
-    exchange_request_id INT          NOT NULL UNIQUE,
-    status              ENUM('pending','approved','scheduled','completed','cancelled') NOT NULL DEFAULT 'pending',
-    cancel_reason       TEXT,
-    reschedule_count    INT          NOT NULL DEFAULT 0,
-    handled_by          INT,
-    created_at          DATETIME     NOT NULL,
-    updated_at          DATETIME,
-    FOREIGN KEY (exchange_request_id) REFERENCES exchange_requests(id),
-    FOREIGN KEY (handled_by)          REFERENCES users(id)
-);
-```
-
-### `handover_slots`
-```sql
-CREATE TABLE handover_slots (
-    id               INT AUTO_INCREMENT PRIMARY KEY,
-    transaction_id   INT  NOT NULL UNIQUE,
-    location_id      INT  NOT NULL,
-    slot_date        DATE NOT NULL,
-    slot_time        TIME NOT NULL,
-    confirmed_by_a   TINYINT(1) NOT NULL DEFAULT 0,
-    confirmed_by_b   TINYINT(1) NOT NULL DEFAULT 0,
-    no_show_recorded TINYINT(1) NOT NULL DEFAULT 0,
-    created_at       DATETIME NOT NULL,
-    updated_at       DATETIME,
-    FOREIGN KEY (transaction_id) REFERENCES transactions(id),
-    FOREIGN KEY (location_id)    REFERENCES meetup_locations(id)
-);
-```
-
-### `notifications`
-```sql
-CREATE TABLE notifications (
-    id                  INT AUTO_INCREMENT PRIMARY KEY,
-    user_id             INT          NOT NULL,
-    type                VARCHAR(60)  NOT NULL,
-    message             TEXT         NOT NULL,
-    is_read             TINYINT(1)   NOT NULL DEFAULT 0,
-    related_record_type VARCHAR(30),
-    related_record_id   INT,
-    created_at          DATETIME     NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
-
-### `activity_log`
-```sql
-CREATE TABLE activity_log (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    actor_id    INT          NOT NULL,
-    record_type VARCHAR(30)  NOT NULL,
-    record_id   INT          NOT NULL,
-    action      VARCHAR(60)  NOT NULL,
-    note        TEXT,
-    created_at  DATETIME     NOT NULL,
-    FOREIGN KEY (actor_id) REFERENCES users(id)
-);
-```
-
-### `watchlist` (optional — for the watchlist feature)
-```sql
-CREATE TABLE watchlist (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT NOT NULL,
-    listing_id INT NOT NULL,
-    created_at DATETIME NOT NULL,
-    UNIQUE KEY unique_watchlist (user_id, listing_id),
-    FOREIGN KEY (user_id)    REFERENCES users(id),
-    FOREIGN KEY (listing_id) REFERENCES listings(id)
-);
-```
-
----
-
-## Step 3 — Implement the Model Methods
-
-Open each file in `models/`. Every method has a comment block showing the SQL and the PDO code to uncomment. Here is the pattern to follow for every method:
-
-**Before (stub):**
-```php
-public function findByEmail(string $email): ?array {
-    // TODO (DB):
-    // SQL: SELECT * FROM users WHERE email = :email LIMIT 1
-    //
-    // $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
-    // $stmt->execute([':email' => $email]);
-    // $result = $stmt->fetch();
-    // return $result ?: null;
-
-    return null; // stub
-}
-```
-
-**After (live):**
-```php
-public function findByEmail(string $email): ?array {
-    $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
-    $stmt->execute([':email' => $email]);
-    $result = $stmt->fetch();
-    return $result ?: null;
-}
-```
-
-Steps for each method:
-1. Read the SQL comment to understand what the query does.
-2. Uncomment the PDO lines.
-3. Remove the `return null; // stub` (or `return false;` / `return [];`) line.
-4. Done — the controller will automatically pick up the real data.
-
-### Files to update (in recommended order):
-
-| File | Methods to implement |
+| Status | Meaning |
 |---|---|
-| `models/UserModel.php` | `findById`, `findByEmail`, `getAll`, `create`, `updateProfile`, `updateStatus`, `updateRole`, `updatePassword`, `incrementExchangeCount` |
-| `models/CategoryModel.php` | All — these are needed for listings to work |
-| `models/ListingModel.php` | `findById`, `getAvailable`, `getByUserId`, `getPending`, `getIdle`, `create`, `update`, `updateStatus`, `withdraw` |
-| `models/ExchangeModel.php` | `findById`, `getByRequester`, `getByTargetListing`, `getPendingForStaff`, `hasActiveRequest`, `create`, `updateStatus`, `cancelExpired` |
-| `models/TransactionModel.php` | `findById`, `getByUserId`, `getByStaffId`, `getScheduledToday`, `create`, `updateStatus`, `assignHandoverSlot`, `rescheduleHandoverSlot`, `recordNoShow`, `confirmReceipt`, `bothPartiesConfirmed` |
-| `models/ReportModel.php` | `getSummary`, `getTopGenres`, `getParticipationByCity`, `getActivityLog`, `logActivity` |
-| `models/NotificationModel.php` | `create`, `getUnread`, `getAll`, `markRead`, `markAllRead` |
+| 401 | No token, or the session has ended |
+| 403 | Wrong role, or acting on something you are part of |
+| 404 | Not found, or not visible to you |
+| 409 | Conflicts with the current state |
+| 422 | Validation failed |
+| 429 | Too many failed sign-ins (see `Retry-After`) |
+| 500 | Unexpected error (details only when `APP_DEBUG` is true) |
 
----
+**Authentication:** send `Authorization: Bearer <token>` from `POST /api/auth/login`. Tokens last one hour and stop working on logout, deactivation, role change, or password reset.
 
-## Step 4 — Complete the TODOs in Controllers
+**Lists** accept `page`, `per_page` (max 50), `sort`, `status`, `date_from`, `date_to` (YYYY-MM-DD), and `keyword`.
 
-A few controller methods have `TODO` comments where they need to fetch additional data from the DB to perform their logic. Search for `// TODO` in the `controllers/` folder to find them all.
+**Photos:** `photos[].id` and `cover_photo_id` on a listing are fetched with `GET /api/photos/{id}`. Photos of listings that are not available need the owner's or a moderator's token, so fetch them with the header and display a blob URL.
 
-The most important ones:
+## 5. Endpoint reference (66 routes)
 
-### `StaffController::endorseRequest()` — role-separation check
-```php
-// After you can query the DB, fetch the target listing's owner_id:
-$targetListing = $this->listingModel->findById((int) $request['target_listing_id']);
-blockStaffSelfTransaction($staff['sub'], [
-    (int) $request['requester_id'],
-    (int) $targetListing['user_id']
-]);
-```
+### Auth
 
-### `StaffController::updateTransactionStatus()` — lock/unlock listings
-```php
-// Fetch the exchange request to get both listing IDs:
-$exchangeReq = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
-if ($body['status'] === TX_APPROVED) {
-    $this->listingModel->updateStatus((int) $exchangeReq['target_listing_id'],  LISTING_LOCKED);
-    $this->listingModel->updateStatus((int) $exchangeReq['offered_listing_id'], LISTING_LOCKED);
-}
-if ($body['status'] === TX_CANCELLED) {
-    $this->listingModel->updateStatus((int) $exchangeReq['target_listing_id'],  LISTING_AVAILABLE);
-    $this->listingModel->updateStatus((int) $exchangeReq['offered_listing_id'], LISTING_AVAILABLE);
-}
-```
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| POST | `/api/auth/register` | Public | AuthController::register |
+| POST | `/api/auth/login` | Public | AuthController::login |
+| POST | `/api/auth/logout` | Any signed-in user | AuthController::logout |
 
-### `TransactionController::confirmReceipt()` — determine Party A vs Party B
-```php
-// Fetch the exchange request to determine which party the user is:
-$exchangeReq   = $this->exchangeModel->findById((int) $tx['exchange_request_id']);
-$targetListing = $this->listingModel->findById((int) $exchangeReq['target_listing_id']);
-$isPartyA = ((int) $targetListing['user_id'] === $userId); // Party A = listing owner
-```
+### Public Catalog (no auth)
 
----
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/listings` | Public (more with a token) | ListingController::index |
+| GET | `/api/listings/{id}` | Public (more with a token) | ListingController::show |
+| GET | `/api/photos/{id}` | Public (more with a token) | ListingController::photo |
 
-## Step 5 — Third-Party API Integration
+### Public Taxonomy (no auth)
 
-### Email Notifications (SendGrid or Mailgun)
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/genres` | Public | CategoryController::listGenres |
+| GET | `/api/formats` | Public | CategoryController::listFormats |
+| GET | `/api/age-categories` | Public | CategoryController::listAgeCategories |
+| GET | `/api/conditions` | Public | CategoryController::listConditions |
+| GET | `/api/meetup-locations` | Public | CategoryController::listMeetupLocations |
 
-The registration and password-reset flows have `// TODO (API - Email)` markers in `AuthController.php`.
+### Member: Profile, Dashboard, Account
 
-Example using SendGrid (add this where the TODO markers are):
-```php
-// Install via: composer require sendgrid/sendgrid
-// OR use file_get_contents with a raw HTTP POST if Composer is unavailable.
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/user/profile` | Any signed-in user | UserController::getProfile |
+| PUT | `/api/user/profile` | Any signed-in user | UserController::updateProfile |
+| GET | `/api/user/dashboard` | Member | UserController::dashboard |
+| PUT | `/api/user/deactivate` | Member | UserController::deactivateAccount |
 
-$apiKey  = 'YOUR_SENDGRID_API_KEY';
-$payload = json_encode([
-    'personalizations' => [['to' => [['email' => $recipientEmail]]]],
-    'from'    => ['email' => 'noreply@bookswap.app'],
-    'subject' => 'BookSwap — Your registration is pending approval',
-    'content' => [['type' => 'text/plain', 'value' => 'Thank you for registering...']],
-]);
+### Member: Notifications
 
-$ch = curl_init('https://api.sendgrid.com/v3/mail/send');
-curl_setopt($ch, CURLOPT_POST,           true);
-curl_setopt($ch, CURLOPT_POSTFIELDS,     $payload);
-curl_setopt($ch, CURLOPT_HTTPHEADER,     ["Authorization: Bearer $apiKey", "Content-Type: application/json"]);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_exec($ch);
-curl_close($ch);
-```
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/user/notifications` | Any signed-in user | UserController::getNotifications |
+| PUT | `/api/user/notifications/{id}/read` | Any signed-in user | UserController::markNotificationRead |
+| PUT | `/api/user/notifications/read-all` | Any signed-in user | UserController::markAllNotificationsRead |
 
-### OAuth 2.0 (Google / Facebook Login)
+### Member: Listings & Watchlist
 
-The project document lists OAuth as a feature for future implementation.
-It would be added as a new endpoint in `routes/api.php`:
-```
-'GET /api/auth/google'          → ['AuthController', 'googleRedirect']
-'GET /api/auth/google/callback' → ['AuthController', 'googleCallback']
-```
-and new methods in `AuthController.php` that exchange the Google auth code for a user profile, find or create the user in `users`, then issue a JWT the same way the regular login does.
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| POST | `/api/listings` | Member | ListingController::create |
+| PUT | `/api/listings/{id}` | Member | ListingController::update |
+| DELETE | `/api/listings/{id}` | Member | ListingController::withdraw |
+| POST | `/api/listings/{id}/watchlist` | Member | ListingController::addToWatchlist |
+| DELETE | `/api/listings/{id}/watchlist` | Member | ListingController::removeFromWatchlist |
+| GET | `/api/user/watchlist` | Member | ListingController::getWatchlist |
 
----
+### Member: Exchange Requests (decided by the listing owner)
 
-## Step 6 — Before Going Live (Checklist)
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| POST | `/api/exchanges` | Member | ExchangeController::sendRequest |
+| GET | `/api/exchanges/{id}` | Any signed-in user | ExchangeController::show |
+| PUT | `/api/exchanges/{id}/accept` | Member | ExchangeController::acceptRequest |
+| PUT | `/api/exchanges/{id}/decline` | Member | ExchangeController::declineRequest |
+| PUT | `/api/exchanges/{id}/withdraw` | Member | ExchangeController::withdrawRequest |
 
-- [ ] Replace `JWT_SECRET` in `config/constants.php` with a long random string.
-      Generate one: `php -r "echo bin2hex(random_bytes(32));"`
-- [ ] Set `ini_set('display_errors', 0)` in `index.php`.
-- [ ] Change `Access-Control-Allow-Origin: *` in `index.php` to your Vercel URL.
-- [ ] Confirm `UPLOAD_DIR` in `config/constants.php` is writable on the server.
-- [ ] Test all endpoints with a tool like Postman or Insomnia.
+### Member: Transactions & Reports
 
----
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/transactions/{id}` | Any signed-in user | TransactionController::show |
+| PUT | `/api/transactions/{id}/confirm` | Member | TransactionController::confirmReceipt |
+| POST | `/api/reports` | Member | UserController::fileReport |
 
-## Quick Reference — Response Format
+### Staff: Moderation
 
-Every endpoint returns JSON in this shape:
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/staff/dashboard` | Staff, Admin | StaffController::dashboard |
+| PUT | `/api/staff/listings/{id}/verify` | Staff, Admin | StaffController::verifyListing |
+| GET | `/api/staff/requests` | Staff, Admin | StaffController::listRequests |
+| GET | `/api/staff/transactions` | Staff, Admin | StaffController::listTransactions |
+| POST | `/api/staff/transactions/{id}/schedule` | Staff, Admin | StaffController::scheduleHandover |
+| PUT | `/api/staff/transactions/{id}/reschedule` | Staff, Admin | StaffController::rescheduleHandover |
+| PUT | `/api/staff/transactions/{id}/status` | Staff, Admin | StaffController::updateTransactionStatus |
+| PUT | `/api/staff/transactions/{id}/no-show` | Staff, Admin | StaffController::recordNoShow |
+| GET | `/api/staff/reports` | Staff, Admin | StaffController::listReports |
+| PUT | `/api/staff/reports/{id}` | Staff, Admin | StaffController::resolveReport |
+| GET | `/api/staff/handover-slots` | Staff, Admin | CategoryController::listAvailableSlots |
 
-```json
-{
-  "success": true,
-  "message": "Human-readable message.",
-  "data": { ... }
-}
-```
+### Admin: User Management
 
-Error responses:
-```json
-{
-  "success": false,
-  "message": "What went wrong.",
-  "errors": { "field": "Specific validation message." }
-}
-```
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/admin/users` | Admin | AdminController::listUsers |
+| PUT | `/api/admin/users/{id}/status` | Admin | AdminController::updateUserStatus |
+| PUT | `/api/admin/users/{id}/role` | Admin | AdminController::updateUserRole |
+| POST | `/api/admin/users/{id}/reset-password` | Admin | AdminController::resetPassword |
 
-## Quick Reference — Auth Header
+### Admin: Dashboard, Reports, Audit
 
-All protected endpoints expect:
-```
-Authorization: Bearer <jwt_token>
-```
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/admin/dashboard` | Admin | AdminController::dashboard |
+| GET | `/api/admin/reports/summary` | Admin | AdminController::reportSummary |
+| GET | `/api/admin/reports/genres` | Admin | AdminController::reportTopGenres |
+| GET | `/api/admin/reports/cities` | Admin | AdminController::reportByCity |
+| GET | `/api/admin/reports/age-groups` | Admin | AdminController::reportByAgeGroup |
+| GET | `/api/admin/activity-log` | Admin | AdminController::activityLog |
 
-The token is obtained from `POST /api/auth/login` and must be stored on the client (e.g., in `localStorage` by the React frontend).
+### Admin: Taxonomy & Reference Data
+
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| POST | `/api/admin/genres` | Admin | CategoryController::createGenre |
+| PUT | `/api/admin/genres/{id}/retire` | Admin | CategoryController::retireGenre |
+| POST | `/api/admin/formats` | Admin | CategoryController::createFormat |
+| PUT | `/api/admin/formats/{id}/retire` | Admin | CategoryController::retireFormat |
+| POST | `/api/admin/age-categories` | Admin | CategoryController::createAgeCategory |
+| PUT | `/api/admin/age-categories/{id}/retire` | Admin | CategoryController::retireAgeCategory |
+| POST | `/api/admin/conditions` | Admin | CategoryController::createCondition |
+| PUT | `/api/admin/conditions/{id}/retire` | Admin | CategoryController::retireCondition |
+| POST | `/api/admin/meetup-locations` | Admin | CategoryController::createMeetupLocation |
+| PUT | `/api/admin/meetup-locations/{id}/retire` | Admin | CategoryController::retireMeetupLocation |
+
+### Admin: Handover Slot Pool
+
+| Method | Path | Access | Handler |
+|---|---|---|---|
+| GET | `/api/admin/handover-slots` | Admin | CategoryController::listSlots |
+| POST | `/api/admin/handover-slots` | Admin | CategoryController::createSlot |
+| PUT | `/api/admin/handover-slots/{id}/retire` | Admin | CategoryController::retireSlot |
+

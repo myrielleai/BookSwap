@@ -37,6 +37,8 @@ class ListingModel {
                c.label AS condition_label,
                (SELECT p.file_path FROM listing_photos p
                  WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo,
+               (SELECT p.id FROM listing_photos p
+                 WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo_id,
                (SELECT COUNT(*) FROM transactions t
                   JOIN exchange_requests er ON er.id = t.exchange_request_id
                   JOIN listings tl          ON tl.id = er.target_listing_id
@@ -76,6 +78,21 @@ class ListingModel {
             "SELECT id, file_path, created_at FROM listing_photos WHERE listing_id = :listing_id ORDER BY id",
             [':listing_id' => $listingId]
         )->fetchAll();
+    }
+
+    /**
+     * One photo with the owner and status of its listing, for serving the file.
+     *
+     * @param int $photoId
+     * @return array|null Keys: id, file_path, listing_id, user_id, status.
+     */
+    public function findPhoto(int $photoId): ?array {
+        return runQuery("
+            SELECT p.id, p.file_path, l.id AS listing_id, l.user_id, l.status
+            FROM listing_photos p
+            JOIN listings l ON l.id = p.listing_id
+            WHERE p.id = :id LIMIT 1
+        ", [':id' => $photoId])->fetch() ?: null;
     }
 
     /**

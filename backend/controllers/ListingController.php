@@ -111,6 +111,52 @@ class ListingController {
     }
 
     /**
+     * GET /api/photos/{id}
+     * Serve a listing photo. Photos are stored outside the web root, so this is
+     * the only way to fetch them. Visibility matches the listing: anyone for an
+     * available listing; otherwise only the owner and Staff/Admin (send the
+     * token, e.g. fetch the image and show it through a blob URL).
+     *
+     * @param int $id Photo primary key (listing.photos[].id or listing.cover_photo_id).
+     */
+    public function photo(int $id): void {
+        $photo = $this->listingModel->findPhoto($id);
+        if ($photo === null) {
+            sendNotFound('Photo not found.');
+        }
+
+        if ($photo['status'] !== LISTING_AVAILABLE) {
+            $authUser = optionalAuth();
+            $allowed  = $authUser !== null && (
+                $authUser['sub'] === (int) $photo['user_id']
+                || in_array($authUser['role'], [ROLE_STAFF, ROLE_ADMIN], true)
+            );
+            if (!$allowed) {
+                sendNotFound('Photo not found.');
+            }
+        }
+
+        // basename() plus the realpath check keep the read inside UPLOAD_DIR,
+        // whatever the stored path says.
+        $baseDir = realpath(UPLOAD_DIR);
+        $file    = $baseDir === false ? false : realpath($baseDir . DIRECTORY_SEPARATOR . basename($photo['file_path']));
+        if ($file === false || strpos($file, $baseDir . DIRECTORY_SEPARATOR) !== 0 || !is_file($file)) {
+            sendNotFound('Photo file is missing.');
+        }
+
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file);
+        if (!is_string($mime) || !array_key_exists($mime, PHOTO_EXTENSIONS)) {
+            sendNotFound('Photo file is missing.');
+        }
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($file));
+        header('Cache-Control: ' . ($photo['status'] === LISTING_AVAILABLE ? 'public, max-age=86400' : 'private, no-store'));
+        readfile($file);
+        exit;
+    }
+
+    /**
      * POST /api/listings
      * A member submits a new book for exchange (Phase 1 §3.3.2).
      * Accepts multipart/form-data: title, author, edition, publisher, genre_id,

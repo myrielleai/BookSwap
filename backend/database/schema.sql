@@ -9,8 +9,9 @@
 -- activity_log.actor_id / record_type / record_id / note). Columns added for the
 -- ERD use its names. The Phase 2 document lists the full name mapping.
 --
--- Two additions go beyond the ERD:
+-- Three additions go beyond the ERD:
 --   user_sessions       server-side sessions (Final Project Guide: session management)
+--   login_attempts      sign-in throttling (Final Project Guide: authentication and security)
 --   reports.request_id  spam-request reports (Phase 1 §3.2.2)
 -- =============================================================================
 
@@ -248,4 +249,18 @@ CREATE TABLE user_sessions (
     revoked_at   DATETIME     NULL,                        -- Set on logout, deactivation, role change, password reset
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_sessions_user_revoked (user_id, revoked_at)
+) ENGINE=InnoDB;
+
+-- 17. LOGIN ATTEMPTS  (beyond the ERD — sign-in throttling)
+-- Keyed by the email as typed, not a user ID, so guesses against addresses that
+-- do not exist are throttled too. Rows older than a day are pruned on sign-in.
+CREATE TABLE login_attempts (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    email        VARCHAR(255) NOT NULL,
+    ip_address   VARCHAR(45)  NOT NULL,
+    succeeded    TINYINT(1)   NOT NULL,
+    attempted_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_login_email_time (email, attempted_at),
+    INDEX idx_login_ip_time (ip_address, attempted_at),
+    INDEX idx_login_time (attempted_at)
 ) ENGINE=InnoDB;

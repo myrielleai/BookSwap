@@ -46,6 +46,7 @@ $routes = [
     // ── Public Catalog (no auth) ──────────────────────────────────────────────
     'GET  /api/listings'       => ['ListingController', 'index'],
     'GET  /api/listings/{id}'  => ['ListingController', 'show'],
+    'GET  /api/photos/{id}'    => ['ListingController', 'photo'],
 
     // ── Public Taxonomy (no auth) ─────────────────────────────────────────────
     'GET  /api/genres'            => ['CategoryController', 'listGenres'],
@@ -141,7 +142,15 @@ function routeRequest(): void {
 
     $method = strtoupper(trim($_SERVER['REQUEST_METHOD']));
     $path   = strtok($_SERVER['REQUEST_URI'], '?'); // strip query string
-    $path   = rtrim($path, '/') ?: '/';             // normalize trailing slash
+
+    // Work below the web root too (http://host/bookswap/backend/api/...): drop
+    // the folder that holds index.php so routes always start at /api.
+    $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+    if ($basePath !== '' && strpos($path, $basePath . '/') === 0) {
+        $path = substr($path, strlen($basePath));
+    }
+
+    $path = rtrim($path, '/') ?: '/';               // normalize trailing slash
 
     foreach ($routes as $route => $handler) {
         // Normalize spaces in the route key (allows multi-space alignment above).

@@ -1,111 +1,313 @@
-# BookSwap: Database Design, Initial ERD & API Data Dictionary
-**Document Category:** Member 4 Deliverable (Database / API Developer)  
-**Project:** Centralized Peer-to-Peer Academic Book Exchange Platform for ULSVO  
-**Database System:** MySQL 8.0+ / MariaDB (InnoDB, utf8mb4)  
-**Hosting Environment:** InfinityFree MySQL / Local Apache-MySQL (XAMPP)
+# BookSwap — ERD and Data Dictionary
 
----
+Generated from the live `bookswap` schema (`backend/database/schema.sql`). The design follows Figure 2 of the Phase 1 project document.
 
-## 1. Role & Responsibility (Member 4)
-As **Member 4 (Database / API Developer)**, the responsibility encompasses:
-1. Translating all business rules, user workflows, and permission boundaries from the proposal paper into a fully normalized, relational database schema (3NF).
-2. Designing the **Entity-Relationship Diagram (ERD)** defining entities, attributes, primary/foreign keys, and cardinalities.
-3. Providing production-grade MySQL DDL (`bookswap_schema.sql`) and comprehensive sample seed data (`bookswap_seed.sql`).
-4. Defining the REST API data contracts and SQL query specifications for **Member 3 (Backend Developer)** and **Member 2 (Frontend Developer)**.
+![BookSwap ERD](../../docs/images/BookSwap_ERD.png)
 
----
+**17 tables · 24 foreign keys · 4 CHECK constraints** · MySQL 8.0+ / MariaDB 10.4+, InnoDB, utf8mb4
 
-## 2. Entity-Relationship Diagram (ERD)
+## ERD names vs. schema names
 
-```mermaid
-erDiagram
-    COLLEGES ||--o{ ACADEMIC_PROGRAMS : "offers"
-    COLLEGES ||--o{ USERS : "belongs to"
-    ACADEMIC_PROGRAMS ||--o{ USERS : "enrolled in"
-    ACADEMIC_PROGRAMS ||--o{ BOOK_LISTINGS : "recommended for"
-    SUBJECT_CATEGORIES ||--o{ BOOK_LISTINGS : "classifies"
-    CONDITION_GRADES ||--o{ BOOK_LISTINGS : "rates condition of"
-    ACADEMIC_TERMS ||--o{ BOOK_LISTINGS : "published in"
-    ACADEMIC_TERMS ||--o{ TRANSACTIONS : "reported under"
+The schema follows the ERD's structure. Where the ERD only renames an existing column, the existing name was kept:
 
-    USERS ||--o{ BOOK_LISTINGS : "posts (Customer)"
-    USERS ||--o{ LISTING_PHOTOS : "uploads"
-    USERS ||--o{ USER_WATCHLISTS : "saves"
-    USERS ||--o{ EXCHANGE_REQUESTS : "initiates (Requester)"
-    USERS ||--o{ EXCHANGE_REQUESTS : "receives (Target Owner)"
-    USERS ||--o{ TRANSACTIONS : "participates in"
-    USERS ||--o{ HANDOVER_SCHEDULES : "moderates (Staff)"
-    USERS ||--o{ DISPUTE_REPORTS : "files"
-    USERS ||--o{ NOTIFICATIONS : "receives"
-    USERS ||--o{ ACTIVITY_AUDIT_LOGS : "triggers action in"
+| Phase 1 ERD | Schema |
+|---|---|
+| `<entity>_id` primary keys | `id` |
+| USER.full_name | users.name |
+| LISTING.owner_id | listings.user_id |
+| CONDITION_GRADE.name | conditions.label |
+| EXCHANGE_REQUEST.requested_listing_id | exchange_requests.target_listing_id |
+| TRANSACTION.request_id | transactions.exchange_request_id |
+| ACTIVITY_LOG.user_id / entity_type / entity_id / reason | activity_log.actor_id / record_type / record_id / note |
 
-    BOOK_LISTINGS ||--o{ LISTING_PHOTOS : "contains"
-    BOOK_LISTINGS ||--o{ USER_WATCHLISTS : "included in"
-    BOOK_LISTINGS ||--o{ EXCHANGE_REQUESTS : "targeted in"
-    BOOK_LISTINGS ||--o{ EXCHANGE_REQUESTS : "offered in"
+Beyond the ERD: `user_sessions`, `login_attempts`, `reports.request_id`, and `listings.is_open_offer` / `staff_note` (required by the Phase 1 text).
 
-    EXCHANGE_REQUESTS ||--|| TRANSACTIONS : "advances to (1:1)"
+## Tables
 
-    TRANSACTIONS ||--|| HANDOVER_SCHEDULES : "scheduled via (1:1)"
-    HANDOVER_VENUES ||--o{ HANDOVER_TIME_SLOTS : "hosts"
-    HANDOVER_VENUES ||--o{ HANDOVER_SCHEDULES : "takes place at"
-    HANDOVER_TIME_SLOTS ||--o{ HANDOVER_SCHEDULES : "allocated slot"
+### 1. `users`  ·  ERD: USER
 
-    TRANSACTIONS ||--o{ DISPUTE_REPORTS : "subject of"
-```
+Member accounts, credentials, role, and status.
 
----
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `name` | varchar(100) | no |  | Full name (ERD: full_name). |
+| `email` | varchar(255) | no | UNIQUE | Sign-in address, stored lower-case. |
+| `phone` | varchar(20) | yes |  | Shown only to the other member of an accepted exchange. |
+| `password_hash` | varchar(255) | no |  | Bcrypt hash (cost 12). The password itself is never stored. |
+| `role` | enum('admin', 'staff', 'customer') | no | default customer | admin, staff, or customer. Read from here on every request. |
+| `status` | enum('pending', 'active', 'inactive', 'suspended') | no | default pending | pending until approved; only active accounts can sign in. |
+| `city` | varchar(100) | yes |  | Used for handover coordination and the city report. |
+| `favorite_genres` | varchar(255) | yes |  | Comma-separated genre IDs; drives sort=relevance in the catalogue. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+| `updated_at` | datetime | yes |  | When the row last changed. |
 
-## 3. Relational Schema & Cardinality Specifications
+### 2. `genres`  ·  ERD: GENRE
 
-1. **`colleges` to `academic_programs`** (1 : N)
-   - One college offers multiple degree programs (e.g., SOIT offers BSIT, BSIS).
-2. **`users` to `book_listings`** (1 : N)
-   - One verified Customer/User may post multiple book listings.
-3. **`book_listings` to `listing_photos`** (1 : N)
-   - Every listing must contain at least one actual, legible photograph of the physical copy (Rule 4.3.2).
-4. **`book_listings` to `exchange_requests`** (1 : N)
-   - A target listing can receive exchange requests from different verified books; a UNIQUE constraint enforces at most 1 active request per requester per target book to prevent queue flooding (Rule 4.3.4).
-5. **`exchange_requests` to `transactions`** (1 : 1)
-   - An exchange request that is accepted by the owner and endorsed by Staff advances into exactly one official transaction record (Rule 4.2.3).
-6. **`transactions` to `handover_schedules`** (1 : 1)
-   - Each approved transaction is allocated exactly one physical handover schedule at the ULSVO library counter (Rule 4.2.4).
-7. **`handover_venues` to `handover_time_slots`** (1 : N)
-   - The standing library counter venue contains predefined pools of operational time slots per term (Rule 4.1.6).
+Genre taxonomy used to classify every listing.
 
----
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `name` | varchar(100) | no | UNIQUE | Display name, unique. |
+| `is_active` | tinyint(1) | no | default 1 | 1 while offered; 0 once retired. Entries are never deleted, so old listings stay readable. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
 
-## 4. Traceability to Proposal Paper Features
+### 3. `formats`  ·  ERD: FORMAT
 
-| Entity / Table | Paper Section & Feature | Business Rule Enforced |
-| :--- | :--- | :--- |
-| **`users`** | 4.1.1, 4.3.1, 5.1 | Accounts remain `PENDING` until Admin approval matching ULSVO enrollment list. Strict `role` separation (`ADMINISTRATOR`, `STAFF`, `CUSTOMER`). |
-| **`condition_grades`** | 4.1.3, 4.3.2 | Predefined grades (`Like New`, `Good`, `Fair`, `Heavily Used`) with mandatory written descriptions shown at listing time. |
-| **`academic_terms`** | 4.1.4, 4.1.5 | Supports term-end record archiving so the active catalog reflects only the current semester while preserving historical data. |
-| **`book_listings`** | 4.2.1, 4.3.2 | Staff moderation workflow (`PENDING`, `APPROVED`, `REJECTED`, `FLAGGED_POLICY_VIOLATION`). Locks automatically upon transaction approval. |
-| **`exchange_requests`** | 4.2.2, 4.3.4, 4.3.5 | Two-tier approval (Owner accepts/declines with reason $\rightarrow$ Staff endorses/holds/rejects). Prevents queue flooding via composite unique key. |
-| **`transactions`** | 4.2.3, 5.2 | Defined status workflow: `PENDING` $\rightarrow$ `APPROVED` $\rightarrow$ `SCHEDULED` $\rightarrow$ `COMPLETED` / `CANCELLED`. Mandatory cancellation reason recording. |
-| **`handover_schedules`** | 4.1.6, 4.2.4 | Enforces standing library counter venue and maximum **1 reschedule limit** per transaction via `CHECK (reschedule_count <= 1)`. Records no-show party. |
-| **`dispute_reports`** | 4.2.5, 4.3.6 | Logs misdescribed book conditions, no-shows, and inappropriate listings. Stores staff findings and allows escalation to Administrator. |
-| **`activity_audit_logs`** | 4.1.6, 7.4 | Comprehensive immutable audit trail logging acting user ID, role, action type, timestamp, and JSON snapshot for all state transitions. |
+Book formats such as paperback and hardcover.
 
----
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `name` | varchar(100) | no | UNIQUE | Display name, unique. |
+| `is_active` | tinyint(1) | no | default 1 | 1 while offered; 0 once retired. Entries are never deleted, so old listings stay readable. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
 
-## 5. REST API Endpoints Specification (Member 4 Data Contract)
+### 4. `age_categories`  ·  ERD: AGE_CATEGORY
 
-### A. Authentication & User Profile
-- `POST /api/auth/register` $\rightarrow$ Inserts into `users` with status `PENDING`.
-- `POST /api/auth/login` $\rightarrow$ Authenticates user, initializes role session (`ADMINISTRATOR`, `STAFF`, `CUSTOMER`).
-- `GET /api/users/profile/:id` $\rightarrow$ Returns profile data + `completed_exchange_count`.
+Reader age categories such as Children's, Young Adult, and Adult.
 
-### B. Catalog & Listing Management
-- `GET /api/listings` $\rightarrow$ Searches verified listings (`verification_status = 'APPROVED'`, `listing_status = 'VERIFIED_AVAILABLE'`). Supports query params: `category_id`, `program_id`, `year_level`, `condition_grade_id`, `search`.
-- `POST /api/listings` $\rightarrow$ Creates draft listing with uploaded photos into `book_listings` and `listing_photos`.
-- `PUT /api/staff/listings/:id/verify` $\rightarrow$ Staff endpoint: Sets `verification_status` to `APPROVED`, `RETURNED_FOR_REVISION`, or `REJECTED`.
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `name` | varchar(100) | no | UNIQUE | Display name, unique. |
+| `is_active` | tinyint(1) | no | default 1 | 1 while offered; 0 once retired. Entries are never deleted, so old listings stay readable. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
 
-### C. Exchange Requests & Handover Transactions
-- `POST /api/requests` $\rightarrow$ Inserts into `exchange_requests` (validates that both requester's book and target book are verified).
-- `PUT /api/requests/:id/respond` $\rightarrow$ Target book owner accepts or declines with reason.
-- `PUT /api/staff/requests/:id/endorse` $\rightarrow$ Staff endorses request; triggers transaction creation and locks both listings (`trg_lock_listings_on_approved`).
-- `POST /api/staff/transactions/:id/schedule` $\rightarrow$ Assigns library counter date and time slot in `handover_schedules`.
-- `PUT /api/transactions/:id/confirm-receipt` $\rightarrow$ Customer confirms physical receipt; triggers `COMPLETED` state when both confirm.
+### 5. `conditions`  ·  ERD: CONDITION_GRADE
+
+Condition grades with the rubric shown when listing.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `label` | varchar(50) | no | UNIQUE | Grade name, unique (ERD: name). |
+| `description` | text | no |  | Rubric shown to members when listing. |
+| `is_active` | tinyint(1) | no | default 1 | 1 while offered; 0 once retired. Entries are never deleted, so old listings stay readable. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+
+### 6. `meetup_locations`  ·  ERD: MEETUP_LOCATION
+
+Approved handover venues.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `name` | varchar(150) | no |  | Venue name. |
+| `address` | varchar(255) | no |  | Where exactly to meet. |
+| `city` | varchar(100) | no |  | Venue city. |
+| `is_active` | tinyint(1) | no | default 1 | 1 while offered; 0 once retired. Entries are never deleted, so old listings stay readable. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+
+### 7. `listings`  ·  ERD: LISTING
+
+Books offered for exchange.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `user_id` | int(11) | no | FK → users | Owner (ERD: owner_id). |
+| `genre_id` | int(11) | no | FK → genres | Required genre. |
+| `format_id` | int(11) | yes | FK → formats | Optional format. |
+| `age_category_id` | int(11) | yes | FK → age_categories | Optional age category; drives the age-group report. |
+| `condition_id` | int(11) | no | FK → conditions | Required condition grade. |
+| `verified_by` | int(11) | yes | FK → users | Moderator who approved, returned, or rejected it. |
+| `title` | varchar(255) | no |  |  |
+| `author` | varchar(255) | no |  |  |
+| `edition` | varchar(100) | yes |  |  |
+| `publisher` | varchar(150) | yes |  |  |
+| `preferred_return` | varchar(255) | yes |  | What the owner would like in return. |
+| `is_open_offer` | tinyint(1) | no | default 0 | 1 if the owner is open to any offer (Phase 1 §3.3.2). |
+| `status` | enum('unverified', 'available', 'locked', 'returned', 'rejected', 'archived', 'withdrawn') | no | default unverified | unverified → available → locked → archived; also returned, rejected, withdrawn. |
+| `staff_note` | text | yes |  | Reason given when returned or rejected (Phase 1 §3.2.1). |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+| `updated_at` | datetime | yes |  | When the row last changed. |
+
+### 8. `listing_photos`  ·  ERD: LISTING_PHOTO
+
+Photographs of the actual copy, 1 to 5 per listing.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `listing_id` | int(11) | no | FK → listings | Listing the photo belongs to. |
+| `file_path` | varchar(500) | no |  | Relative path under uploads/books/; served by GET /api/photos/{id}. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+
+### 9. `exchange_requests`  ·  ERD: EXCHANGE_REQUEST
+
+One-to-one swap proposals, decided by the listing owner.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `requester_id` | int(11) | no | FK → users | Member making the offer. |
+| `target_listing_id` | int(11) | no | FK → listings | Book being requested (ERD: requested_listing_id). |
+| `offered_listing_id` | int(11) | no | FK → listings | Requester's book offered in return. |
+| `message` | text | yes |  | Optional note to the owner. |
+| `status` | enum('pending', 'accepted', 'declined', 'rejected', 'withdrawn', 'cancelled') | no | default pending | pending, accepted, declined, rejected, withdrawn, or cancelled. |
+| `decline_reason` | varchar(255) | yes |  | Reason shown to the requester. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+| `responded_at` | datetime | yes |  | When the owner accepted or declined. |
+| `updated_at` | datetime | yes |  | When the row last changed. |
+
+### 10. `handover_slots`  ·  ERD: HANDOVER_SLOT
+
+Administrator-defined pool of dated time slots at each venue.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `location_id` | int(11) | no | FK → meetup_locations | Venue of the slot. |
+| `slot_date` | date | no |  | Date of the handover. |
+| `start_time` | time | no |  | Start time. |
+| `end_time` | time | no |  | End time; must be after start_time. |
+| `is_available` | tinyint(1) | no | default 1 | 1 while open; 0 once booked or retired. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+
+### 11. `transactions`  ·  ERD: TRANSACTION
+
+Exchanges opened on acceptance: Accepted → Scheduled → Completed | Cancelled.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `exchange_request_id` | int(11) | no | UNIQUE, FK → exchange_requests | The accepted request (1:1; ERD: request_id). |
+| `handled_by` | int(11) | yes | FK → users | Moderator handling the handover. |
+| `slot_id` | int(11) | yes | FK → handover_slots | Booked handover slot. |
+| `status` | enum('accepted', 'scheduled', 'completed', 'cancelled') | no | default accepted | accepted, scheduled, completed, or cancelled. Changed only by Staff. |
+| `reschedule_count` | int(11) | no | default 0 | Times rescheduled; at most 1. |
+| `cancel_reason` | varchar(255) | yes |  | Required when cancelled (no_show for no-shows). |
+| `requester_confirmed` | tinyint(1) | no | default 0 | Requester confirmed receipt. |
+| `owner_confirmed` | tinyint(1) | no | default 0 | Owner confirmed receipt. |
+| `completed_at` | datetime | yes |  | When Staff recorded completion. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+| `updated_at` | datetime | yes |  | When the row last changed. |
+
+### 12. `reports`  ·  ERD: REPORT
+
+Disputes, no-shows, inappropriate listings, and spam requests.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `reporter_id` | int(11) | no | FK → users | Who filed it. |
+| `transaction_id` | int(11) | yes | FK → transactions | Subject, for condition and no-show reports. |
+| `listing_id` | int(11) | yes | FK → listings | Subject, for inappropriate-listing reports. |
+| `request_id` | int(11) | yes | FK → exchange_requests | Subject, for spam-request reports (beyond the ERD). |
+| `handled_by` | int(11) | yes | FK → users | Moderator or Administrator who resolved it. |
+| `report_type` | enum('misdescribed_condition', 'no_show', 'inappropriate_listing', 'spam_request') | no |  | misdescribed_condition, no_show, inappropriate_listing, or spam_request. |
+| `description` | text | no |  | Reporter's account of the problem. |
+| `resolution` | text | yes |  | Findings and outcome. |
+| `status` | enum('open', 'resolved', 'escalated') | no | default open | open, resolved, or escalated to the Administrator. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+| `updated_at` | datetime | yes |  | When the row last changed. |
+
+### 13. `notifications`  ·  ERD: NOTIFICATION
+
+In-app alerts raised at each state change.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `user_id` | int(11) | no | FK → users | Recipient. |
+| `type` | varchar(60) | no |  | Event name, e.g. request_accepted. |
+| `message` | text | no |  | Text shown to the member. |
+| `is_read` | tinyint(1) | no | default 0 | 1 once read. |
+| `related_record_type` | varchar(30) | yes |  | Linked record type, e.g. transaction. |
+| `related_record_id` | int(11) | yes |  | Linked record ID. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+
+### 14. `activity_log`  ·  ERD: ACTIVITY_LOG
+
+Append-only audit trail.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `actor_id` | int(11) | no | FK → users | Who acted (ERD: user_id). |
+| `record_type` | varchar(30) | no |  | Kind of record changed (ERD: entity_type). |
+| `record_id` | int(11) | no |  | ID of the record changed (ERD: entity_id). |
+| `action` | varchar(60) | no |  | What was done, e.g. approve, scheduled. |
+| `note` | text | yes |  | Reason or detail (ERD: reason). |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+
+### 15. `watchlist`  ·  ERD: WATCHLIST
+
+Listings a member is tracking (users ↔ listings, many-to-many).
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `user_id` | int(11) | no | FK → users | Watching member. |
+| `listing_id` | int(11) | no | FK → listings | Watched listing. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+
+### 16. `user_sessions`  ·  ERD: — (beyond the ERD)
+
+Server-side sessions behind login tokens.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `user_id` | int(11) | no | FK → users | Signed-in user. |
+| `token_hash` | char(64) | no | UNIQUE | SHA-256 of the token ID; the token itself is never stored. |
+| `ip_address` | varchar(45) | yes |  | Client IP at sign-in. |
+| `user_agent` | varchar(255) | yes |  | Client browser at sign-in. |
+| `created_at` | datetime | no | default current_timestamp() | When the row was created. |
+| `last_seen_at` | datetime | no | default current_timestamp() | Last authenticated request. |
+| `expires_at` | datetime | no |  | Same expiry as the token. |
+| `revoked_at` | datetime | yes |  | Set on logout, deactivation, role change, or password reset. |
+
+### 17. `login_attempts`  ·  ERD: — (beyond the ERD)
+
+Recent sign-in attempts, used to throttle password guessing.
+
+| Column | Type | Null | Key / Default | Description |
+|---|---|---|---|---|
+| `id` | int(11) | no | PK, auto | Primary key. |
+| `email` | varchar(255) | no |  | Email as typed, so guesses at unregistered addresses count too. |
+| `ip_address` | varchar(45) | no |  | Client IP. |
+| `succeeded` | tinyint(1) | no |  | 1 for a successful sign-in, which clears the failure count. |
+| `attempted_at` | datetime | no | default current_timestamp() | When the attempt was made. |
+
+## Relationships
+
+| Child | Foreign key | Parent | On delete |
+|---|---|---|---|
+| activity_log | actor_id | users | RESTRICT |
+| exchange_requests | offered_listing_id | listings | RESTRICT |
+| exchange_requests | requester_id | users | RESTRICT |
+| exchange_requests | target_listing_id | listings | RESTRICT |
+| handover_slots | location_id | meetup_locations | RESTRICT |
+| listings | age_category_id | age_categories | RESTRICT |
+| listings | condition_id | conditions | RESTRICT |
+| listings | format_id | formats | RESTRICT |
+| listings | genre_id | genres | RESTRICT |
+| listings | user_id | users | RESTRICT |
+| listings | verified_by | users | SET NULL |
+| listing_photos | listing_id | listings | CASCADE |
+| notifications | user_id | users | CASCADE |
+| reports | handled_by | users | SET NULL |
+| reports | listing_id | listings | RESTRICT |
+| reports | reporter_id | users | RESTRICT |
+| reports | request_id | exchange_requests | RESTRICT |
+| reports | transaction_id | transactions | RESTRICT |
+| transactions | exchange_request_id | exchange_requests | RESTRICT |
+| transactions | handled_by | users | SET NULL |
+| transactions | slot_id | handover_slots | RESTRICT |
+| user_sessions | user_id | users | CASCADE |
+| watchlist | listing_id | listings | CASCADE |
+| watchlist | user_id | users | CASCADE |
+
+RESTRICT keeps records with history (an owner of listings or an audit-log actor cannot be deleted). CASCADE removes rows that mean nothing without their parent (photos, notifications, watchlist entries, sessions). SET NULL keeps a transaction or report when the moderator attached to it leaves.
+
+## CHECK constraints
+
+| Table | Constraint | Rule |
+|---|---|---|
+| exchange_requests | chk_request_distinct_books | ``target_listing_id` <> `offered_listing_id`` |
+| handover_slots | chk_slot_times | ``end_time` > `start_time`` |
+| reports | chk_report_has_subject | ``transaction_id` is not null or `listing_id` is not null or `request_id` is not null` |
+| transactions | chk_reschedule_limit | ``reschedule_count` between 0 and 1` |

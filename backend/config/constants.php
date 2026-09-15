@@ -109,6 +109,14 @@ define('PAGE_SIZE_DEFAULT',    10);  // Rows per page when ?per_page= is absent
 define('PAGE_SIZE_MAX',        50);  // Upper bound for ?per_page=
 define('REPORT_DEFAULT_DAYS',  30);  // Report date range when ?from=/?to= are absent
 
+// ── Sign-in Throttling ────────────────────────────────────────────────────────
+// Failed sign-ins inside the window lock further attempts (HTTP 429), even with
+// the right password, until the window passes. Per-IP limits catch one client
+// trying many accounts.
+define('LOGIN_MAX_FAILURES',    5);   // Failures per email address
+define('LOGIN_IP_MAX_FAILURES', 20);  // Failures per IP address, across all emails
+define('LOGIN_LOCK_MINUTES',    15);  // Sliding window
+
 // ── JWT Settings ──────────────────────────────────────────────────────────────
 define('JWT_EXPIRY_SECS', 3600); // Token and session valid for 1 hour (3 600 seconds)
 
