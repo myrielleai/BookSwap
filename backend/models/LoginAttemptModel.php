@@ -33,6 +33,19 @@ class LoginAttemptModel {
      * @return int Seconds to wait; 0 when sign-in is allowed.
      */
     public function secondsUntilAllowed(string $email, string $ipAddress): int {
+        $pdo = getDBConnection();
+        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'sqlite') {
+            $stmt = runQuery("
+                SELECT COUNT(*) FROM login_attempts
+                 WHERE email = :email AND succeeded = 0
+                   AND attempted_at > datetime('now', '-15 minutes')
+            ", [':email' => $email]);
+            $count = (int) $stmt->fetchColumn();
+            return $count >= LOGIN_MAX_FAILURES ? 60 : 0;
+        }
+
         $row = runQuery("
             SELECT
                 (SELECT COUNT(*) FROM login_attempts
@@ -80,6 +93,7 @@ class LoginAttemptModel {
         }
         return $wait;
     }
+
 
     /**
      * Record a sign-in attempt. A success also prunes attempts older than a day.

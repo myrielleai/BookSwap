@@ -5,3 +5,12 @@ uploads/
 # Machine-specific settings: JWT secret, debug flag, CORS origins, DB credentials.
 # Copy backend/config/local.example.php to create it.
 backend/config/local.php
+
+# Node dependencies and build output
+node_modules/
+dist/
+
+# Local database files
+*.sqlite
+backend/database/*.sqlite
+

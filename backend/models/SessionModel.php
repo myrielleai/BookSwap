@@ -39,11 +39,13 @@ class SessionModel {
      * @return int New session ID.
      */
     public function create(int $userId, string $tokenId, int $expiresAt, string $ipAddress, string $userAgent): int {
-        $stmt = $this->db->prepare("
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $expiresSql = $driver === 'sqlite' ? "datetime(:expires_at, 'unixepoch')" : "FROM_UNIXTIME(:expires_at)";
+
+        runQuery("
             INSERT INTO user_sessions (user_id, token_hash, ip_address, user_agent, created_at, last_seen_at, expires_at)
-            VALUES (:user_id, :token_hash, :ip_address, :user_agent, NOW(), NOW(), FROM_UNIXTIME(:expires_at))
-        ");
-        $stmt->execute([
+            VALUES (:user_id, :token_hash, :ip_address, :user_agent, NOW(), NOW(), {$expiresSql})
+        ", [
             ':user_id'    => $userId,
             ':token_hash' => hashTokenId($tokenId),
             ':ip_address' => substr($ipAddress, 0, 45),
@@ -53,15 +55,8 @@ class SessionModel {
         return (int) $this->db->lastInsertId();
     }
 
-    /**
-     * Find a live session for a token, together with the account's current
-     * role and status.
-     *
-     * @param string $tokenId The JWT's jti claim.
-     * @return array|null Keys: id, user_id, user_role, user_status.
-     */
     public function findActive(string $tokenId): ?array {
-        $stmt = $this->db->prepare("
+        $stmt = runQuery("
             SELECT s.id, s.user_id, u.role AS user_role, u.status AS user_status
             FROM user_sessions s
             JOIN users u ON u.id = s.user_id
@@ -69,47 +64,27 @@ class SessionModel {
               AND s.revoked_at IS NULL
               AND s.expires_at > NOW()
             LIMIT 1
-        ");
-        $stmt->execute([':token_hash' => hashTokenId($tokenId)]);
+        ", [':token_hash' => hashTokenId($tokenId)]);
         return $stmt->fetch() ?: null;
     }
 
-    /**
-     * Record activity on a session.
-     *
-     * @param int $id Session ID.
-     */
     public function touch(int $id): void {
-        $stmt = $this->db->prepare("UPDATE user_sessions SET last_seen_at = NOW() WHERE id = :id");
-        $stmt->execute([':id' => $id]);
+        runQuery("UPDATE user_sessions SET last_seen_at = NOW() WHERE id = :id", [':id' => $id]);
     }
 
-    /**
-     * End one session (logout).
-     *
-     * @param string $tokenId The JWT's jti claim.
-     */
     public function revoke(string $tokenId): void {
-        $stmt = $this->db->prepare("
+        runQuery("
             UPDATE user_sessions SET revoked_at = NOW()
             WHERE token_hash = :token_hash AND revoked_at IS NULL
-        ");
-        $stmt->execute([':token_hash' => hashTokenId($tokenId)]);
+        ", [':token_hash' => hashTokenId($tokenId)]);
     }
 
-    /**
-     * End every open session for a user. Used when an account is deactivated
-     * or suspended, its role changes, or its password is reset.
-     *
-     * @param int $userId
-     * @return int Number of sessions ended.
-     */
     public function revokeAllForUser(int $userId): int {
-        $stmt = $this->db->prepare("
+        $stmt = runQuery("
             UPDATE user_sessions SET revoked_at = NOW()
             WHERE user_id = :user_id AND revoked_at IS NULL
-        ");
-        $stmt->execute([':user_id' => $userId]);
+        ", [':user_id' => $userId]);
         return $stmt->rowCount();
     }
+
 }

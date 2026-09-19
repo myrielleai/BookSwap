@@ -47,18 +47,87 @@ function getDBConnection(): PDO {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
 
-        // Match NOW() and CURDATE() to PHP's APP_TIMEZONE. A numeric offset is
-        // used because shared hosts rarely load MySQL's named time zone tables.
+        // Match NOW() and CURDATE() to PHP's APP_TIMEZONE.
         $offset = (new DateTime('now', new DateTimeZone(APP_TIMEZONE)))->format('P');
         $pdo->exec("SET time_zone = '$offset'");
     } catch (PDOException $e) {
-        // Log the detail, but never send server or credential details to the client.
-        error_log('[BookSwap DB Error] ' . $e->getMessage());
-        sendError('Database connection failed.', 500);
+        // Fallback to local SQLite if MySQL daemon is not running
+        try {
+            $sqliteFile = __DIR__ . '/../database/bookswap.sqlite';
+            $isNew = !file_exists($sqliteFile) || filesize($sqliteFile) === 0;
+            $pdo = new PDO('sqlite:' . $sqliteFile, null, null, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+
+            if ($isNew) {
+                initSqliteDatabase($pdo);
+            }
+        } catch (PDOException $sqle) {
+            error_log('[BookSwap DB Error] MySQL: ' . $e->getMessage() . ' | SQLite: ' . $sqle->getMessage());
+            sendError('Database connection failed.', 500);
+        }
     }
 
     return $pdo;
 }
+
+function initSqliteDatabase(PDO $pdo): void {
+    $schemaFile = __DIR__ . '/../database/schema.sql';
+    $seedFile   = __DIR__ . '/../database/seed.sql';
+
+    if (!file_exists($schemaFile)) return;
+
+    $schema = file_get_contents($schemaFile);
+    $schema = preg_replace('/--.*$/m', '', $schema); // Strip SQL comments
+    $schema = preg_replace('/USE\s+bookswap;/i', '', $schema);
+    $schema = preg_replace('/DROP DATABASE IF EXISTS\s+bookswap;/i', '', $schema);
+    $schema = preg_replace('/CREATE DATABASE\s+[^;]+;/i', '', $schema);
+    $schema = preg_replace('/ENGINE=InnoDB/i', '', $schema);
+    $schema = preg_replace('/CHARACTER SET [^\s]+/i', '', $schema);
+    $schema = preg_replace('/COLLATE [^\s]+/i', '', $schema);
+    $schema = preg_replace('/INT\s+AUTO_INCREMENT\s+PRIMARY\s+KEY/i', 'INTEGER PRIMARY KEY AUTOINCREMENT', $schema);
+    $schema = preg_replace('/INT\s+AUTO_INCREMENT/i', 'INTEGER PRIMARY KEY AUTOINCREMENT', $schema);
+    $schema = preg_replace('/ON UPDATE CURRENT_TIMESTAMP/i', '', $schema);
+    $schema = preg_replace('/ENUM\([^)]+\)/i', 'TEXT', $schema);
+
+    // Split statements and execute individually
+    $statements = array_filter(array_map('trim', explode(';', $schema)));
+    foreach ($statements as $stmt) {
+        if (empty($stmt)) continue;
+        // Strip inline INDEX definitions if any
+        $stmt = preg_replace('/,\s*INDEX\s+[^\s]+\s+\([^)]+\)/i', '', $stmt);
+        try {
+            $pdo->exec($stmt);
+        } catch (Throwable $t) {
+            error_log('[SQLite Statement Error] ' . $t->getMessage() . ' | SQL: ' . substr($stmt, 0, 100));
+        }
+    }
+
+    if (file_exists($seedFile)) {
+        $seed = file_get_contents($seedFile);
+        $seed = preg_replace('/--.*$/m', '', $seed); // Strip SQL comments
+        $seed = preg_replace('/USE\s+bookswap;/i', '', $seed);
+        $seed = preg_replace('/SET time_zone\s*=[^;]+;/i', '', $seed);
+        $seed = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*(\d+)\s*DAY/i', "datetime('now', '-\$1 days')", $seed);
+        $seed = preg_replace('/CURDATE\(\)\s*-\s*INTERVAL\s*(\d+)\s*DAY/i', "date('now', '-\$1 days')", $seed);
+        $seed = preg_replace('/CURDATE\(\)\s*\+\s*INTERVAL\s*(\d+)\s*DAY/i', "date('now', '+\$1 days')", $seed);
+
+        $seedStmts = array_filter(array_map('trim', explode(';', $seed)));
+        foreach ($seedStmts as $sStmt) {
+            if (empty($sStmt)) continue;
+            try {
+                $pdo->exec($sStmt);
+            } catch (Throwable $t) {
+                // Ignore seed errors if any
+            }
+        }
+    }
+}
+
+
+
+
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 /**
@@ -107,7 +176,15 @@ function withTransaction(callable $work) {
  * @return PDOStatement  The executed statement.
  */
 function runQuery(string $sql, array $params = []): PDOStatement {
-    $stmt = getDBConnection()->prepare($sql);
+    $pdo = getDBConnection();
+    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $sql = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*(\d+)\s*DAY/i', "datetime('now', '-\$1 days')", $sql);
+        $sql = preg_replace('/NOW\(\)\s*\+\s*INTERVAL\s*(\d+)\s*DAY/i', "datetime('now', '+\$1 days')", $sql);
+        $sql = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*(\d+)\s*MINUTE/i', "datetime('now', '-\$1 minutes')", $sql);
+        $sql = preg_replace('/\bNOW\(\)/i', "datetime('now')", $sql);
+        $sql = preg_replace('/\bCURDATE\(\)/i', "date('now')", $sql);
+    }
+    $stmt = $pdo->prepare($sql);
     foreach ($params as $name => $value) {
         if (is_bool($value)) {
             $value = (int) $value;
@@ -118,6 +195,8 @@ function runQuery(string $sql, array $params = []): PDOStatement {
     $stmt->execute();
     return $stmt;
 }
+
+
 
 /**
  * Fetch one page of rows plus the total number of matching rows.
