@@ -15,10 +15,10 @@ const FilterPanel = ({
   };
 
   const sortOptions = [
-    { id: 'created_at_desc', name: 'Newest First' },
-    { id: 'created_at_asc', name: 'Oldest First' },
+    { id: 'newest',    name: 'Newest First' },
+    { id: 'oldest',    name: 'Oldest First' },
     { id: 'relevance', name: 'Relevance to Favorite Genres' },
-    { id: 'title_asc', name: 'Title (A-Z)' },
+    { id: 'title',     name: 'Title (A-Z)' },
   ];
 
   return (
@@ -66,7 +66,7 @@ const FilterPanel = ({
           label="Sort By"
           placeholder="Default Sort"
           options={sortOptions}
-          value={filters.sort || 'created_at_desc'}
+          value={filters.sort || 'newest'}
           onChange={(e) => handleChange('sort', e.target.value)}
         />
       </div>

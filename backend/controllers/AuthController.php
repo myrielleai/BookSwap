@@ -23,6 +23,7 @@ require_once __DIR__ . '/../models/LoginAttemptModel.php';
 require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
+require_once __DIR__ . '/../helpers/email.php';
 require_once __DIR__ . '/../config/constants.php';
 
 class AuthController {
@@ -87,7 +88,8 @@ class AuthController {
             'city'          => $city,
         ]);
 
-        // TODO (API - Email): Send a "registration received, pending approval" email here.
+        // Send a "registration received, pending approval" email.
+        sendRegistrationEmail($email, $name);
 
         sendSuccess(
             ['user_id' => $newUserId],

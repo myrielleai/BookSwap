@@ -23,7 +23,7 @@ const BrowseBooks = () => {
     genre_id: '',
     age_category_id: '',
     condition_id: '',
-    sort: 'created_at_desc',
+    sort: 'newest',
     page: 1,
     per_page: 12,
   });
@@ -84,7 +84,7 @@ const BrowseBooks = () => {
       genre_id: '',
       age_category_id: '',
       condition_id: '',
-      sort: 'created_at_desc',
+      sort: 'newest',
       page: 1,
       per_page: 12,
     });

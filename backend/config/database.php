@@ -58,6 +58,7 @@ function getDBConnection(): PDO {
             $pdo = new PDO('sqlite:' . $sqliteFile, null, null, [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => true, // SQLite needs this for correlated subqueries
             ]);
 
             if ($isNew) {
@@ -95,8 +96,13 @@ function initSqliteDatabase(PDO $pdo): void {
     $statements = array_filter(array_map('trim', explode(';', $schema)));
     foreach ($statements as $stmt) {
         if (empty($stmt)) continue;
-        // Strip inline INDEX definitions if any
-        $stmt = preg_replace('/,\s*INDEX\s+[^\s]+\s+\([^)]+\)/i', '', $stmt);
+        // Strip inline INDEX / KEY definitions that SQLite doesn't support
+        $stmt = preg_replace('/,\s*UNIQUE KEY\s+\S+\s*\([^)]+\)/i', '', $stmt);
+        $stmt = preg_replace('/,\s*UNIQUE INDEX\s+\S+\s*\([^)]+\)/i', '', $stmt);
+        $stmt = preg_replace('/,\s*KEY\s+\S+\s*\([^)]+\)/i', '', $stmt);
+        $stmt = preg_replace('/,\s*INDEX\s+\S+\s*\([^)]+\)/i', '', $stmt);
+        $stmt = trim($stmt);
+        if (empty($stmt)) continue;
         try {
             $pdo->exec($stmt);
         } catch (Throwable $t) {
@@ -106,22 +112,81 @@ function initSqliteDatabase(PDO $pdo): void {
 
     if (file_exists($seedFile)) {
         $seed = file_get_contents($seedFile);
-        $seed = preg_replace('/--.*$/m', '', $seed); // Strip SQL comments
+
+        // Apply only safe substitutions that don't touch quoted values
         $seed = preg_replace('/USE\s+bookswap;/i', '', $seed);
         $seed = preg_replace('/SET time_zone\s*=[^;]+;/i', '', $seed);
         $seed = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*(\d+)\s*DAY/i', "datetime('now', '-\$1 days')", $seed);
         $seed = preg_replace('/CURDATE\(\)\s*-\s*INTERVAL\s*(\d+)\s*DAY/i', "date('now', '-\$1 days')", $seed);
         $seed = preg_replace('/CURDATE\(\)\s*\+\s*INTERVAL\s*(\d+)\s*DAY/i', "date('now', '+\$1 days')", $seed);
 
-        $seedStmts = array_filter(array_map('trim', explode(';', $seed)));
+        // Quote-aware statement splitter: track when we are inside '' or "" so
+        // that ';' inside a string value is not treated as a statement boundary,
+        // and '--' inside a string is not treated as a line comment.
+        $seedStmts = [];
+        $current   = '';
+        $inSingle  = false;
+        $inDouble  = false;
+        $len       = strlen($seed);
+
+        for ($i = 0; $i < $len; $i++) {
+            $ch   = $seed[$i];
+            $next = $seed[$i + 1] ?? '';
+
+            if (!$inSingle && !$inDouble && $ch === '-' && $next === '-') {
+                // Skip line comment outside quotes
+                while ($i < $len && $seed[$i] !== "\n") $i++;
+                continue;
+            }
+
+            if ($ch === "'" && !$inDouble) {
+                if ($inSingle && $next === "'") {
+                    // Escaped single quote inside a string: keep both characters
+                    $current .= "''";
+                    $i++;
+                    continue;
+                }
+                $inSingle = !$inSingle;
+            } elseif ($ch === '"' && !$inSingle) {
+                $inDouble = !$inDouble;
+            }
+
+            if ($ch === ';' && !$inSingle && !$inDouble) {
+                $s = trim($current);
+                if ($s !== '') $seedStmts[] = $s;
+                $current = '';
+                continue;
+            }
+
+            $current .= $ch;
+        }
+        if (($s = trim($current)) !== '') $seedStmts[] = $s;
+
         foreach ($seedStmts as $sStmt) {
             if (empty($sStmt)) continue;
             try {
                 $pdo->exec($sStmt);
             } catch (Throwable $t) {
-                // Ignore seed errors if any
+                error_log('[SQLite Seed Error] ' . $t->getMessage() . ' | SQL: ' . substr($sStmt, 0, 80));
             }
         }
+    }
+
+    // ── Extra tables not in schema.sql (added by migrations) ──────────────
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS email_log (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipient  TEXT    NOT NULL,
+                subject    TEXT    NOT NULL,
+                body_text  TEXT    NOT NULL,
+                status     TEXT    NOT NULL DEFAULT 'skipped',
+                error_msg  TEXT    NULL,
+                created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+            )
+        ");
+    } catch (Throwable $t) {
+        error_log('[SQLite Migration] email_log: ' . $t->getMessage());
     }
 }
 

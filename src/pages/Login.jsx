@@ -32,13 +32,9 @@ const Login = () => {
 
     if (result.success && result.user) {
       const role = result.user.role;
-      if (role === 'admin') {
-        navigate('/admin');
-      } else if (role === 'staff') {
-        navigate('/staff');
-      } else {
-        navigate('/dashboard');
-      }
+      // Redirect to the page they were trying to visit, or the role-based dashboard
+      const defaultPath = role === 'admin' ? '/admin' : role === 'staff' ? '/staff' : '/dashboard';
+      navigate(from !== '/dashboard' ? from : defaultPath);
     } else {
       setError(result.message || 'Invalid email or password.');
     }
