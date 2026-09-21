@@ -1,269 +1,313 @@
 <?php
 
 /**
- * email.php
+ * email.php — Brevo (Sendinblue) Email Helper for BookSwap
  * ─────────────────────────────────────────────────────────────────────────────
- * Transactional email helper for BookSwap.
+ * All outgoing emails are sent through this file.
  *
- * Dual-mode delivery:
- *   1. Attempts PHP's built-in mail() if a mail server is configured.
- *   2. Always logs every email to the email_log table so the system has a
- *      complete, auditable record regardless of delivery success.
+ * SETUP:
+ *   1. Sign up free at https://app.brevo.com  (no credit card needed)
+ *   2. Go to: Profile → SMTP & API → API Keys → Generate a new API key
+ *   3. Under Senders & IP → Senders, add & verify the email you want to send from
+ *   4. Paste your key and sender email into config/constants.php
  *
- * For production with a service like SendGrid or Mailgun, replace the
- * attemptSendMail() function body with the appropriate API call.
- *
- * USAGE:
- *   sendBookSwapEmail('user@example.com', 'Welcome!', 'Your account is pending.');
- *   sendRegistrationEmail($userEmail, $userName);
- *   sendListingVerifiedEmail($userEmail, $userName, $bookTitle, 'approved', $note);
+ * IMPORTANT: No external library required — uses PHP's built-in cURL.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/constants.php';
 
-// ── Settings ──────────────────────────────────────────────────────────────────
-defined('MAIL_FROM_ADDRESS') || define('MAIL_FROM_ADDRESS', 'noreply@bookswap.test');
-defined('MAIL_FROM_NAME')    || define('MAIL_FROM_NAME', 'BookSwap Platform');
-defined('MAIL_ENABLED')      || define('MAIL_ENABLED', true);
-
-// ── Core Send Function ───────────────────────────────────────────────────────
+// ── Core Sender ───────────────────────────────────────────────────────────────
 
 /**
- * Send a transactional email and log it.
+ * Send a single email via Brevo's v3 Transactional Email API.
  *
- * @param string $to      Recipient email.
- * @param string $subject Email subject line.
- * @param string $body    Plain-text email body.
- * @return bool True if mail() succeeded or logging completed.
+ * @param  string $to          Recipient email address.
+ * @param  string $toName      Recipient display name.
+ * @param  string $subject     Email subject line.
+ * @param  string $htmlBody    HTML content of the email.
+ * @param  string $plainBody   Plain-text fallback content.
+ * @return bool                True if accepted by Brevo (HTTP 201), false otherwise.
  */
-function sendBookSwapEmail(string $to, string $subject, string $body): bool {
-    $status   = 'skipped';
-    $errorMsg = null;
-
-    if (MAIL_ENABLED) {
-        try {
-            $sent = attemptSendMail($to, $subject, $body);
-            $status = $sent ? 'sent' : 'failed';
-            if (!$sent) {
-                $errorMsg = 'mail() returned false';
-            }
-        } catch (Throwable $e) {
-            $status   = 'failed';
-            $errorMsg = substr($e->getMessage(), 0, 500);
-        }
+function sendEmail(string $to, string $toName, string $subject, string $htmlBody, string $plainBody = ''): bool {
+    if (!defined('BREVO_API_KEY') || BREVO_API_KEY === 'REPLACE_WITH_YOUR_BREVO_API_KEY') {
+        // Email not configured — log and silently skip so the app still works.
+        error_log("[BookSwap Email] Brevo API key is not configured. Skipping email to: $to");
+        return false;
     }
 
-    // Always log the email attempt
-    logEmail($to, $subject, $body, $status, $errorMsg);
-
-    return $status === 'sent';
-}
-
-/**
- * Attempt to send an email using PHP's built-in mail().
- * Replace this function body with an API call (SendGrid, Mailgun, etc.)
- * for production use.
- */
-function attemptSendMail(string $to, string $subject, string $body): bool {
-    $headers  = "From: " . MAIL_FROM_NAME . " <" . MAIL_FROM_ADDRESS . ">\r\n";
-    $headers .= "Reply-To: " . MAIL_FROM_ADDRESS . "\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-    $headers .= "X-Mailer: BookSwap/1.0\r\n";
-
-    return @mail($to, $subject, $body, $headers);
-}
-
-/**
- * Record an email in the email_log table.
- */
-function logEmail(string $to, string $subject, string $body, string $status, ?string $errorMsg): void {
-    try {
-        runQuery("
-            INSERT INTO email_log (recipient, subject, body_text, status, error_msg, created_at)
-            VALUES (:recipient, :subject, :body_text, :status, :error_msg, NOW())
-        ", [
-            ':recipient' => $to,
-            ':subject'   => $subject,
-            ':body_text' => $body,
-            ':status'    => $status,
-            ':error_msg' => $errorMsg,
-        ]);
-    } catch (Throwable $e) {
-        error_log('[BookSwap Email Log Error] ' . $e->getMessage());
+    if (empty($plainBody)) {
+        $plainBody = strip_tags($htmlBody);
     }
+
+    // Brevo transactional email payload format.
+    $payload = json_encode([
+        'sender'     => ['email' => BREVO_FROM_EMAIL, 'name' => BREVO_FROM_NAME],
+        'to'         => [['email' => $to, 'name' => $toName]],
+        'subject'    => $subject,
+        'htmlContent' => $htmlBody,
+        'textContent' => $plainBody,
+    ]);
+
+    $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+    curl_setopt($ch, CURLOPT_POST,           true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS,     $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER,     [
+        'api-key: ' . BREVO_API_KEY,
+        'Content-Type: application/json',
+        'Accept: application/json',
+        'Content-Length: ' . strlen($payload),
+    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT,        10); // fail fast — don't block the API response
+
+    $responseBody = curl_exec($ch);
+    $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 201) {
+        error_log("[BookSwap Email] Brevo returned HTTP $httpCode for email to $to. Body: $responseBody");
+        return false;
+    }
+
+    return true;
 }
 
-// ── Template Functions ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ── Email Template Functions ─────────────────────────────────────────────────
+// Each function wraps sendEmail() with a specific template and subject.
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Email sent after registration (Phase 1 §3.3.1).
+ * Sent to a new user immediately after they register.
+ * Informs them their account is pending admin approval.
  */
-function sendRegistrationEmail(string $email, string $name): void {
-    $subject = 'Welcome to BookSwap — Registration Received';
-    $body = <<<EOT
-Hi $name,
-
-Thank you for registering on BookSwap!
-
-Your account has been created and is currently pending Administrator approval.
-Once your identity has been verified, you'll receive another email confirming
-that your account is active and ready to use.
-
-In the meantime, feel free to browse the book catalog.
-
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+function sendEmail_registrationPending(string $toEmail, string $toName): bool {
+    $subject = 'BookSwap — Registration Received';
+    $html    = emailLayout("Hi $toName, welcome to BookSwap!", "
+        <p>Thank you for registering on <strong>BookSwap</strong>!</p>
+        <p>Your account is currently <strong>pending Administrator approval</strong>.
+           You will receive another email once your account has been reviewed.</p>
+        <p>In the meantime, feel free to browse our book catalog while you wait.</p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
 }
 
 /**
- * Email sent when an Administrator approves a pending account.
+ * Sent to a user when an Admin approves (activates) their account.
  */
-function sendAccountApprovedEmail(string $email, string $name): void {
+function sendEmail_accountApproved(string $toEmail, string $toName): bool {
     $subject = 'BookSwap — Your Account Has Been Approved!';
-    $body = <<<EOT
-Hi $name,
-
-Great news! Your BookSwap account has been approved by an Administrator.
-
-You can now sign in and start listing books, browsing the catalog, and
-sending exchange requests to fellow bookworms.
-
-Sign in at: http://localhost:3000/login
-
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+    $html    = emailLayout("Great news, $toName!", "
+        <p>Your <strong>BookSwap</strong> account has been approved by an Administrator.</p>
+        <p>You can now log in, list your books, and start exchanging!</p>
+        <p style='text-align:center; margin-top:24px;'>
+            <a href='" . BOOKSWAP_APP_URL . "/login'
+               style='background:#4f46e5;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;'>
+               Log In Now
+            </a>
+        </p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
 }
 
 /**
- * Email sent when an Administrator deactivates or suspends an account.
+ * Sent to a user when an Admin suspends, deactivates, or reactivates their account.
  */
-function sendAccountDeactivatedEmail(string $email, string $name, string $newStatus): void {
-    $statusLabel = $newStatus === 'suspended' ? 'suspended' : 'deactivated';
-    $subject = "BookSwap — Your Account Has Been " . ucfirst($statusLabel);
-    $body = <<<EOT
-Hi $name,
-
-Your BookSwap account has been $statusLabel by an Administrator.
-
-If you believe this was in error, please contact the platform support team
-for assistance.
-
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+function sendEmail_accountStatusChanged(string $toEmail, string $toName, string $newStatus): bool {
+    $statusMessages = [
+        'inactive'  => 'Your account has been <strong>deactivated</strong>. If you believe this is a mistake, please contact support.',
+        'suspended' => 'Your account has been <strong>suspended</strong> due to a violation of our community guidelines. Please contact support if you have questions.',
+        'active'    => 'Your account has been <strong>reactivated</strong>. You can log in and continue exchanging books!',
+    ];
+    $message = $statusMessages[$newStatus] ?? "Your account status has been updated to <strong>$newStatus</strong>.";
+    $subject = 'BookSwap — Account Status Update';
+    $html    = emailLayout("Account Update, $toName", "<p>$message</p>");
+    return sendEmail($toEmail, $toName, $subject, $html);
 }
 
 /**
- * Email sent when an Administrator resets a user's password.
+ * Sent to a listing owner when staff approves, returns, or rejects their listing.
  */
-function sendPasswordResetEmail(string $email, string $name): void {
-    $subject = 'BookSwap — Your Password Has Been Reset';
-    $body = <<<EOT
-Hi $name,
-
-Your BookSwap password has been reset by an Administrator.
-
-Please sign in with your new password. If you did not request this change,
-contact the platform support team immediately.
-
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+function sendEmail_listingVerified(string $toEmail, string $toName, string $listingTitle, string $action, string $note = ''): bool {
+    $messages = [
+        'approve' => "<p>Your listing <strong>\"$listingTitle\"</strong> has been <strong>approved</strong> and is now visible in the BookSwap catalog!</p>",
+        'return'  => "<p>Your listing <strong>\"$listingTitle\"</strong> has been <strong>returned for revision</strong>.</p>"
+                   . ($note ? "<p><strong>Staff note:</strong> $note</p>" : ''),
+        'reject'  => "<p>Your listing <strong>\"$listingTitle\"</strong> has been <strong>rejected</strong>.</p>"
+                   . ($note ? "<p><strong>Reason:</strong> $note</p>" : ''),
+    ];
+    $titles = [
+        'approve' => 'Listing Approved',
+        'return'  => 'Listing Needs Revision',
+        'reject'  => 'Listing Rejected',
+    ];
+    $subject = "BookSwap — {$titles[$action]}: $listingTitle";
+    $html    = emailLayout("{$titles[$action]}", $messages[$action] ?? '');
+    return sendEmail($toEmail, $toName, $subject, $html);
 }
 
 /**
- * Email sent when Staff verifies a listing (approved, returned, or rejected).
+ * Sent to a listing owner when someone sends them an exchange request.
  */
-function sendListingVerifiedEmail(string $email, string $name, string $bookTitle, string $status, ?string $staffNote = null): void {
-    $statusLabel = match($status) {
-        'available' => 'Approved',
-        'returned'  => 'Returned for Revision',
-        'rejected'  => 'Rejected',
-        default     => ucfirst($status),
-    };
-
-    $subject = "BookSwap — Your Listing \"$bookTitle\" Has Been $statusLabel";
-
-    $noteSection = '';
-    if ($staffNote) {
-        $noteSection = "\nModerator's note:\n\"$staffNote\"\n";
-    }
-
-    $body = <<<EOT
-Hi $name,
-
-Your book listing "$bookTitle" has been reviewed by a moderator.
-
-Status: $statusLabel
-$noteSection
-Sign in to your dashboard to view the details.
-
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+function sendEmail_exchangeRequestReceived(string $toEmail, string $toName, string $requesterName, string $targetTitle): bool {
+    $subject = 'BookSwap — New Exchange Request';
+    $html    = emailLayout("You have a new exchange request, $toName!", "
+        <p><strong>$requesterName</strong> wants to exchange a book with you for your listing
+           <strong>\"$targetTitle\"</strong>.</p>
+        <p>Log in to BookSwap to review their offered book and accept or decline.</p>
+        <p style='text-align:center; margin-top:24px;'>
+            <a href='" . BOOKSWAP_APP_URL . "'
+               style='background:#4f46e5;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;'>
+               Review Request
+            </a>
+        </p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
 }
 
 /**
- * Email sent when an exchange request is accepted.
+ * Sent to the requester when the listing owner accepts their exchange request.
  */
-function sendExchangeAcceptedEmail(string $email, string $name, string $bookTitle): void {
-    $subject = "BookSwap — Your Exchange Request for \"$bookTitle\" Was Accepted!";
-    $body = <<<EOT
-Hi $name,
-
-Your exchange request for "$bookTitle" has been accepted by the listing owner!
-
-A moderator will now schedule a handover time and location. You'll receive
-another notification once the handover has been scheduled.
-
-Check your dashboard for details.
-
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+function sendEmail_exchangeRequestAccepted(string $toEmail, string $toName, string $targetTitle): bool {
+    $subject = "BookSwap — Your Exchange Request Was Accepted!";
+    $html    = emailLayout("Good news, $toName!", "
+        <p>The owner of <strong>\"$targetTitle\"</strong> has <strong>accepted</strong> your exchange request!</p>
+        <p>A moderator will review and endorse the exchange shortly.
+           You'll receive another notification once a handover is scheduled.</p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
 }
 
 /**
- * Email sent when a handover is scheduled.
+ * Sent to the requester when the listing owner declines their exchange request.
  */
-function sendHandoverScheduledEmail(string $email, string $name, string $bookTitle, string $location, string $date, string $time): void {
-    $subject = "BookSwap — Handover Scheduled for \"$bookTitle\"";
-    $body = <<<EOT
-Hi $name,
-
-A handover has been scheduled for your book exchange involving "$bookTitle".
-
-Location: $location
-Date: $date
-Time: $time
-
-Please arrive on time. If you need to reschedule, contact the moderator
-through your dashboard (one reschedule allowed per transaction).
-
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+function sendEmail_exchangeRequestDeclined(string $toEmail, string $toName, string $targetTitle, string $reason = ''): bool {
+    $subject = "BookSwap — Exchange Request Declined";
+    $html    = emailLayout("Update on your exchange request", "
+        <p>Unfortunately, the owner of <strong>\"$targetTitle\"</strong> has <strong>declined</strong> your exchange request.</p>
+        " . ($reason ? "<p><strong>Reason:</strong> $reason</p>" : '') . "
+        <p>Don't worry — there are plenty more books in the catalog!</p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
 }
 
 /**
- * Email sent when a watched listing becomes available (Phase 1 §3.3.3).
+ * Sent to both parties when staff endorses an exchange and a transaction is created.
  */
-function sendWatchlistAvailableEmail(string $email, string $name, string $bookTitle): void {
-    $subject = "BookSwap — A Book on Your Watchlist Is Available: \"$bookTitle\"";
-    $body = <<<EOT
-Hi $name,
+function sendEmail_requestEndorsed(string $toEmail, string $toName): bool {
+    $subject = "BookSwap — Exchange Endorsed by Moderator";
+    $html    = emailLayout("Your exchange has been endorsed, $toName!", "
+        <p>A BookSwap moderator has <strong>endorsed</strong> your exchange.
+           A transaction has been created and will be reviewed for final approval shortly.</p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
+}
 
-Good news! A book on your watchlist is now available:
+/**
+ * Sent to both parties when a handover slot is scheduled or rescheduled.
+ */
+function sendEmail_handoverScheduled(
+    string $toEmail,
+    string $toName,
+    string $location,
+    string $date,
+    string $time,
+    bool   $isReschedule = false
+): bool {
+    $verb    = $isReschedule ? 'Rescheduled' : 'Scheduled';
+    $subject = "BookSwap — Handover $verb";
+    $html    = emailLayout("Handover $verb, $toName!", "
+        <p>Your book exchange handover has been <strong>" . strtolower($verb) . "</strong>:</p>
+        <table style='margin:16px 0; border-collapse:collapse; width:100%;'>
+            <tr>
+                <td style='padding:8px; font-weight:600; width:120px;'>Location</td>
+                <td style='padding:8px;'>$location</td>
+            </tr>
+            <tr style='background:#f9fafb;'>
+                <td style='padding:8px; font-weight:600;'>Date</td>
+                <td style='padding:8px;'>$date</td>
+            </tr>
+            <tr>
+                <td style='padding:8px; font-weight:600;'>Time</td>
+                <td style='padding:8px;'>$time</td>
+            </tr>
+        </table>
+        <p>Please make sure to bring the book listed in your exchange. After the handover,
+           log in to BookSwap to confirm receipt.</p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
+}
 
-"$bookTitle"
+/**
+ * Sent to both parties if a no-show is recorded and the transaction is cancelled.
+ */
+function sendEmail_noShowRecorded(string $toEmail, string $toName): bool {
+    $subject = "BookSwap — Handover No-Show Recorded";
+    $html    = emailLayout("No-show recorded, $toName", "
+        <p>A moderator has recorded a <strong>no-show</strong> for your scheduled handover.</p>
+        <p>The transaction has been cancelled and your listing has been returned to available status.</p>
+        <p>If you believe this was recorded in error, please contact BookSwap support.</p>
+    ");
+    return sendEmail($toEmail, $toName, $subject, $html);
+}
 
-Sign in to view the listing and send an exchange request before
-someone else does!
+// ─────────────────────────────────────────────────────────────────────────────
+// ── Internal: HTML Layout ────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
-— The BookSwap Team
-EOT;
-    sendBookSwapEmail($email, $subject, $body);
+/**
+ * Wraps content in a branded HTML email layout.
+ *
+ * @param  string $heading  Bold heading shown at the top of the email body.
+ * @param  string $body     HTML body content.
+ * @return string           Complete HTML email string.
+ */
+function emailLayout(string $heading, string $body): string {
+    $appUrl = defined('BOOKSWAP_APP_URL') ? BOOKSWAP_APP_URL : '#';
+    return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookSwap</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6; padding:40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.08); max-width:600px;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%); padding:32px 40px; text-align:center;">
+                            <h1 style="margin:0; color:#ffffff; font-size:28px; font-weight:700; letter-spacing:-0.5px;">BookSwap</h1>
+                            <p style="margin:6px 0 0; color:rgba(255,255,255,0.8); font-size:14px;">Exchange books, share stories</p>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:36px 40px;">
+                            <h2 style="margin:0 0 16px; font-size:20px; font-weight:600; color:#111827;">$heading</h2>
+                            <div style="color:#374151; font-size:15px; line-height:1.6;">
+                                $body
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background:#f9fafb; padding:20px 40px; border-top:1px solid #e5e7eb; text-align:center;">
+                            <p style="margin:0; color:#9ca3af; font-size:12px;">
+                                You're receiving this email because you have an account on BookSwap.<br>
+                                &copy; 2025 BookSwap. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
 }
