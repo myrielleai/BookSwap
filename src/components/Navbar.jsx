@@ -59,9 +59,6 @@ const Navbar = () => {
               <span className="font-serif font-bold text-xl text-slate-900 tracking-tight">
                 Book<span className="text-brand-600">Swap</span>
               </span>
-              <span className="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-wider text-slate-400 ml-1.5 px-1.5 py-0.5 bg-slate-100 rounded-md">
-                P2P Exchange
-              </span>
             </div>
           </Link>
 
