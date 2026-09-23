@@ -3,7 +3,7 @@
 /**
  * AuthController.php
  * ─────────────────────────────────────────────────────────────────────────────
- * Handles user registration, login, and logout.
+ * Handles user registration, login (password or Google), and logout.
  *
  * Login opens a server-side session (user_sessions) and returns a JWT tied to
  * it. Logout revokes that session, so the token stops working at once instead
@@ -13,6 +13,7 @@
  *   POST /api/auth/register  → register()
  *   POST /api/auth/login     → login()
  *   POST /api/auth/logout    → logout()
+ *   POST /api/auth/google    → google()
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -20,22 +21,30 @@ require_once __DIR__ . '/../middleware/auth_middleware.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../models/SessionModel.php';
 require_once __DIR__ . '/../models/LoginAttemptModel.php';
+require_once __DIR__ . '/../models/NotificationModel.php';
+require_once __DIR__ . '/../models/ReportModel.php';
 require_once __DIR__ . '/../helpers/auth.php';
+require_once __DIR__ . '/../helpers/google_auth.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
 require_once __DIR__ . '/../helpers/email.php';
 require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../config/database.php';
 
 class AuthController {
 
     private UserModel         $userModel;
     private SessionModel      $sessionModel;
     private LoginAttemptModel $loginAttemptModel;
+    private NotificationModel $notificationModel;
+    private ReportModel       $reportModel;
 
     public function __construct() {
         $this->userModel         = new UserModel();
         $this->sessionModel      = new SessionModel();
         $this->loginAttemptModel = new LoginAttemptModel();
+        $this->notificationModel = new NotificationModel();
+        $this->reportModel       = new ReportModel();
     }
 
     /**
@@ -89,7 +98,7 @@ class AuthController {
         ]);
 
         // Send a "registration received, pending approval" email.
-        sendRegistrationEmail($email, $name);
+        sendEmail_registrationPending($email, $name);
 
         sendSuccess(
             ['user_id' => $newUserId],
@@ -186,5 +195,124 @@ class AuthController {
         $this->sessionModel->revoke($authUser['jti']);
 
         sendSuccess(null, 'Logged out. This session has been ended on the server.');
+    }
+
+    // ── Google Sign-in ────────────────────────────────────────────────────────
+
+    /**
+     * POST /api/auth/google
+     *
+     * Accepts: { credential } — the ID token from Google Identity Services.
+     *
+     *   Google account already linked      → sign in
+     *   Email matches an unlinked account  → link it, then sign in
+     *   New email                          → create a pending account (201); an Administrator approves it
+     */
+    public function google(): void {
+        if (GOOGLE_CLIENT_ID === '') {
+            sendError('Google sign-in is not configured on this server.', 503);
+        }
+        if (!jwtSecretConfigured()) {
+            sendError('Sign-in is unavailable: the server has no JWT secret configured.', 500);
+        }
+
+        $body       = getRequestBody();
+        $credential = $body['credential'] ?? null;
+        if (!is_string($credential) || $credential === '' || strlen($credential) > 4096) {
+            sendError('Validation failed.', 422, ['credential' => 'credential is required.']);
+        }
+
+        $google = verifyGoogleIdToken($credential);
+        if ($google === null) {
+            sendError('Google sign-in failed: the credential is invalid or has expired.', 401);
+        }
+
+        $user = $this->userModel->findByGoogleId($google['sub']);
+
+        if ($user === null) {
+            $existing = $this->userModel->findByEmail($google['email']);
+
+            if ($existing === null) {
+                $this->registerFromGoogle($google);
+                return;
+            }
+            if ($existing['google_sub'] !== null) {
+                sendError('This email address is already linked to a different Google account.', 409);
+            }
+
+            $this->userModel->linkGoogle((int) $existing['id'], $google['sub']);
+            $this->reportModel->logActivity((int) $existing['id'], 'user', (int) $existing['id'], 'google_linked', '');
+            $user = $this->userModel->findByEmail($google['email']);
+        }
+
+        if ($user['status'] === ACCOUNT_PENDING) {
+            sendError('Your account is pending Administrator approval. Please check back later.', 403);
+        }
+        if ($user['status'] !== ACCOUNT_ACTIVE) {
+            sendError('Your account has been deactivated. Please contact support.', 403);
+        }
+
+        $ipAddress = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        $tokenId   = newTokenId();
+        $expiresAt = time() + JWT_EXPIRY_SECS;
+
+        $this->sessionModel->create(
+            (int) $user['id'],
+            $tokenId,
+            $expiresAt,
+            $ipAddress,
+            (string) ($_SERVER['HTTP_USER_AGENT'] ?? '')
+        );
+
+        $token = generateJWT((int) $user['id'], $user['role'], $tokenId, $expiresAt);
+
+        sendSuccess([
+            'token'      => $token,
+            'expires_at' => date(DATE_ATOM, $expiresAt),
+            'provider'   => 'google',
+            'user'       => [
+                'id'   => (int) $user['id'],
+                'name' => $user['name'],
+                'role' => $user['role'],
+            ],
+        ], 'Login successful.');
+    }
+
+    /**
+     * Create a pending account from a verified Google identity and tell the
+     * Administrators. Sends the 201 response.
+     *
+     * @param array $google verifyGoogleIdToken() output.
+     */
+    private function registerFromGoogle(array $google): void {
+        $name = mb_substr(sanitizeString($google['name']), 0, 100);
+        if ($name === '') {
+            $name = mb_substr(strstr($google['email'], '@', true), 0, 100);
+        }
+
+        $userId = withTransaction(function () use ($google, $name) {
+            $userId = $this->userModel->createFromGoogle(
+                $name,
+                $google['email'],
+                $google['sub'],
+                hashPassword(bin2hex(random_bytes(32)))
+            );
+            $this->reportModel->logActivity($userId, 'user', $userId, 'registered_with_google', '');
+            return $userId;
+        });
+
+        $this->notificationModel->notifyMany(
+            $this->userModel->getActiveIdsByRole(ROLE_ADMIN),
+            'account_pending_review',
+            "$name ({$google['email']}) signed up with Google and is waiting for approval.",
+            'user',
+            $userId
+        );
+
+        sendSuccess(
+            ['user_id' => $userId, 'status' => ACCOUNT_PENDING],
+            'Google account registered. Your account is pending Administrator approval.',
+            201
+        );
     }
 }

@@ -188,6 +188,26 @@ function initSqliteDatabase(PDO $pdo): void {
     } catch (Throwable $t) {
         error_log('[SQLite Migration] email_log: ' . $t->getMessage());
     }
+
+    // Google sign-in + book lookup (see migration_google_and_books.sql for MySQL).
+    try {
+        $pdo->exec("ALTER TABLE users ADD COLUMN google_sub TEXT NULL UNIQUE");
+    } catch (Throwable $t) {
+        // Already added on a prior run, or the column pre-dates this migration; either is fine.
+    }
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS book_lookup_cache (
+                isbn       TEXT    NOT NULL PRIMARY KEY,
+                found      INTEGER NOT NULL,
+                payload    TEXT    NULL,
+                fetched_at TEXT    NOT NULL,
+                expires_at TEXT    NOT NULL
+            )
+        ");
+    } catch (Throwable $t) {
+        error_log('[SQLite Migration] book_lookup_cache: ' . $t->getMessage());
+    }
 }
 
 

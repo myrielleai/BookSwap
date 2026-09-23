@@ -228,4 +228,52 @@ class UserModel {
     public function updatePassword(int $id, string $passwordHash): void {
         runQuery("UPDATE users SET password_hash = :hash, updated_at = NOW() WHERE id = :id", [':hash' => $passwordHash, ':id' => $id]);
     }
+
+    // ── Google Sign-in ────────────────────────────────────────────────────────
+
+    /**
+     * Find a user already linked to a Google account.
+     *
+     * @param string $googleSub Google's stable subject ID for the account.
+     * @return array|null
+     */
+    public function findByGoogleId(string $googleSub): ?array {
+        return runQuery("SELECT * FROM users WHERE google_sub = :sub LIMIT 1", [':sub' => $googleSub])->fetch() ?: null;
+    }
+
+    /**
+     * Link an existing password account to a Google identity, so future
+     * sign-ins with that Google account reach this same user.
+     *
+     * @param int    $id
+     * @param string $googleSub
+     */
+    public function linkGoogle(int $id, string $googleSub): void {
+        runQuery("UPDATE users SET google_sub = :sub, updated_at = NOW() WHERE id = :id", [':sub' => $googleSub, ':id' => $id]);
+    }
+
+    /**
+     * Create a pending Customer account for a first-time Google sign-in.
+     * A random password hash is stored so the row satisfies the NOT NULL
+     * column; it is never used, because this account can only sign in
+     * through Google.
+     *
+     * @param string $name
+     * @param string $email          Already verified by Google.
+     * @param string $googleSub
+     * @param string $randomPasswordHash
+     * @return int The new user's ID.
+     */
+    public function createFromGoogle(string $name, string $email, string $googleSub, string $randomPasswordHash): int {
+        runQuery("
+            INSERT INTO users (name, email, google_sub, password_hash, role, status, created_at)
+            VALUES (:name, :email, :sub, :password_hash, 'customer', 'pending', NOW())
+        ", [
+            ':name'          => $name,
+            ':email'         => $email,
+            ':sub'           => $googleSub,
+            ':password_hash' => $randomPasswordHash,
+        ]);
+        return (int) $this->db->lastInsertId();
+    }
 }

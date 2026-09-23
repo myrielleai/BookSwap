@@ -31,6 +31,7 @@ require_once __DIR__ . '/../controllers/ListingController.php';
 require_once __DIR__ . '/../controllers/ExchangeController.php';
 require_once __DIR__ . '/../controllers/TransactionController.php';
 require_once __DIR__ . '/../controllers/CategoryController.php';
+require_once __DIR__ . '/../controllers/BookController.php';
 require_once __DIR__ . '/../helpers/response.php';
 
 // ── Route Table ───────────────────────────────────────────────────────────────
@@ -42,6 +43,10 @@ $routes = [
     'POST /api/auth/register' => ['AuthController', 'register'],
     'POST /api/auth/login'    => ['AuthController', 'login'],
     'POST /api/auth/logout'   => ['AuthController', 'logout'],
+    'POST /api/auth/google'   => ['AuthController', 'google'],
+
+    // ── Book Lookup (Open Library) ────────────────────────────────────────────
+    'GET  /api/books/lookup'  => ['BookController', 'lookup'],
 
     // ── Public Catalog (no auth) ──────────────────────────────────────────────
     'GET  /api/listings'       => ['ListingController', 'index'],

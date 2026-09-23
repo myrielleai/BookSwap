@@ -139,4 +139,17 @@ define('BREVO_FROM_NAME',  'BookSwap');
 // TODO: Replace with your actual InfinityFree or Vercel deployment URL.
 define('BOOKSWAP_APP_URL', 'https://your-bookswap-app.rf.gd');
 
+// ── Local Storage (cached files: Google signing keys, etc.) ───────────────────
+define('STORAGE_DIR', __DIR__ . '/../../storage/');
+
+// ── Google Sign-in (OAuth 2.0) ─────────────────────────────────────────────────
+// Create a Web application OAuth client at https://console.cloud.google.com/apis/credentials
+// and paste its Client ID below. Leave blank to keep Google sign-in disabled.
+defined('GOOGLE_CLIENT_ID') || define('GOOGLE_CLIENT_ID', '');
+define('GOOGLE_CERTS_URL', 'https://www.googleapis.com/oauth2/v3/certs');
+
+// ── Book Lookup (Open Library) ─────────────────────────────────────────────────
+define('OPEN_LIBRARY_BASE_URL',    'https://openlibrary.org');
+define('BOOK_CACHE_FOUND_DAYS',    30); // How long a found book's details are cached
+define('BOOK_CACHE_MISSING_DAYS',  1);  // How long an ISBN that returned nothing is cached
 
