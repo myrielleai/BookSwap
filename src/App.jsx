@@ -38,21 +38,21 @@ const AppContent = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       <Navbar />
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 w-full">
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/browse" element={<BrowseBooks />} />
-          <Route path="/listings/:id" element={<BookDetails />} />
+          <Route path="/login" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><Login /></div>} />
+          <Route path="/register" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><Register /></div>} />
+          <Route path="/browse" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><BrowseBooks /></div>} />
+          <Route path="/listings/:id" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><BookDetails /></div>} />
 
           {/* Reader Protected Routes */}
           <Route
             path="/add-listing"
             element={
               <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
-                <AddListing />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><AddListing /></div>
               </ProtectedRoute>
             }
           />
@@ -60,7 +60,7 @@ const AppContent = () => {
             path="/dashboard"
             element={
               <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
-                <UserDashboard />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><UserDashboard /></div>
               </ProtectedRoute>
             }
           />
@@ -68,7 +68,7 @@ const AppContent = () => {
             path="/profile"
             element={
               <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
-                <Profile />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><Profile /></div>
               </ProtectedRoute>
             }
           />
@@ -78,7 +78,7 @@ const AppContent = () => {
             path="/staff"
             element={
               <ProtectedRoute allowedRoles={['staff', 'admin']}>
-                <StaffDashboard />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><StaffDashboard /></div>
               </ProtectedRoute>
             }
           />
@@ -88,7 +88,7 @@ const AppContent = () => {
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><AdminDashboard /></div>
               </ProtectedRoute>
             }
           />

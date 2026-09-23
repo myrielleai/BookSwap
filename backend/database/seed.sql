@@ -59,8 +59,7 @@ INSERT INTO users (id, name, email, phone, password_hash, role, status, city, fa
 
 -- ── Listings ──────────────────────────────────────────────────────────────────
 -- archived  1–6, 9–12  (exchanged)        locked     13–16 (in an active exchange)
--- available 7, 8, 17, 18, 19, 24          unverified 20    rejected 21
--- returned  22                            withdrawn  23
+-- available 7, 8, 17, 18, 19, 24, 25, 26, 27 unverified 20    rejected 21
 INSERT INTO listings (id, user_id, genre_id, format_id, age_category_id, condition_id, verified_by, title, author, edition, publisher, preferred_return, is_open_offer, status, staff_note, created_at, updated_at) VALUES
 (1,  4, 1, 1, 2, 2, 2,    'The Hobbit', 'J.R.R. Tolkien', '75th Anniversary Edition', 'HarperCollins', 'Any science fiction novel', 0, 'archived', NULL, NOW() - INTERVAL 95 DAY, NOW() - INTERVAL 80 DAY),
 (2,  5, 2, 1, 3, 3, 2,    'Dune', 'Frank Herbert', NULL, 'Ace Books', 'Fantasy classics', 0, 'archived', NULL, NOW() - INTERVAL 94 DAY, NOW() - INTERVAL 80 DAY),
@@ -85,7 +84,10 @@ INSERT INTO listings (id, user_id, genre_id, format_id, age_category_id, conditi
 (21, 7, 3, 1, 3, 4, 2,    'Bestseller Bundle (Photocopied)', 'Various', NULL, NULL, 'Anything', 1, 'rejected', 'Unauthorized reproductions are not allowed on BookSwap.', NOW() - INTERVAL 20 DAY, NOW() - INTERVAL 19 DAY),
 (22, 7, 6, 1, 3, 2, 3,    'The Great Gatsby', 'F. Scott Fitzgerald', NULL, 'Scribner', 'Modern classics', 0, 'returned', 'The photo is blurry. Please upload a clear photo of the actual copy.', NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 2 DAY),
 (23, 4, 4, 1, 3, 3, 2,    'Norwegian Wood', 'Haruki Murakami', NULL, 'Vintage', 'Romance novels', 0, 'withdrawn', NULL, NOW() - INTERVAL 40 DAY, NOW() - INTERVAL 33 DAY),
-(24, 5, 4, 1, 3, 2, 3,    'The Notebook', 'Nicholas Sparks', NULL, 'Grand Central', 'Contemporary romance', 0, 'available', NULL, NOW() - INTERVAL 45 DAY, NOW() - INTERVAL 44 DAY);
+(24, 5, 4, 1, 3, 2, 3,    'The Notebook', 'Nicholas Sparks', NULL, 'Grand Central', 'Contemporary romance', 0, 'available', NULL, NOW() - INTERVAL 45 DAY, NOW() - INTERVAL 44 DAY),
+(25, 4, 6, 1, 3, 1, 2,    'To Kill a Mockingbird', 'Harper Lee', '50th Anniversary Edition', 'Harper Perennial', 'Classic literature or historical fiction', 0, 'available', NULL, NOW() - INTERVAL 4 DAY, NOW() - INTERVAL 3 DAY),
+(26, 6, 2, 2, 3, 2, 3,    'Klara and the Sun', 'Kazuo Ishiguro', 'First Edition', 'Faber & Faber', 'Literary fiction or sci-fi', 1, 'available', NULL, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 2 DAY),
+(27, 7, 4, 1, 3, 1, 2,    'The Seven Husbands of Evelyn Hugo', 'Taylor Jenkins Reid', 'Trade Paperback Edition', 'Atria Books', 'Contemporary romance or mystery', 0, 'available', NULL, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 1 DAY);
 
 INSERT INTO listing_photos (listing_id, file_path, created_at)
 SELECT id, CONCAT('uploads/books/seed_listing_', id, '.jpg'), created_at FROM listings;
