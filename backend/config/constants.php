@@ -124,3 +124,19 @@ define('JWT_EXPIRY_SECS', 3600); // Token and session valid for 1 hour (3 600 se
 define('UPLOAD_DIR',      __DIR__ . '/../../uploads/books/'); // Storage path
 define('UPLOAD_MAX_MB',   5);                                 // Max file size in MB
 define('UPLOAD_ALLOWED',  ['image/jpeg', 'image/png', 'image/webp']); // MIME types
+
+// ── Email Settings (Brevo / Sendinblue) ──────────────────────────────────────
+// Sign up free at: https://app.brevo.com  (no credit card required)
+// Steps to get your key:
+//   1. Log in → click your profile picture (top right) → "SMTP & API"
+//   2. Click "API Keys" tab → "Generate a new API key" → copy it here
+//   3. Go to "Senders & IP" → "Senders" → add and verify your sender email
+define('BREVO_API_KEY',    'REPLACE_WITH_YOUR_BREVO_API_KEY');
+define('BREVO_FROM_EMAIL', 'als.jn05@gmail.com'); // ← must match a verified sender in Brevo
+define('BREVO_FROM_NAME',  'BookSwap');
+
+// ── App URL (used in email links) ─────────────────────────────────────────────
+// TODO: Replace with your actual InfinityFree or Vercel deployment URL.
+define('BOOKSWAP_APP_URL', 'https://your-bookswap-app.rf.gd');
+
+
