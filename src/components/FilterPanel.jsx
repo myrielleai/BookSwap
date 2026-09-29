@@ -22,15 +22,15 @@ const FilterPanel = ({
   ];
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
-          <Filter className="w-4 h-4 text-brand-600" />
+    <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-4">
+      <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+        <div className="flex items-center gap-2 text-stone-800 font-semibold text-sm">
+          <Filter className="w-4 h-4 text-emerald-800" />
           <span>Filter & Sort Catalog</span>
         </div>
         <button
           onClick={onReset}
-          className="text-xs font-medium text-slate-500 hover:text-brand-600 flex items-center gap-1 transition-colors"
+          className="text-xs font-medium text-stone-500 hover:text-emerald-800 flex items-center gap-1 transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Reset All

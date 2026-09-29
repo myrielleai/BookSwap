@@ -16,12 +16,12 @@ const Button = ({
   const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]';
 
   const variants = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500 shadow-sm shadow-brand-200',
-    secondary: 'bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500 shadow-sm shadow-amber-200',
-    accent: 'bg-book-700 text-white hover:bg-book-800 focus:ring-book-600 shadow-sm',
-    danger: 'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500 shadow-sm shadow-rose-200',
-    outline: 'border border-slate-300 text-slate-700 hover:bg-slate-100 focus:ring-slate-400 bg-white',
-    ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-300',
+    primary: 'bg-emerald-800 text-amber-50 hover:bg-emerald-700 focus:ring-emerald-600 shadow-md',
+    secondary: 'bg-amber-700 text-amber-50 hover:bg-amber-800 focus:ring-amber-600 shadow-sm shadow-amber-900/10',
+    accent: 'bg-stone-800 text-amber-50 hover:bg-stone-900 focus:ring-stone-700 shadow-sm',
+    danger: 'bg-rose-700 text-amber-50 hover:bg-rose-800 focus:ring-rose-600 shadow-sm',
+    outline: 'border border-stone-300 text-stone-700 hover:bg-stone-100 focus:ring-stone-400 bg-white',
+    ghost: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 focus:ring-stone-300',
   };
 
   const sizes = {

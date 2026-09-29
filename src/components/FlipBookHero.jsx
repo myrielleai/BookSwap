@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -8,8 +8,6 @@ import {
   ShieldCheck,
   Search,
   Bookmark,
-  Pause,
-  Play,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -17,10 +15,8 @@ export const FlipBookHero = () => {
   const [activeSpread, setActiveSpread] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDirection, setFlipDirection] = useState('next'); // 'next' or 'prev'
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   const totalSpreads = 3;
-  const autoPlayRef = useRef(null);
 
   const turnNext = () => {
     if (isFlipping) return;
@@ -43,19 +39,6 @@ export const FlipBookHero = () => {
       setIsFlipping(false);
     }, 700);
   };
-
-  useEffect(() => {
-    if (isAutoPlaying) {
-      autoPlayRef.current = setInterval(() => {
-        turnNext();
-      }, 4200);
-    } else if (autoPlayRef.current) {
-      clearInterval(autoPlayRef.current);
-    }
-    return () => {
-      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-    };
-  }, [isAutoPlaying, isFlipping]);
 
   // Render Left Page Content with classical book typesetting
   const renderLeftPage = (spreadIndex) => {
@@ -292,21 +275,21 @@ export const FlipBookHero = () => {
       <div className="perspective-1200 w-full relative px-2 sm:px-4">
         
         {/* PHYSICAL HARDCOVER BOOK OUTER CASING */}
-        <div className="relative w-full p-3 sm:p-4 bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 rounded-2xl hardcover-shadow border border-emerald-800/40 relative">
+        <div className="relative w-full p-3 sm:p-4 bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 rounded-none hardcover-shadow border border-emerald-800/40">
           
           {/* Hardcover Embossed Gold Corner Accents */}
-          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-amber-400/40 rounded-tl-sm pointer-events-none" />
-          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-amber-400/40 rounded-tr-sm pointer-events-none" />
-          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-amber-400/40 rounded-bl-sm pointer-events-none" />
-          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-amber-400/40 rounded-br-sm pointer-events-none" />
+          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-amber-400/40 rounded-none pointer-events-none" />
+          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-amber-400/40 rounded-none pointer-events-none" />
+          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-amber-400/40 rounded-none pointer-events-none" />
+          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-amber-400/40 rounded-none pointer-events-none" />
 
           {/* Top Silk Bookmark Ribbon */}
-          <div className="absolute -top-1 right-12 w-5 h-14 bg-gradient-to-b from-amber-600 to-amber-700 shadow-md transform -rotate-1 z-30 flex items-end justify-center pb-1 pointer-events-none rounded-b-sm border-x border-amber-800/50">
+          <div className="absolute -top-1 right-12 w-5 h-14 bg-gradient-to-b from-amber-600 to-amber-700 shadow-md transform -rotate-1 z-30 flex items-end justify-center pb-1 pointer-events-none rounded-b-none border-x border-amber-800/50">
             <Bookmark className="w-3 h-3 text-amber-100 fill-amber-100" />
           </div>
 
           {/* INNER OPEN PAPER BLOCK WITH PAGE STACK EDGES */}
-          <div className="relative w-full min-h-[370px] sm:min-h-[410px] realistic-paper-bg rounded-xl border border-amber-900/20 flex flex-col justify-between overflow-hidden shadow-inner">
+          <div className="relative w-full min-h-[370px] sm:min-h-[410px] realistic-paper-bg rounded-none border border-amber-900/20 flex flex-col justify-between overflow-hidden shadow-inner">
             
             {/* Center Spine Crease & Shadow Gutter */}
             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-10 bg-gradient-to-r from-black/20 via-black/40 to-black/20 z-20 pointer-events-none hidden sm:block" />
@@ -383,23 +366,25 @@ export const FlipBookHero = () => {
 
             {/* MINIMAL CONTROL BAR AT BOTTOM */}
             <div className="px-4 py-2 bg-stone-900/90 backdrop-blur-md border-t border-stone-800 flex items-center justify-between text-xs text-stone-300 z-40">
-              <button
-                onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 text-[11px] font-medium border border-stone-700 transition-all"
-                title={isAutoPlaying ? 'Pause page auto-flip' : 'Start page auto-flip'}
-              >
-                {isAutoPlaying ? (
-                  <>
-                    <Pause className="w-3 h-3 text-emerald-400 fill-emerald-400" />
-                    <span>Auto Flipping</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3 h-3 text-stone-400 fill-stone-400" />
-                    <span>Play Flip</span>
-                  </>
-                )}
-              </button>
+              {/* Navigation Arrows */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={turnPrev}
+                  disabled={isFlipping}
+                  className="p-1 rounded hover:bg-stone-800 disabled:opacity-40 transition-colors text-stone-300"
+                  aria-label="Previous Page"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={turnNext}
+                  disabled={isFlipping}
+                  className="p-1 rounded hover:bg-stone-800 disabled:opacity-40 transition-colors text-stone-300"
+                  aria-label="Next Page"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
               {/* Spread Indicator Dots */}
               <div className="flex items-center gap-1.5">
@@ -423,29 +408,6 @@ export const FlipBookHero = () => {
                   />
                 ))}
               </div>
-
-              {/* Navigation Arrows */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={turnPrev}
-                  disabled={isFlipping}
-                  className="p-1 rounded hover:bg-stone-800 disabled:opacity-40 transition-colors text-stone-300"
-                  aria-label="Previous Page"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="font-mono text-[10px] text-stone-400 px-1">
-                  {activeSpread + 1} / {totalSpreads}
-                </span>
-                <button
-                  onClick={turnNext}
-                  disabled={isFlipping}
-                  className="p-1 rounded hover:bg-stone-800 disabled:opacity-40 transition-colors text-stone-300"
-                  aria-label="Next Page"
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -455,3 +417,4 @@ export const FlipBookHero = () => {
 };
 
 export default FlipBookHero;
+

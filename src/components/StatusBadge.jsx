@@ -7,34 +7,34 @@ const StatusBadge = ({ status, type = 'listing', className = '' }) => {
 
   const styles = {
     // Listing Statuses
-    unverified: 'bg-amber-100 text-amber-800 border-amber-200',
-    available: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    locked: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    returned: 'bg-purple-100 text-purple-800 border-purple-200',
-    rejected: 'bg-rose-100 text-rose-800 border-rose-200',
-    archived: 'bg-slate-100 text-slate-700 border-slate-200',
-    withdrawn: 'bg-gray-100 text-gray-600 border-gray-200',
+    unverified: 'bg-amber-100/80 text-amber-900 border-amber-300/80',
+    available: 'bg-emerald-900/10 text-emerald-900 border-emerald-900/20',
+    locked: 'bg-teal-100/80 text-teal-900 border-teal-300/80',
+    returned: 'bg-purple-100/80 text-purple-900 border-purple-300/80',
+    rejected: 'bg-rose-100/80 text-rose-900 border-rose-300/80',
+    archived: 'bg-stone-200/70 text-stone-700 border-stone-300/80',
+    withdrawn: 'bg-stone-200/70 text-stone-600 border-stone-300/80',
 
     // Exchange / Request Statuses
-    pending: 'bg-amber-50 text-amber-700 border-amber-200',
-    accepted: 'bg-blue-50 text-blue-700 border-blue-200',
-    declined: 'bg-rose-50 text-rose-700 border-rose-200',
+    pending: 'bg-amber-100/80 text-amber-900 border-amber-300/80',
+    accepted: 'bg-emerald-900/10 text-emerald-900 border-emerald-900/20',
+    declined: 'bg-rose-100/80 text-rose-900 border-rose-300/80',
 
     // Transaction Statuses
-    scheduled: 'bg-purple-50 text-purple-700 border-purple-200',
-    completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    cancelled: 'bg-rose-100 text-rose-800 border-rose-200',
+    scheduled: 'bg-amber-100/80 text-amber-900 border-amber-300/80',
+    completed: 'bg-emerald-900/10 text-emerald-900 border-emerald-900/20',
+    cancelled: 'bg-rose-100/80 text-rose-900 border-rose-300/80',
 
     // User Statuses
-    active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    inactive: 'bg-slate-100 text-slate-600 border-slate-200',
-    suspended: 'bg-rose-100 text-rose-800 border-rose-200',
-    admin: 'bg-purple-100 text-purple-800 border-purple-200',
-    staff: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    customer: 'bg-sky-100 text-sky-800 border-sky-200',
+    active: 'bg-emerald-900/10 text-emerald-900 border-emerald-900/20',
+    inactive: 'bg-stone-200/70 text-stone-600 border-stone-300/80',
+    suspended: 'bg-rose-100/80 text-rose-900 border-rose-300/80',
+    admin: 'bg-purple-100/80 text-purple-900 border-purple-300/80',
+    staff: 'bg-indigo-100/80 text-indigo-900 border-indigo-300/80',
+    customer: 'bg-stone-200/70 text-stone-800 border-stone-300/80',
   };
 
-  const defaultStyle = 'bg-slate-100 text-slate-700 border-slate-200';
+  const defaultStyle = 'bg-stone-200/70 text-stone-700 border-stone-300/80';
   const badgeStyle = styles[normalizedStatus] || defaultStyle;
 
   const displayLabel = status

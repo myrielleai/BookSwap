@@ -154,12 +154,12 @@ const StaffDashboard = () => {
         {/* TAB 1: LISTING VERIFICATIONS */}
         {currentTab === 'verifications' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-indigo-600" />
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-800" />
                 Pending Listing Verifications Queue
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-stone-500 mt-1">
                 Review submitted books for completeness, legible photo quality, and plausible condition grades.
               </p>
             </div>
@@ -178,35 +178,35 @@ const StaffDashboard = () => {
                     : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
 
                   return (
-                    <div key={item.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div key={item.id} className="bg-white rounded-2xl border border-stone-200/90 shadow-sm overflow-hidden flex flex-col justify-between">
                       <div className="p-4 space-y-3">
                         <div className="flex gap-4">
                           <img
                             src={photoUrl}
                             alt={item.title}
-                            className="w-24 h-32 object-cover rounded-xl border border-slate-200 shrink-0"
+                            className="w-24 h-32 object-cover rounded-xl border border-stone-200 shrink-0"
                           />
                           <div className="space-y-1 text-xs">
-                            <span className="font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md">
+                            <span className="font-bold text-emerald-900 bg-emerald-900/10 px-2 py-0.5 rounded-md">
                               {item.genre_name}
                             </span>
-                            <h3 className="font-bold text-slate-900 text-sm">{item.title}</h3>
-                            <p className="text-slate-500">by {item.author}</p>
-                            <p className="text-slate-600 pt-1">
+                            <h3 className="font-bold text-stone-900 text-sm">{item.title}</h3>
+                            <p className="text-stone-500">by {item.author}</p>
+                            <p className="text-stone-600 pt-1">
                               <strong>Condition:</strong> {item.condition_label || 'Good'}
                             </p>
-                            <p className="text-slate-500">Owner: {item.owner_name} ({item.city})</p>
+                            <p className="text-stone-500">Owner: {item.owner_name} ({item.city})</p>
                           </div>
                         </div>
 
                         {item.preferred_return && (
-                          <div className="p-2 bg-slate-50 rounded-lg text-xs text-slate-600">
+                          <div className="p-2 bg-stone-50 rounded-lg text-xs text-stone-600">
                             <strong>Wants in return:</strong> {item.preferred_return}
                           </div>
                         )}
                       </div>
 
-                      <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                      <div className="p-3 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -252,12 +252,12 @@ const StaffDashboard = () => {
         {/* TAB 2: HANDOVER SCHEDULING */}
         {currentTab === 'handovers' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-600" />
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-emerald-800" />
                 Handover Scheduling Queue
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-stone-500 mt-1">
                 Assign handover date, time slot, and designated meetup venue for accepted exchanges.
               </p>
             </div>
@@ -273,19 +273,19 @@ const StaffDashboard = () => {
                 {unscheduledTxs.map((tx) => (
                   <div
                     key={tx.id}
-                    className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                    className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-1 text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-sm">
+                        <span className="font-bold text-stone-900 text-sm">
                           Transaction #{tx.id}
                         </span>
                         <StatusBadge status={tx.status} />
                       </div>
-                      <p className="text-slate-700">
-                        Swap: <strong className="text-brand-700">{tx.target_title}</strong> &harr; <strong>{tx.offered_title}</strong>
+                      <p className="text-stone-700">
+                        Swap: <strong className="text-emerald-800">{tx.target_title}</strong> &harr; <strong>{tx.offered_title}</strong>
                       </p>
-                      <p className="text-slate-500">
+                      <p className="text-stone-500">
                         Parties: {tx.owner_name} (Owner) & {tx.requester_name} (Requester)
                       </p>
                     </div>
@@ -311,12 +311,12 @@ const StaffDashboard = () => {
         {/* TAB 3: TRANSACTIONS QUEUE */}
         {currentTab === 'transactions' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900 flex items-center gap-2">
-                <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900 flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5 text-emerald-800" />
                 All Supervised Transactions
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-stone-500 mt-1">
                 Monitor status progression, record no-show infractions, or cancel transactions.
               </p>
             </div>
@@ -325,31 +325,31 @@ const StaffDashboard = () => {
               {allTxs.map((tx) => (
                 <div
                   key={tx.id}
-                  className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3"
+                  className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-sm">Transaction #{tx.id}</span>
+                      <span className="font-bold text-stone-900 text-sm">Transaction #{tx.id}</span>
                       <StatusBadge status={tx.status} />
                     </div>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-stone-400">
                       Reschedule count: {tx.reschedule_count}/1
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-3 rounded-xl">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-stone-50 p-3 rounded-xl">
                     <div>
-                      <p className="text-slate-500">Target Book: <strong>{tx.target_title}</strong></p>
-                      <p className="text-slate-500">Owner: {tx.owner_name}</p>
+                      <p className="text-stone-500">Target Book: <strong>{tx.target_title}</strong></p>
+                      <p className="text-stone-500">Owner: {tx.owner_name}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500">Offered Book: <strong>{tx.offered_title}</strong></p>
-                      <p className="text-slate-500">Requester: {tx.requester_name}</p>
+                      <p className="text-stone-500">Offered Book: <strong>{tx.offered_title}</strong></p>
+                      <p className="text-stone-500">Requester: {tx.requester_name}</p>
                     </div>
                   </div>
 
                   {tx.status === 'scheduled' && (
-                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex justify-end gap-2 pt-2 border-t border-stone-100">
                       <Button
                         variant="danger"
                         size="sm"
@@ -369,12 +369,12 @@ const StaffDashboard = () => {
         {/* TAB 4: DISPUTES & REPORTS */}
         {currentTab === 'reports' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900 flex items-center gap-2">
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-rose-600" />
                 Dispute & Discrepancy Reports
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-stone-500 mt-1">
                 Review reports on misdescribed conditions, no-shows, and inappropriate listings.
               </p>
             </div>
@@ -384,22 +384,22 @@ const StaffDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {reports.map((rep) => (
-                  <div key={rep.id} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+                  <div key={rep.id} className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-xs text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full uppercase">
                         {rep.report_type.replace(/_/g, ' ')}
                       </span>
                       <StatusBadge status={rep.status} />
                     </div>
-                    <p className="text-xs font-semibold text-slate-800">
+                    <p className="text-xs font-semibold text-stone-800">
                       Reported by {rep.reporter_name}
                     </p>
-                    <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl italic">
+                    <p className="text-xs text-stone-600 bg-stone-50 p-2.5 rounded-xl italic">
                       "{rep.description}"
                     </p>
 
                     {rep.resolution && (
-                      <p className="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl">
+                      <p className="text-xs text-emerald-800 bg-emerald-900/10 p-2.5 rounded-xl">
                         <strong>Resolution:</strong> {rep.resolution}
                       </p>
                     )}
@@ -435,14 +435,14 @@ const StaffDashboard = () => {
       >
         <form onSubmit={handleVerifySubmit} className="space-y-4">
           {selectedListing && (
-            <div className="text-xs bg-slate-50 p-3 rounded-xl">
-              <p className="font-bold text-slate-900">{selectedListing.title}</p>
-              <p className="text-slate-500">by {selectedListing.author}</p>
+            <div className="text-xs bg-stone-50 p-3 rounded-xl">
+              <p className="font-bold text-stone-900">{selectedListing.title}</p>
+              <p className="text-stone-500">by {selectedListing.author}</p>
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-stone-700">
               Moderator Reason / Note {verifyAction !== 'approve' && <span className="text-rose-500">*</span>}
             </label>
             <textarea
@@ -456,7 +456,7 @@ const StaffDashboard = () => {
                   ? 'e.g. Unauthorized reproductions are prohibited.'
                   : 'Optional note for owner'
               }
-              className="block w-full rounded-lg border border-slate-300 text-xs p-3 focus:ring-1 focus:ring-brand-500 focus:outline-none"
+              className="block w-full rounded-lg border border-stone-300 text-xs p-3 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
               required={verifyAction !== 'approve'}
             />
           </div>

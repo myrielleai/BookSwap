@@ -126,14 +126,14 @@ const AddListing = () => {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md">
-        <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
-          <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-md">
+        <div className="flex items-center gap-3 pb-6 border-b border-stone-100">
+          <div className="w-10 h-10 rounded-xl bg-emerald-900/10 text-emerald-800 flex items-center justify-center font-bold">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-serif font-bold text-slate-900">List a Book for Exchange</h1>
-            <p className="text-xs text-slate-500">
+            <h1 className="text-2xl font-serif font-bold text-stone-900">List a Book for Exchange</h1>
+            <p className="text-xs text-stone-500">
               Submit details and actual photographs of a book you wish to offer.
             </p>
           </div>
@@ -141,12 +141,12 @@ const AddListing = () => {
 
         {successMsg ? (
           <div className="py-8 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-full bg-emerald-900/10 text-emerald-800 border border-emerald-900/20 flex items-center justify-center mx-auto">
               <CheckCircle className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800">Book Listing Submitted!</h3>
-            <p className="text-xs text-slate-600 max-w-md mx-auto">
-              Your listing has been saved with status <span className="font-bold text-amber-700">unverified</span>. An Exchange Moderator will review its photo and condition before publishing it to the public catalog.
+            <h3 className="text-xl font-bold text-stone-900">Book Listing Submitted!</h3>
+            <p className="text-xs text-stone-600 max-w-md mx-auto">
+              Your listing has been saved with status <span className="font-bold text-amber-800">unverified</span>. An Exchange Moderator will review its photo and condition before publishing it to the public catalog.
             </p>
           </div>
         ) : (
@@ -233,7 +233,7 @@ const AddListing = () => {
             </div>
 
             {/* Swap Return Preferences */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200/80 space-y-3">
               <FormInput
                 label="Preferred Return / Desired Swap Book or Genre"
                 name="preferred_return"
@@ -249,10 +249,10 @@ const AddListing = () => {
                   name="is_open_offer"
                   checked={formData.is_open_offer === 1}
                   onChange={handleChange}
-                  className="rounded text-brand-600 focus:ring-brand-500 w-4 h-4"
+                  className="rounded text-emerald-800 focus:ring-emerald-700 w-4 h-4"
                 />
-                <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+                <span className="text-xs font-semibold text-stone-700 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-800" />
                   Mark as Open to Any Offer
                 </span>
               </label>
@@ -260,19 +260,19 @@ const AddListing = () => {
 
             {/* Photograph Upload & Interactive Preview */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-sm font-medium text-stone-700">
                 Photograph of Actual Copy <span className="text-rose-500">*</span>
               </label>
 
-              <div className="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-6 text-center transition-colors bg-slate-50/50">
+              <div className="border-2 border-dashed border-stone-300 hover:border-emerald-700 rounded-2xl p-6 text-center transition-colors bg-stone-50/50">
                 {photoPreview ? (
                   <div className="space-y-3">
                     <img
                       src={photoPreview}
                       alt="Preview"
-                      className="max-h-56 mx-auto rounded-xl shadow-md border border-slate-200 object-contain"
+                      className="max-h-56 mx-auto rounded-xl shadow-md border border-stone-200 object-contain"
                     />
-                    <label className="cursor-pointer text-xs font-semibold text-brand-600 hover:text-brand-700 inline-block">
+                    <label className="cursor-pointer text-xs font-semibold text-emerald-800 hover:text-emerald-700 inline-block">
                       Change Photo
                       <input
                         type="file"
@@ -284,14 +284,14 @@ const AddListing = () => {
                   </div>
                 ) : (
                   <label className="cursor-pointer flex flex-col items-center gap-2 py-4">
-                    <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-emerald-900/10 text-emerald-800 flex items-center justify-center">
                       <Upload className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-700">
+                      <p className="text-xs font-semibold text-stone-700">
                         Click to upload book cover photo
                       </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-stone-400 mt-0.5">
                         PNG, JPG, or WEBP up to 5MB
                       </p>
                     </div>
@@ -306,7 +306,7 @@ const AddListing = () => {
               </div>
             </div>
 
-            <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+            <div className="pt-4 flex justify-end gap-3 border-t border-stone-100">
               <Button variant="outline" onClick={() => navigate('/browse')}>
                 Cancel
               </Button>

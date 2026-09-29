@@ -89,17 +89,17 @@ const Profile = () => {
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
       {/* Header Banner */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-700 to-brand-500 text-white font-bold text-2xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-800 text-amber-50 font-bold text-2xl flex items-center justify-center shadow-md">
             {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-serif font-bold text-slate-900">{user?.name}</h1>
+              <h1 className="text-2xl font-serif font-bold text-stone-900">{user?.name}</h1>
               <StatusBadge status={user?.status} />
             </div>
-            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
+            <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-1">
               <Mail className="w-3.5 h-3.5" />
               {user?.email}
             </p>
@@ -107,13 +107,13 @@ const Profile = () => {
         </div>
 
         {/* Completed Swaps Reliability Indicator */}
-        <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex items-center gap-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
-            <Award className="w-5 h-5" />
+        <div className="bg-emerald-900/10 border border-emerald-900/20 p-3.5 rounded-2xl flex items-center gap-3 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-800 text-amber-50 flex items-center justify-center shadow-sm">
+            <Award className="w-5 h-5 text-amber-200" />
           </div>
           <div>
             <p className="text-xs font-bold text-emerald-900">Reliability Indicator</p>
-            <p className="text-sm font-extrabold text-emerald-700">
+            <p className="text-sm font-extrabold text-emerald-800">
               {user?.exchange_count ?? 0} Completed Swaps
             </p>
           </div>
@@ -121,21 +121,21 @@ const Profile = () => {
       </div>
 
       {/* Settings Form */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md">
-        <h2 className="text-lg font-bold text-slate-800 pb-4 border-b border-slate-100 mb-6">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-md">
+        <h2 className="text-lg font-bold text-stone-800 pb-4 border-b border-stone-100 mb-6">
           Account & Handover Coordination Profile
         </h2>
 
         {message && (
-          <div className="p-3 mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3 mb-6 bg-emerald-900/10 border border-emerald-900/20 text-emerald-900 text-xs rounded-xl flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 shrink-0 text-emerald-700" />
             <span>{message}</span>
           </div>
         )}
 
         {error && (
           <div className="p-3 mb-6 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{error}</span>
           </div>
         )}
@@ -169,11 +169,11 @@ const Profile = () => {
 
           {/* Favorite Reading Genres Selection */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 flex items-center gap-1.5">
+            <label className="block text-sm font-medium text-stone-700 flex items-center gap-1.5">
               <Heart className="w-4 h-4 text-rose-500" />
               <span>Favorite Reading Genres</span>
             </label>
-            <p className="text-xs text-slate-500 mb-2">
+            <p className="text-xs text-stone-500 mb-2">
               Select your favorite genres to receive personalized catalog sorting and recommendations.
             </p>
 
@@ -187,8 +187,8 @@ const Profile = () => {
                     onClick={() => handleGenreToggle(g.id)}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                       isSelected
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-emerald-800 text-amber-50 border-emerald-800 shadow-sm'
+                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
                     }`}
                   >
                     {isSelected ? '✓ ' : '+ '}
@@ -199,7 +199,7 @@ const Profile = () => {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-end">
+          <div className="pt-4 border-t border-stone-100 flex justify-end">
             <Button type="submit" variant="primary" isLoading={submitting}>
               Save Profile Changes
             </Button>

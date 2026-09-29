@@ -73,26 +73,26 @@ const Register = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xl">
+      <div className="max-w-md w-full space-y-8 bg-[#faf6ee] p-8 rounded-none border border-amber-900/20 shadow-xl text-stone-900">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-brand-200">
+          <div className="w-12 h-12 rounded-none bg-emerald-800 text-amber-50 flex items-center justify-center mx-auto shadow-md">
             <BookOpen className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-serif font-bold text-slate-900">Create Reader Account</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="text-2xl font-serif font-bold text-stone-900">Create Reader Account</h2>
+          <p className="text-xs text-stone-600">
             Join BookSwap to list books and exchange with fellow bookworms.
           </p>
         </div>
 
         {registeredSuccess ? (
           <div className="space-y-6 text-center py-4">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-none bg-emerald-900/10 text-emerald-800 border border-emerald-900/20 flex items-center justify-center mx-auto">
               <CheckCircle className="w-8 h-8" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-bold text-slate-800">Registration Submitted!</h3>
-              <p className="text-xs text-slate-600 leading-relaxed bg-amber-50 border border-amber-200 p-4 rounded-xl text-left">
-                <strong>Proposal Operating Rule:</strong> Your registration has been received and is currently <span className="text-amber-800 font-bold">Pending Administrator Approval</span>. Once verified by an Administrator, you will be able to sign in and post listings.
+              <h3 className="text-lg font-bold text-stone-900">Registration Submitted!</h3>
+              <p className="text-xs text-stone-700 leading-relaxed bg-amber-900/5 border border-amber-900/15 p-4 rounded-none text-left">
+                <strong>Proposal Operating Rule:</strong> Your registration has been received and is currently <span className="text-amber-900 font-bold">Pending Administrator Approval</span>. Once verified by an Administrator, you will be able to sign in and post listings.
               </p>
             </div>
             <Button variant="primary" className="w-full" onClick={() => navigate('/login')}>
@@ -102,7 +102,7 @@ const Register = () => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.general && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-none flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errors.general}</span>
               </div>
@@ -184,9 +184,9 @@ const Register = () => {
               </Button>
             </div>
 
-            <p className="text-center text-xs text-slate-500 pt-2">
+            <p className="text-center text-xs text-stone-600 pt-2">
               Already have an account?{' '}
-              <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
+              <Link to="/login" className="font-semibold text-emerald-800 hover:text-emerald-700 underline">
                 Sign In
               </Link>
             </p>

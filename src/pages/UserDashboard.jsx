@@ -148,10 +148,10 @@ const UserDashboard = () => {
         {/* TAB 1: MY LISTINGS */}
         {currentTab === 'listings' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
               <div>
-                <h2 className="text-xl font-serif font-bold text-slate-900">My Book Listings</h2>
-                <p className="text-xs text-slate-500">Manage your posted books and track verification state</p>
+                <h2 className="text-xl font-serif font-bold text-stone-900">My Book Listings</h2>
+                <p className="text-xs text-stone-500">Manage your posted books and track verification state</p>
               </div>
               <Button variant="primary" size="sm" onClick={() => navigate('/add-listing')}>
                 + List New Book
@@ -174,7 +174,7 @@ const UserDashboard = () => {
                 {myListings.map((item) => (
                   <div key={item.id} className="relative group">
                     <BookCard listing={item} showActions={false} />
-                    <div className="p-3 bg-slate-50 border-t border-slate-200/80 rounded-b-2xl flex items-center justify-between text-xs">
+                    <div className="p-3 bg-stone-50 border-t border-stone-200/90 rounded-b-2xl flex items-center justify-between text-xs">
                       <StatusBadge status={item.status} />
                       {item.status === 'available' || item.status === 'unverified' ? (
                         <button
@@ -196,9 +196,9 @@ const UserDashboard = () => {
         {/* TAB 2: SENT REQUESTS */}
         {currentTab === 'sent_requests' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900">Sent Exchange Proposals</h2>
-              <p className="text-xs text-slate-500">Track 1-to-1 swap proposals you have sent to other book owners</p>
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900">Sent Exchange Proposals</h2>
+              <p className="text-xs text-stone-500">Track 1-to-1 swap proposals you have sent to other book owners</p>
             </div>
 
             {sentRequests.length === 0 ? (
@@ -212,23 +212,23 @@ const UserDashboard = () => {
                 {sentRequests.map((req) => (
                   <div
                     key={req.id}
-                    className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                    className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={req.status} />
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-stone-400">
                           {new Date(req.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="font-bold text-slate-900 text-sm">
-                        Requested: <span className="text-brand-700">{req.target_title}</span>
+                      <p className="font-bold text-stone-900 text-sm">
+                        Requested: <span className="text-emerald-800">{req.target_title}</span>
                       </p>
-                      <p className="text-xs text-slate-600">
-                        Offered in Return: <span className="font-semibold">{req.offered_title}</span>
+                      <p className="text-xs text-stone-600">
+                        Offered in Return: <span className="font-semibold text-stone-800">{req.offered_title}</span>
                       </p>
                       {req.message && (
-                        <p className="text-xs text-slate-500 italic bg-slate-50 p-2 rounded-lg mt-2">
+                        <p className="text-xs text-stone-500 italic bg-stone-50 p-2 rounded-lg mt-2">
                           "{req.message}"
                         </p>
                       )}
@@ -258,9 +258,9 @@ const UserDashboard = () => {
         {/* TAB 3: RECEIVED REQUESTS */}
         {currentTab === 'received_requests' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900">Received Swap Proposals</h2>
-              <p className="text-xs text-slate-500">Accept or decline swap offers submitted for your book listings</p>
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900">Received Swap Proposals</h2>
+              <p className="text-xs text-stone-500">Accept or decline swap offers submitted for your book listings</p>
             </div>
 
             {receivedRequests.length === 0 ? (
@@ -274,23 +274,23 @@ const UserDashboard = () => {
                 {receivedRequests.map((req) => (
                   <div
                     key={req.id}
-                    className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                    className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={req.status} />
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-stone-400">
                           {new Date(req.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="font-bold text-slate-900 text-sm">
-                        Requester: <span className="text-slate-800 font-semibold">{req.requester_name}</span>
+                      <p className="font-bold text-stone-900 text-sm">
+                        Requester: <span className="text-stone-800 font-semibold">{req.requester_name}</span>
                       </p>
-                      <p className="text-xs text-slate-600">
-                        Offers: <span className="font-bold text-brand-700">{req.offered_title}</span> in exchange for your <span className="font-bold text-slate-800">{req.target_title}</span>
+                      <p className="text-xs text-stone-600">
+                        Offers: <span className="font-bold text-emerald-800">{req.offered_title}</span> in exchange for your <span className="font-bold text-stone-800">{req.target_title}</span>
                       </p>
                       {req.message && (
-                        <p className="text-xs text-slate-500 italic bg-slate-50 p-2 rounded-lg mt-2">
+                        <p className="text-xs text-stone-500 italic bg-stone-50 p-2 rounded-lg mt-2">
                           "{req.message}"
                         </p>
                       )}
@@ -329,9 +329,9 @@ const UserDashboard = () => {
         {/* TAB 4: ACTIVE TRANSACTIONS & EXCHANGES */}
         {currentTab === 'transactions' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900">Active Exchanges & Handovers</h2>
-              <p className="text-xs text-slate-500">Track accepted transactions through scheduling and receipt confirmation</p>
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900">Active Exchanges & Handovers</h2>
+              <p className="text-xs text-stone-500">Track accepted transactions through scheduling and receipt confirmation</p>
             </div>
 
             {transactions.length === 0 ? (
@@ -345,46 +345,46 @@ const UserDashboard = () => {
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4"
+                    className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm space-y-4"
                   >
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center justify-between border-b border-stone-100 pb-3">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={tx.status} />
-                        <span className="text-xs font-bold text-slate-500">
+                        <span className="text-xs font-bold text-stone-500">
                           Transaction #{tx.id}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-stone-400">
                         Updated {new Date(tx.created_at).toLocaleDateString()}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                      <div className="bg-slate-50 p-3 rounded-xl">
-                        <p className="text-slate-400 font-semibold">Target Book:</p>
-                        <p className="font-bold text-slate-800">{tx.target_title}</p>
-                        <p className="text-slate-500">Owner: {tx.owner_name}</p>
+                      <div className="bg-stone-50 p-3 rounded-xl">
+                        <p className="text-stone-400 font-semibold">Target Book:</p>
+                        <p className="font-bold text-stone-800">{tx.target_title}</p>
+                        <p className="text-stone-500">Owner: {tx.owner_name}</p>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-xl">
-                        <p className="text-slate-400 font-semibold">Offered Book:</p>
-                        <p className="font-bold text-slate-800">{tx.offered_title}</p>
-                        <p className="text-slate-500">Requester: {tx.requester_name}</p>
+                      <div className="bg-stone-50 p-3 rounded-xl">
+                        <p className="text-stone-400 font-semibold">Offered Book:</p>
+                        <p className="font-bold text-stone-800">{tx.offered_title}</p>
+                        <p className="text-stone-500">Requester: {tx.requester_name}</p>
                       </div>
                     </div>
 
                     {/* Handover Details if Scheduled */}
                     {tx.slot_date && (
-                      <div className="bg-indigo-50/70 p-4 rounded-xl border border-indigo-100 text-xs space-y-2">
-                        <p className="font-bold text-indigo-900 flex items-center gap-1.5">
-                          <Calendar className="w-4 h-4 text-indigo-600" />
+                      <div className="bg-amber-900/5 p-4 rounded-xl border border-amber-900/15 text-xs space-y-2">
+                        <p className="font-bold text-amber-900 flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4 text-emerald-800" />
                           Handover Schedule Assigned by Moderator:
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-indigo-800 font-medium">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-stone-800 font-medium">
                           <p>
                             <strong>Date & Time:</strong> {tx.slot_date} ({tx.start_time} - {tx.end_time})
                           </p>
                           <p className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-emerald-800 shrink-0" />
                             <span><strong>Location:</strong> {tx.location_name}, {tx.location_address}</span>
                           </p>
                         </div>
@@ -392,8 +392,8 @@ const UserDashboard = () => {
                     )}
 
                     {/* Receipt Confirmation */}
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <div className="text-xs text-slate-500">
+                    <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                      <div className="text-xs text-stone-500">
                         {tx.requester_confirmed === 1 ? '✓ Requester confirmed' : '⏳ Awaiting requester confirmation'} •{' '}
                         {tx.owner_confirmed === 1 ? '✓ Owner confirmed' : '⏳ Awaiting owner confirmation'}
                       </div>
@@ -418,9 +418,9 @@ const UserDashboard = () => {
         {/* TAB 5: WATCHLIST */}
         {currentTab === 'watchlist' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-              <h2 className="text-xl font-serif font-bold text-slate-900">Saved Watchlist</h2>
-              <p className="text-xs text-slate-500">Books you are watching for availability</p>
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h2 className="text-xl font-serif font-bold text-stone-900">Saved Watchlist</h2>
+              <p className="text-xs text-stone-500">Books you are watching for availability</p>
             </div>
 
             {watchlist.length === 0 ? (
@@ -442,10 +442,10 @@ const UserDashboard = () => {
         {/* TAB 6: NOTIFICATIONS */}
         {currentTab === 'notifications' && (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-serif font-bold text-slate-900">In-App Notifications</h2>
-                <p className="text-xs text-slate-500">Event updates on verifications, swap requests, and handovers</p>
+                <h2 className="text-xl font-serif font-bold text-stone-900">In-App Notifications</h2>
+                <p className="text-xs text-stone-500">Event updates on verifications, swap requests, and handovers</p>
               </div>
               <Button
                 variant="outline"
@@ -468,15 +468,15 @@ const UserDashboard = () => {
                     onClick={() => handleMarkNotificationRead(n.id)}
                     className={`p-4 rounded-xl border text-xs cursor-pointer transition-colors ${
                       !n.is_read
-                        ? 'bg-brand-50/50 border-brand-200 font-semibold text-slate-900'
-                        : 'bg-white border-slate-200/80 text-slate-600'
+                        ? 'bg-emerald-900/10 border-emerald-900/20 font-semibold text-stone-900'
+                        : 'bg-white border-stone-200/80 text-stone-600'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-brand-700 capitalize">
+                      <span className="font-bold text-emerald-800 capitalize">
                         {n.type.replace(/_/g, ' ')}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-stone-400">
                         {new Date(n.created_at).toLocaleString()}
                       </span>
                     </div>
