@@ -13,6 +13,7 @@
  *   PUT    /api/admin/users/{id}/status         → updateUserStatus()
  *   PUT    /api/admin/users/{id}/role           → updateUserRole()
  *   POST   /api/admin/users/{id}/reset-password → resetPassword()
+ *   DELETE /api/admin/users/{id}                → deleteUser()
  *   GET    /api/admin/dashboard                 → dashboard()
  *   GET    /api/admin/reports/summary           → reportSummary()
  *   GET    /api/admin/reports/genres            → reportTopGenres()
@@ -314,6 +315,49 @@ class AdminController {
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
+
+    /**
+     * DELETE /api/admin/users/{id}
+     * Hard-delete a user account. Only allowed when:
+     *   - Account status is 'pending' or 'inactive'
+     *   - The user has no listings, exchange requests, or transactions
+     *   - The target is not the last active administrator
+     *
+     * @param int $id Target user's primary key.
+     */
+    public function deleteUser(int $id): void {
+        $admin = requireAuth(ROLE_ADMIN);
+
+        $user = $this->findUserOr404($id);
+
+        // Block deleting the calling admin's own account.
+        if ((int) $id === (int) $admin['sub']) {
+            sendError('You cannot delete your own account.', 409);
+        }
+
+        // Only inactive or pending accounts can be hard-deleted.
+        if (!in_array($user['status'], [ACCOUNT_INACTIVE, ACCOUNT_PENDING], true)) {
+            sendError(
+                'Only inactive or pending accounts can be deleted. Deactivate the account first.',
+                409
+            );
+        }
+
+        // Refuse if the user has any linked records (listings, requests, transactions).
+        if ($this->userModel->hasLinkedRecords($id)) {
+            sendError(
+                'This account has associated listings or transactions and cannot be deleted. Deactivate it instead.',
+                409
+            );
+        }
+
+        $this->userModel->delete($id);
+        $this->sessionModel->revokeAllForUser($id);
+        $this->reportModel->logActivity($admin['sub'], 'user', $id, 'deleted', "Account deleted by admin");
+
+        sendSuccess([], 'User account deleted successfully.');
+    }
+
 
     /**
      * @param int $id

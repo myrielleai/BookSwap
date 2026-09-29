@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { adminService, categoryService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import StatusBadge from '../components/StatusBadge';
 import Button from '../components/Button';
@@ -19,6 +20,7 @@ import {
   Plus,
   CheckCircle,
   XCircle,
+  X,
   TrendingUp,
   MapPin,
   Clock,
@@ -26,8 +28,22 @@ import {
 } from 'lucide-react';
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'users';
+
+  // Welcome banner — read sessionStorage flag set by Login (useEffect avoids React Strict Mode double-invoke)
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeName, setWelcomeName] = useState('');
+
+  useEffect(() => {
+    const name = sessionStorage.getItem('bs_just_logged_in');
+    if (name) {
+      sessionStorage.removeItem('bs_just_logged_in');
+      setWelcomeName(user?.first_name || name);
+      setShowWelcome(true);
+    }
+  }, []);
 
   const [users, setUsers] = useState([]);
   const [summaryReport, setSummaryReport] = useState(null);
@@ -115,6 +131,16 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Permanently delete "${userName}"? This cannot be undone.`)) return;
+    try {
+      await adminService.deleteUser(userId);
+      fetchAdminData();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Failed to delete user.');
+    }
+  };
+
   const handleAddGenre = async (e) => {
     e.preventDefault();
     if (!newGenreName.trim()) return;
@@ -177,7 +203,42 @@ const AdminDashboard = () => {
   if (loading) return <LoadingState message="Loading Administrator Control Console..." />;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 pb-12">
+    <div className="flex flex-col gap-0 pb-12">
+      {/* ── Welcome Banner ── */}
+      {showWelcome && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #15803d 0%, #16a34a 60%, #22c55e 100%)',
+            animation: 'slideDownFade 0.5s ease forwards',
+          }}
+          className="relative flex items-center justify-between gap-4 rounded-2xl px-6 py-4 mb-6 shadow-lg text-white overflow-hidden"
+        >
+          <div className="absolute -top-8 -left-8 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl shrink-0">👋</div>
+            <div>
+              <p className="text-base font-bold leading-tight">Welcome back, {welcomeName}!</p>
+              <p className="text-xs text-white/80 mt-0.5">You're signed in as Administrator — full control console is ready. ⭐</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowWelcome(false)}
+            className="relative z-10 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shrink-0"
+            aria-label="Dismiss welcome"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <style>{`
+            @keyframes slideDownFade {
+              from { opacity: 0; transform: translateY(-12px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+        </div>
+      )}
+
+      <div className="flex flex-col lg:flex-row gap-8">
       <Sidebar role="admin" activeTab={currentTab} onTabChange={handleTabChange} />
 
       <main className="flex-1 space-y-6">
@@ -270,6 +331,15 @@ const AdminDashboard = () => {
                             onClick={() => handleUserRoleUpdate(u.id, 'customer')}
                           >
                             Revoke Staff
+                          </Button>
+                        )}
+                        {(u.status === 'pending' || u.status === 'inactive') && u.role !== 'admin' && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDeleteUser(u.id, u.name)}
+                          >
+                            Delete
                           </Button>
                         )}
                       </td>
@@ -579,6 +649,7 @@ const AdminDashboard = () => {
           </div>
         )}
       </main>
+      </div>{/* end flex-row wrapper */}
     </div>
   );
 };

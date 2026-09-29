@@ -126,6 +126,7 @@ export const adminService = {
   updateUserStatus: (id, status) => api.put(`/admin/users/${id}/status`, { status }),
   updateUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
   resetPassword: (id, new_password) => api.post(`/admin/users/${id}/reset-password`, { new_password }),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   getDashboard: () => api.get('/admin/dashboard'),
   getSummaryReport: (params) => api.get('/admin/reports/summary', { params }),
   getTopGenresReport: (params) => api.get('/admin/reports/genres', { params }),

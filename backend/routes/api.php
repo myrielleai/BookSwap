@@ -109,6 +109,7 @@ $routes = [
     'PUT  /api/admin/users/{id}/status'          => ['AdminController', 'updateUserStatus'],
     'PUT  /api/admin/users/{id}/role'            => ['AdminController', 'updateUserRole'],
     'POST /api/admin/users/{id}/reset-password'  => ['AdminController', 'resetPassword'],
+    'DELETE /api/admin/users/{id}'               => ['AdminController', 'deleteUser'],
 
     // ── Admin: Dashboard, Reports, Audit ──────────────────────────────────────
     'GET /api/admin/dashboard'           => ['AdminController', 'dashboard'],

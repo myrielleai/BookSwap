@@ -32,8 +32,9 @@ const Login = () => {
 
     if (result.success && result.user) {
       const role = result.user.role;
-      // Redirect to the page they were trying to visit, or the role-based dashboard
       const defaultPath = role === 'admin' ? '/admin' : role === 'staff' ? '/staff' : '/dashboard';
+      // Store welcome flag in sessionStorage so dashboard picks it up regardless of redirect path
+      sessionStorage.setItem('bs_just_logged_in', result.user.first_name || result.user.username || 'there');
       navigate(from !== '/dashboard' ? from : defaultPath);
     } else {
       setError(result.message || 'Invalid email or password.');

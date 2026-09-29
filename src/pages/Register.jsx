@@ -25,8 +25,11 @@ const Register = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
+    // Clear the error for the changed field
+    setErrors((prev) => ({ ...prev, [name]: null }));
+    // If password changes, also clear the confirm_password mismatch error
+    if (name === 'password') {
+      setErrors((prev) => ({ ...prev, confirm_password: null }));
     }
   };
 
@@ -38,9 +41,14 @@ const Register = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Full name is required.';
     if (!formData.email.trim()) newErrors.email = 'Email address is required.';
-    if (!formData.password) newErrors.password = 'Password is required.';
-    if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters.';
-    if (formData.password !== formData.confirm_password) {
+    if (!formData.password) {
+      newErrors.password = 'Password is required.';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters.';
+    }
+    if (!formData.confirm_password) {
+      newErrors.confirm_password = 'Please confirm your password.';
+    } else if (formData.password !== formData.confirm_password) {
       newErrors.confirm_password = 'Passwords do not match.';
     }
 
@@ -56,6 +64,7 @@ const Register = () => {
       phone: formData.phone || null,
       city: formData.city || null,
       password: formData.password,
+      confirm_password: formData.confirm_password,
     });
 
     setSubmitting(false);

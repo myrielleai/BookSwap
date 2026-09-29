@@ -276,4 +276,40 @@ class UserModel {
         ]);
         return (int) $this->db->lastInsertId();
     }
+
+    /**
+     * Check whether a user has any listings, exchange requests, or transactions.
+     * Used before a hard-delete to prevent orphaned records.
+     *
+     * @param int $id
+     * @return bool True if linked records exist.
+     */
+    public function hasLinkedRecords(int $id): bool {
+        $sql = "SELECT
+                    (SELECT COUNT(*) FROM listings WHERE user_id = :id) +
+                    (SELECT COUNT(*) FROM exchange_requests
+                        WHERE requester_id = :id2
+                           OR target_listing_id IN (SELECT id FROM listings WHERE user_id = :id3)) +
+                    (SELECT COUNT(*) FROM transactions
+                        WHERE exchange_request_id IN (
+                            SELECT id FROM exchange_requests
+                            WHERE requester_id = :id4
+                               OR target_listing_id IN (SELECT id FROM listings WHERE user_id = :id5)
+                        ))
+                AS total";
+        $row = runQuery($sql, [
+            ':id'  => $id, ':id2' => $id, ':id3' => $id,
+            ':id4' => $id, ':id5' => $id,
+        ])->fetch();
+        return (int) ($row['total'] ?? 0) > 0;
+    }
+
+    /**
+     * Hard-delete a user row. Call hasLinkedRecords() first.
+     *
+     * @param int $id
+     */
+    public function delete(int $id): void {
+        runQuery("DELETE FROM users WHERE id = :id", [':id' => $id]);
+    }
 }
