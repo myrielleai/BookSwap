@@ -27,7 +27,6 @@ import {
 const UserDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'listings';
 
