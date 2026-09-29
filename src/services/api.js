@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -31,8 +31,15 @@ api.interceptors.response.use(
     if (error.response) {
       // Server responded with non-2xx status
       const resData = error.response.data;
-      const errorMessage = resData?.message || 'An unexpected error occurred.';
-      const errors = resData?.errors || null;
+      let errorMessage = 'An unexpected error occurred.';
+      if (typeof resData === 'object' && resData?.message) {
+        errorMessage = resData.message;
+      } else if (error.response.status === 404) {
+        errorMessage = 'Backend API endpoint not found (404). If viewing on Vercel, ensure the PHP backend is running and connected via VITE_API_BASE_URL.';
+      } else if (typeof resData === 'string' && resData.trim().length > 0 && resData.trim().length < 200) {
+        errorMessage = resData.trim();
+      }
+      const errors = (typeof resData === 'object' && resData?.errors) || null;
       
       return Promise.reject({
         status: error.response.status,
