@@ -51,6 +51,7 @@ const StaffDashboard = () => {
   const [verifyAction, setVerifyAction] = useState('approve'); // approve, return, reject
   const [staffNote, setStaffNote] = useState('');
   const [submittingVerify, setSubmittingVerify] = useState(false);
+  const [verifyError, setVerifyError] = useState(null);
 
   // Schedule modal state
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -95,18 +96,16 @@ const StaffDashboard = () => {
   const handleVerifySubmit = async (e) => {
     e.preventDefault();
     setSubmittingVerify(true);
+    setVerifyError(null);
     try {
-      const statusMap = {
-        approve: 'available',
-        return: 'returned',
-        reject: 'rejected',
-      };
-      await staffService.verifyListing(selectedListing.id, statusMap[verifyAction], staffNote);
+      await staffService.verifyListing(selectedListing.id, verifyAction, staffNote.trim());
       setVerifyModalOpen(false);
       setStaffNote('');
       fetchStaffData();
     } catch (err) {
-      alert(err.message || 'Verification update failed.');
+      // Prefer the backend's field messages (e.g. the missing note) over the generic summary.
+      const fieldMessages = err.errors ? Object.values(err.errors).join(' ') : null;
+      setVerifyError(fieldMessages || err.message || 'Verification update failed.');
     } finally {
       setSubmittingVerify(false);
     }
@@ -156,7 +155,7 @@ const StaffDashboard = () => {
 
   if (loading) return <LoadingState message="Loading Exchange Moderator console..." />;
 
-  const unverifiedListings = dashboardData?.unverified_listings || [];
+  const unverifiedListings = dashboardData?.pending_verifications || [];
   const unscheduledTxs = dashboardData?.unscheduled_transactions || [];
   const todayHandovers = dashboardData?.today_handovers || [];
   const allTxs = dashboardData?.transactions || [];
@@ -263,6 +262,7 @@ const StaffDashboard = () => {
                           onClick={() => {
                             setSelectedListing(item);
                             setVerifyAction('return');
+                            setVerifyError(null);
                             setVerifyModalOpen(true);
                           }}
                         >
@@ -274,6 +274,7 @@ const StaffDashboard = () => {
                           onClick={() => {
                             setSelectedListing(item);
                             setVerifyAction('reject');
+                            setVerifyError(null);
                             setVerifyModalOpen(true);
                           }}
                         >
@@ -285,6 +286,7 @@ const StaffDashboard = () => {
                           onClick={() => {
                             setSelectedListing(item);
                             setVerifyAction('approve');
+                            setVerifyError(null);
                             setVerifyModalOpen(true);
                           }}
                         >
@@ -485,6 +487,13 @@ const StaffDashboard = () => {
         maxWidth="max-w-md"
       >
         <form onSubmit={handleVerifySubmit} className="space-y-4">
+          {verifyError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{verifyError}</span>
+            </div>
+          )}
+
           {selectedListing && (
             <div className="text-xs bg-stone-50 p-3 rounded-xl">
               <p className="font-bold text-stone-900">{selectedListing.title}</p>

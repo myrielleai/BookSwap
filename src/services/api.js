@@ -98,7 +98,8 @@ export const exchangeService = {
   sendRequest: (data) => api.post('/exchanges', data),
   getExchange: (id) => api.get(`/exchanges/${id}`),
   acceptRequest: (id) => api.put(`/exchanges/${id}/accept`),
-  declineRequest: (id, decline_reason) => api.put(`/exchanges/${id}/decline`, { decline_reason }),
+  // reason is a DECLINE_REASONS key (backend/config/constants.php); note is required when reason is 'other'.
+  declineRequest: (id, reason, note) => api.put(`/exchanges/${id}/decline`, { reason, note }),
   withdrawRequest: (id) => api.put(`/exchanges/${id}/withdraw`),
 };
 
@@ -109,7 +110,8 @@ export const transactionService = {
 
 export const staffService = {
   getDashboard: () => api.get('/staff/dashboard'),
-  verifyListing: (id, status, staff_note) => api.put(`/staff/listings/${id}/verify`, { status, staff_note }),
+  // action: 'approve' | 'return' | 'reject'; note is required unless approving.
+  verifyListing: (id, action, note) => api.put(`/staff/listings/${id}/verify`, { action, note }),
   getRequests: (params) => api.get('/staff/requests', { params }),
   getTransactions: (params) => api.get('/staff/transactions', { params }),
   scheduleHandover: (id, slot_id) => api.post(`/staff/transactions/${id}/schedule`, { slot_id }),

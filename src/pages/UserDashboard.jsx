@@ -52,7 +52,9 @@ const UserDashboard = () => {
   // Decline modal state
   const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
-  const [declineReason, setDeclineReason] = useState('Would prefer a different book in return.');
+  const [declineReason, setDeclineReason] = useState('prefer_different_book');
+  const [declineNote, setDeclineNote] = useState('');
+  const [declineError, setDeclineError] = useState(null);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -115,12 +117,15 @@ const UserDashboard = () => {
 
   const handleDeclineRequestSubmit = async (e) => {
     e.preventDefault();
+    setDeclineError(null);
     try {
-      await exchangeService.declineRequest(selectedRequestId, declineReason);
+      await exchangeService.declineRequest(selectedRequestId, declineReason, declineNote.trim());
       setDeclineModalOpen(false);
       fetchDashboard();
     } catch (err) {
-      alert(err.message || 'Failed to decline request.');
+      // Prefer the backend's field messages (e.g. the missing note) over the generic summary.
+      const fieldMessages = err.errors ? Object.values(err.errors).join(' ') : null;
+      setDeclineError(fieldMessages || err.message || 'Failed to decline request.');
     }
   };
 
@@ -145,7 +150,7 @@ const UserDashboard = () => {
 
   const myListings = dashboardData?.listings || [];
   const sentRequests = dashboardData?.sent_requests || [];
-  const receivedRequests = dashboardData?.received_requests || [];
+  const receivedRequests = dashboardData?.incoming_requests || [];
   const transactions = dashboardData?.transactions || [];
 
   return (
@@ -370,6 +375,9 @@ const UserDashboard = () => {
                           icon={X}
                           onClick={() => {
                             setSelectedRequestId(req.id);
+                            setDeclineReason('prefer_different_book');
+                            setDeclineNote('');
+                            setDeclineError(null);
                             setDeclineModalOpen(true);
                           }}
                         >
@@ -556,18 +564,42 @@ const UserDashboard = () => {
         maxWidth="max-w-md"
       >
         <form onSubmit={handleDeclineRequestSubmit} className="space-y-4">
+          {declineError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{declineError}</span>
+            </div>
+          )}
+
+          {/* Values are the DECLINE_REASONS keys in backend/config/constants.php */}
           <Dropdown
             label="Select Reason for Declining"
             options={[
-              'Would prefer a different book in return.',
-              'The offered book condition is lower than desired.',
-              'Currently negotiating another swap offer.',
-              'No longer looking to exchange this book.',
+              { value: 'not_interested', label: 'Not interested in the offered book.' },
+              { value: 'prefer_different_book', label: 'Would prefer a different book in return.' },
+              { value: 'condition_concern', label: 'Concerned about the condition of the offered book.' },
+              { value: 'book_no_longer_available', label: 'The requested book is no longer available.' },
+              { value: 'other', label: 'Other' },
             ]}
             value={declineReason}
             onChange={(e) => setDeclineReason(e.target.value)}
             required
           />
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-stone-700">
+              Note {declineReason === 'other' ? <span className="text-rose-500">*</span> : '(Optional)'}
+            </label>
+            <textarea
+              rows={3}
+              maxLength={200}
+              value={declineNote}
+              onChange={(e) => setDeclineNote(e.target.value)}
+              placeholder={declineReason === 'other' ? 'Tell the requester why you are declining.' : 'Optional message for the requester'}
+              className="block w-full rounded-lg border border-stone-300 text-xs p-3 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
+              required={declineReason === 'other'}
+            />
+          </div>
 
           <div className="pt-2 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeclineModalOpen(false)}>
