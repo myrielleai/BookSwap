@@ -101,11 +101,7 @@ const StaffDashboard = () => {
     setSubmittingVerify(true);
     setVerifyError(null);
     try {
-<<<<<<< Updated upstream
       await staffService.verifyListing(selectedListing.id, verifyAction, staffNote.trim());
-=======
-      await staffService.verifyListing(selectedListing.id, verifyAction, staffNote);
->>>>>>> Stashed changes
       setVerifyModalOpen(false);
       setStaffNote('');
       fetchStaffData();
@@ -179,15 +175,9 @@ const StaffDashboard = () => {
   if (loading) return <LoadingState message="Loading Exchange Moderator console..." />;
 
   const unverifiedListings = dashboardData?.pending_verifications || [];
-<<<<<<< Updated upstream
-  const unscheduledTxs = dashboardData?.unscheduled_transactions || [];
-  const todayHandovers = dashboardData?.today_handovers || [];
-  const allTxs = dashboardData?.transactions || [];
-=======
-  const unscheduledTxs = dashboardData?.awaiting_schedule || [];
-  const todayHandovers = dashboardData?.todays_handovers || [];
-  const allTxs = allTransactions;
->>>>>>> Stashed changes
+  const unscheduledTxs = dashboardData?.unscheduled_transactions || dashboardData?.awaiting_schedule || [];
+  const todayHandovers = dashboardData?.today_handovers || dashboardData?.todays_handovers || [];
+  const allTxs = dashboardData?.transactions || allTransactions || [];
 
   return (
     <div className="flex flex-col gap-0 pb-12">

@@ -74,14 +74,13 @@ const AdminDashboard = () => {
   const [slotStartTime, setSlotStartTime] = useState('10:00');
   const [slotEndTime, setSlotEndTime] = useState('11:00');
 
-<<<<<<< Updated upstream
   // One validation message per taxonomy/slot form, shown under that form.
   const [formErrors, setFormErrors] = useState({});
   const showFormError = (form, message) => setFormErrors((prev) => ({ ...prev, [form]: message }));
   // First field message from the API (e.g. "Date cannot be in the past."), else its summary.
   const apiErrorMessage = (err, fallback) =>
-    (err.errors && Object.values(err.errors)[0]) || err.message || fallback;
-=======
+    (err?.errors && Object.values(err.errors)[0]) || err?.message || fallback;
+
   // Report Date Range State (Feature F-12)
   const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const defaultTo = new Date().toISOString().split('T')[0];
@@ -115,7 +114,6 @@ const AdminDashboard = () => {
       setGeneratingReport(false);
     }
   };
->>>>>>> Stashed changes
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -215,11 +213,8 @@ const AdminDashboard = () => {
       setNewGenreName('');
       fetchAdminData();
     } catch (err) {
-<<<<<<< Updated upstream
       showFormError('genre', apiErrorMessage(err, 'Failed to add genre.'));
-=======
       alert(getErrorMessage(err, 'Failed to add genre.'));
->>>>>>> Stashed changes
     }
   };
 
@@ -236,11 +231,8 @@ const AdminDashboard = () => {
       setNewConditionDesc('');
       fetchAdminData();
     } catch (err) {
-<<<<<<< Updated upstream
       showFormError('condition', apiErrorMessage(err, 'Failed to add condition.'));
-=======
       alert(getErrorMessage(err, 'Failed to add condition.'));
->>>>>>> Stashed changes
     }
   };
 
@@ -264,42 +256,27 @@ const AdminDashboard = () => {
       setNewLocCity('');
       fetchAdminData();
     } catch (err) {
-<<<<<<< Updated upstream
       showFormError('location', apiErrorMessage(err, 'Failed to add meetup location.'));
-=======
       alert(getErrorMessage(err, 'Failed to add meetup location.'));
->>>>>>> Stashed changes
     }
   };
 
   const handleAddSlot = async (e) => {
     e.preventDefault();
-<<<<<<< Updated upstream
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const today = new Date().toISOString().split('T')[0];
     let problem = null;
     if (!slotLocId) problem = 'Venue is required.';
     else if (!slotDate) problem = 'Date is required.';
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(slotDate)) problem = 'Date must be a valid date.';
-    else if (slotDate < today) problem = 'Date cannot be in the past.';
+    else if (slotDate < today) problem = `Date cannot be in the past. Today is ${today}.`;
     else if (!slotStartTime || !slotEndTime) problem = 'Start and end times are required.';
     else if (slotEndTime <= slotStartTime) problem = 'End time must be later than the start time.';
     showFormError('slot', problem);
-    if (problem) return;
-=======
-    if (!slotLocId || !slotDate || !slotStartTime || !slotEndTime) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    if (slotDate < today) {
-      alert(`Validation failed:\n• slot_date: Handover slot date (${slotDate}) cannot be in the past. Today is ${today}.`);
-      return;
-    }
-    if (slotEndTime <= slotStartTime) {
-      alert('Validation failed:\n• end_time: End time must be later than start time.');
+    if (problem) {
+      alert(`Validation failed:\n• ${problem}`);
       return;
     }
 
->>>>>>> Stashed changes
     try {
       await adminService.createSlot({
         location_id: parseInt(slotLocId),
@@ -309,13 +286,11 @@ const AdminDashboard = () => {
       });
       alert('Handover slot created successfully.');
       setSlotDate('');
+      showFormError('slot', null);
       fetchAdminData();
     } catch (err) {
-<<<<<<< Updated upstream
       showFormError('slot', apiErrorMessage(err, 'Failed to create slot.'));
-=======
       alert(getErrorMessage(err, 'Failed to create slot.'));
->>>>>>> Stashed changes
     }
   };
 

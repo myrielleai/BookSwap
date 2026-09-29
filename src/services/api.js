@@ -97,13 +97,8 @@ export const categoryService = {
 export const exchangeService = {
   sendRequest: (data) => api.post('/exchanges', data),
   getExchange: (id) => api.get(`/exchanges/${id}`),
-  acceptRequest: (id) => api.put(`/exchanges/${id}/accept`),
-<<<<<<< Updated upstream
   // reason is a DECLINE_REASONS key (backend/config/constants.php); note is required when reason is 'other'.
-  declineRequest: (id, reason, note) => api.put(`/exchanges/${id}/decline`, { reason, note }),
-=======
   declineRequest: (id, reason, note = '') => api.put(`/exchanges/${id}/decline`, { reason, note, decline_reason: reason }),
->>>>>>> Stashed changes
   withdrawRequest: (id) => api.put(`/exchanges/${id}/withdraw`),
 };
 
@@ -114,10 +109,7 @@ export const transactionService = {
 
 export const staffService = {
   getDashboard: () => api.get('/staff/dashboard'),
-<<<<<<< Updated upstream
   // action: 'approve' | 'return' | 'reject'; note is required unless approving.
-=======
->>>>>>> Stashed changes
   verifyListing: (id, action, note) => api.put(`/staff/listings/${id}/verify`, { action, note }),
   getRequests: (params) => api.get('/staff/requests', { params }),
   getTransactions: (params) => api.get('/staff/transactions', { params }),
