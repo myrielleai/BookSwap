@@ -87,6 +87,45 @@ const GENRES = [
   { name: 'Young Adult' },
 ];
 
+/* ──────────────────────────────────────────────
+   Dummy Books Data
+   ────────────────────────────────────────────── */
+const DUMMY_BOOKS = [
+  {
+    id: 'dummy-1',
+    title: 'The Great Gatsby',
+    author: 'F. Scott Fitzgerald',
+    genre_name: 'Classic',
+    condition_label: 'Good',
+    status: 'available',
+    owner_name: 'Alex D.',
+    city: 'New York',
+    cover_photo_path: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=300&h=400',
+  },
+  {
+    id: 'dummy-2',
+    title: 'To Kill a Mockingbird',
+    author: 'Harper Lee',
+    genre_name: 'Fiction',
+    condition_label: 'Like New',
+    status: 'available',
+    owner_name: 'Sarah M.',
+    city: 'Chicago',
+    cover_photo_path: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=300&h=400',
+  },
+  {
+    id: 'dummy-3',
+    title: '1984',
+    author: 'George Orwell',
+    genre_name: 'Science Fiction',
+    condition_label: 'Fair',
+    status: 'available',
+    owner_name: 'John K.',
+    city: 'Seattle',
+    cover_photo_path: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=300&h=400',
+  }
+];
+
 const Home = () => {
   const [featuredBooks, setFeaturedBooks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,16 +133,31 @@ const Home = () => {
   const containerRef = useReveal();
 
   useEffect(() => {
-    listingService
-      .getListings({ per_page: 6, sort: 'created_at_desc' })
-      .then((res) => {
+    const fetchBooks = async () => {
+      try {
+        const res = await listingService.getListings({ per_page: 6, sort: 'newest' });
+        let list = [];
         if (res.success && res.data) {
-          const list = res.data.listings || res.data || [];
-          setFeaturedBooks(list.slice(0, 6));
+          list = res.data.listings || res.data || [];
         }
-      })
-      .catch((err) => console.error('Failed to load featured books:', err))
-      .finally(() => setLoading(false));
+        
+        let displayedBooks = list.slice(0, 6);
+        
+        if (displayedBooks.length < 3) {
+          const needed = 3 - displayedBooks.length;
+          displayedBooks = [...displayedBooks, ...DUMMY_BOOKS.slice(0, needed)];
+        }
+        
+        setFeaturedBooks(displayedBooks);
+      } catch (err) {
+        console.error('Failed to load featured books:', err);
+        setFeaturedBooks(DUMMY_BOOKS);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBooks();
   }, []);
 
   // Auto-rotate quotes

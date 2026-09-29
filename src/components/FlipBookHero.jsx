@@ -311,11 +311,6 @@ export const FlipBookHero = () => {
                 {isFlipping && flipDirection === 'prev'
                   ? renderLeftPage(prevSpreadIndex)
                   : renderLeftPage(activeSpread)}
-
-                <div className="absolute bottom-3 left-4 text-[10px] font-serif text-amber-900/50 group-hover:text-emerald-900 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                  <ArrowLeft className="w-3 h-3" />
-                  <span>Previous Page</span>
-                </div>
               </div>
 
               {/* RIGHT PAGE */}
@@ -326,11 +321,6 @@ export const FlipBookHero = () => {
                 {isFlipping && flipDirection === 'next'
                   ? renderRightPage(nextSpreadIndex)
                   : renderRightPage(activeSpread)}
-
-                <div className="absolute bottom-3 right-4 text-[10px] font-serif text-amber-900/50 group-hover:text-emerald-900 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                  <span>Next Page</span>
-                  <ArrowRight className="w-3 h-3" />
-                </div>
               </div>
 
               {/* DYNAMIC 3D FLIPPING LEAF (NEXT FLIP - Right to Left) */}
@@ -362,52 +352,6 @@ export const FlipBookHero = () => {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* MINIMAL CONTROL BAR AT BOTTOM */}
-            <div className="px-4 py-2 bg-stone-900/90 backdrop-blur-md border-t border-stone-800 flex items-center justify-between text-xs text-stone-300 z-40">
-              {/* Navigation Arrows */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={turnPrev}
-                  disabled={isFlipping}
-                  className="p-1 rounded hover:bg-stone-800 disabled:opacity-40 transition-colors text-stone-300"
-                  aria-label="Previous Page"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={turnNext}
-                  disabled={isFlipping}
-                  className="p-1 rounded hover:bg-stone-800 disabled:opacity-40 transition-colors text-stone-300"
-                  aria-label="Next Page"
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Spread Indicator Dots */}
-              <div className="flex items-center gap-1.5">
-                {[0, 1, 2].map((idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isFlipping) return;
-                      setFlipDirection(idx > activeSpread ? 'next' : 'prev');
-                      setIsFlipping(true);
-                      setTimeout(() => {
-                        setActiveSpread(idx);
-                        setIsFlipping(false);
-                      }, 700);
-                    }}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      activeSpread === idx ? 'bg-emerald-500 w-5' : 'bg-stone-600 hover:bg-stone-500 w-2'
-                    }`}
-                    aria-label={`Go to page ${idx + 1}`}
-                  />
-                ))}
-              </div>
             </div>
           </div>
         </div>
