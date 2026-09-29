@@ -37,6 +37,8 @@ class ListingModel {
                c.label AS condition_label,
                (SELECT p.file_path FROM listing_photos p
                  WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo,
+               (SELECT p.file_path FROM listing_photos p
+                 WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo_path,
                (SELECT p.id FROM listing_photos p
                  WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo_id,
                (SELECT COUNT(*) FROM transactions t

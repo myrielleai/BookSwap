@@ -17,10 +17,13 @@ const BookCard = ({ listing, onQuickSwap, showActions = true }) => {
     is_open_offer,
     preferred_return,
     cover_photo_path,
+    cover_photo,
+    cover_photo_id,
   } = listing;
 
-  const photoUrl = cover_photo_path
-    ? (cover_photo_path.startsWith('http') ? cover_photo_path : `/${cover_photo_path}`)
+  const rawPhoto = cover_photo_path || cover_photo || (cover_photo_id ? `/api/photos/${cover_photo_id}` : null);
+  const photoUrl = rawPhoto
+    ? (rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`)
     : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
 
   const conditionText = condition_label || condition_name || 'Good';

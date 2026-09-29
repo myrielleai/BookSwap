@@ -153,8 +153,14 @@ const BookDetails = () => {
   if (error) return <ErrorMessage message={error} onRetry={fetchListingDetails} />;
   if (!listing) return null;
 
-  const photoUrl = listing.cover_photo_path
-    ? (listing.cover_photo_path.startsWith('http') ? listing.cover_photo_path : `/${listing.cover_photo_path}`)
+  const rawPhoto =
+    listing.cover_photo_path ||
+    listing.cover_photo ||
+    (listing.photos && listing.photos[0] ? listing.photos[0].file_path : null) ||
+    (listing.cover_photo_id ? `/api/photos/${listing.cover_photo_id}` : null);
+
+  const photoUrl = rawPhoto
+    ? (rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`)
     : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
 
   const isOwner = user && user.id === listing.user_id;

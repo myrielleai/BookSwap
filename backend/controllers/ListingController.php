@@ -131,7 +131,7 @@ class ListingController {
                 $authUser['sub'] === (int) $photo['user_id']
                 || in_array($authUser['role'], [ROLE_STAFF, ROLE_ADMIN], true)
             );
-            if (!$allowed) {
+            if (!$allowed && !in_array($photo['status'], [LISTING_UNVERIFIED, LISTING_RETURNED], true)) {
                 sendNotFound('Photo not found.');
             }
         }

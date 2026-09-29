@@ -27,6 +27,7 @@ class HandoverSlotModel {
                ml.name    AS location_name,
                ml.address AS location_address,
                ml.city    AS location_city,
+               ml.city    AS city,
                (SELECT t.id FROM transactions t
                  WHERE t.slot_id = hs.id AND t.status = 'scheduled' LIMIT 1) AS booked_transaction_id
         FROM handover_slots hs

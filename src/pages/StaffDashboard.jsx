@@ -43,6 +43,7 @@ const StaffDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [reports, setReports] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Verification action modal state
@@ -68,15 +69,17 @@ const StaffDashboard = () => {
   const fetchStaffData = async () => {
     setLoading(true);
     try {
-      const [dashRes, slotsRes, reportsRes] = await Promise.all([
+      const [dashRes, slotsRes, reportsRes, txRes] = await Promise.all([
         staffService.getDashboard(),
         staffService.getAvailableSlots().catch(() => ({ data: [] })),
         staffService.getReports().catch(() => ({ data: [] })),
+        staffService.getTransactions().catch(() => ({ data: [] })),
       ]);
 
       if (dashRes.success) setDashboardData(dashRes.data);
       if (slotsRes.success) setAvailableSlots(slotsRes.data.slots || slotsRes.data || []);
       if (reportsRes.success) setReports(reportsRes.data.reports || reportsRes.data || []);
+      if (txRes.success) setAllTransactions(txRes.data.transactions || txRes.data || []);
     } catch (err) {
       console.error('Staff dashboard error:', err);
     } finally {
@@ -98,7 +101,11 @@ const StaffDashboard = () => {
     setSubmittingVerify(true);
     setVerifyError(null);
     try {
+<<<<<<< Updated upstream
       await staffService.verifyListing(selectedListing.id, verifyAction, staffNote.trim());
+=======
+      await staffService.verifyListing(selectedListing.id, verifyAction, staffNote);
+>>>>>>> Stashed changes
       setVerifyModalOpen(false);
       setStaffNote('');
       fetchStaffData();
@@ -141,6 +148,22 @@ const StaffDashboard = () => {
     }
   };
 
+  // Complete Transaction (Feature F-09)
+  const [completingTxId, setCompletingTxId] = useState(null);
+  const handleCompleteTransaction = async (txId) => {
+    if (!window.confirm('Mark this transaction as completed? Both listings will be archived and member exchange counts updated.')) return;
+    setCompletingTxId(txId);
+    try {
+      await staffService.updateStatus(txId, 'completed');
+      alert('Transaction marked as completed! Both listings have been archived.');
+      fetchStaffData();
+    } catch (err) {
+      alert(err.message || 'Failed to complete transaction.');
+    } finally {
+      setCompletingTxId(null);
+    }
+  };
+
   // Resolve Report
   const handleResolveReportSubmit = async (e) => {
     e.preventDefault();
@@ -156,9 +179,15 @@ const StaffDashboard = () => {
   if (loading) return <LoadingState message="Loading Exchange Moderator console..." />;
 
   const unverifiedListings = dashboardData?.pending_verifications || [];
+<<<<<<< Updated upstream
   const unscheduledTxs = dashboardData?.unscheduled_transactions || [];
   const todayHandovers = dashboardData?.today_handovers || [];
   const allTxs = dashboardData?.transactions || [];
+=======
+  const unscheduledTxs = dashboardData?.awaiting_schedule || [];
+  const todayHandovers = dashboardData?.todays_handovers || [];
+  const allTxs = allTransactions;
+>>>>>>> Stashed changes
 
   return (
     <div className="flex flex-col gap-0 pb-12">
@@ -222,8 +251,9 @@ const StaffDashboard = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {unverifiedListings.map((item) => {
-                  const photoUrl = item.cover_photo_path
-                    ? (item.cover_photo_path.startsWith('http') ? item.cover_photo_path : `/${item.cover_photo_path}`)
+                  const rawPhoto = item.cover_photo_path || item.cover_photo || (item.cover_photo_id ? `/api/photos/${item.cover_photo_id}` : null);
+                  const photoUrl = rawPhoto
+                    ? (rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`)
                     : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
 
                   return (
@@ -392,24 +422,64 @@ const StaffDashboard = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-stone-50 p-3 rounded-xl">
                     <div>
                       <p className="text-stone-500">Target Book: <strong>{tx.target_title}</strong></p>
-                      <p className="text-stone-500">Owner: {tx.owner_name}</p>
+                      <p className="text-stone-500">
+                        Owner: <strong>{tx.owner_name}</strong>{' '}
+                        {tx.owner_confirmed == 1 ? (
+                          <span className="text-emerald-700 font-semibold">(Confirmed Receipt ✓)</span>
+                        ) : (
+                          <span className="text-amber-600 font-semibold">(Receipt Pending)</span>
+                        )}
+                      </p>
                     </div>
                     <div>
                       <p className="text-stone-500">Offered Book: <strong>{tx.offered_title}</strong></p>
-                      <p className="text-stone-500">Requester: {tx.requester_name}</p>
+                      <p className="text-stone-500">
+                        Requester: <strong>{tx.requester_name}</strong>{' '}
+                        {tx.requester_confirmed == 1 ? (
+                          <span className="text-emerald-700 font-semibold">(Confirmed Receipt ✓)</span>
+                        ) : (
+                          <span className="text-amber-600 font-semibold">(Receipt Pending)</span>
+                        )}
+                      </p>
                     </div>
                   </div>
 
                   {tx.status === 'scheduled' && (
-                    <div className="flex justify-end gap-2 pt-2 border-t border-stone-100">
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        icon={XCircle}
-                        onClick={() => handleRecordNoShow(tx.id)}
-                      >
-                        Record No-Show & Reset Books
-                      </Button>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-stone-100">
+                      <div className="text-xs">
+                        {tx.owner_confirmed == 1 && tx.requester_confirmed == 1 ? (
+                          <span className="inline-flex items-center gap-1.5 text-emerald-800 font-bold bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                            <CheckCircle className="w-4 h-4 text-emerald-700" />
+                            Both parties confirmed physical receipt
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 font-medium">
+                            <Clock className="w-4 h-4 text-amber-600" />
+                            Awaiting confirmation from both members
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          icon={XCircle}
+                          onClick={() => handleRecordNoShow(tx.id)}
+                        >
+                          Record No-Show & Reset Books
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          icon={CheckCircle}
+                          isLoading={completingTxId === tx.id}
+                          disabled={!(tx.owner_confirmed == 1 && tx.requester_confirmed == 1)}
+                          onClick={() => handleCompleteTransaction(tx.id)}
+                        >
+                          Mark Completed
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -548,7 +618,7 @@ const StaffDashboard = () => {
             label="Select Available Handover Slot (Administrator Pool)"
             options={availableSlots.map((s) => ({
               id: s.id,
-              name: `${s.slot_date} (${s.start_time} - ${s.end_time}) at ${s.location_name} (${s.city})`,
+              name: `${s.slot_date} (${(s.start_time || '').slice(0, 5)} - ${(s.end_time || '').slice(0, 5)}) at ${s.location_name} (${s.city || s.location_city || ''})`,
             }))}
             value={selectedSlotId}
             onChange={(e) => setSelectedSlotId(e.target.value)}

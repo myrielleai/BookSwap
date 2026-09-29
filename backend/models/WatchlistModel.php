@@ -62,7 +62,9 @@ class WatchlistModel {
                        l.id, l.title, l.author, l.status, l.user_id,
                        u.name AS owner_name, g.name AS genre_name, c.label AS condition_label,
                        (SELECT p.file_path FROM listing_photos p
-                         WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo
+                         WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo,
+                       (SELECT p.file_path FROM listing_photos p
+                         WHERE p.listing_id = l.id ORDER BY p.id LIMIT 1) AS cover_photo_path
                 FROM watchlist w
                 JOIN listings l   ON l.id = w.listing_id
                 JOIN users u      ON u.id = l.user_id

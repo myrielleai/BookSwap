@@ -74,12 +74,48 @@ const AdminDashboard = () => {
   const [slotStartTime, setSlotStartTime] = useState('10:00');
   const [slotEndTime, setSlotEndTime] = useState('11:00');
 
+<<<<<<< Updated upstream
   // One validation message per taxonomy/slot form, shown under that form.
   const [formErrors, setFormErrors] = useState({});
   const showFormError = (form, message) => setFormErrors((prev) => ({ ...prev, [form]: message }));
   // First field message from the API (e.g. "Date cannot be in the past."), else its summary.
   const apiErrorMessage = (err, fallback) =>
     (err.errors && Object.values(err.errors)[0]) || err.message || fallback;
+=======
+  // Report Date Range State (Feature F-12)
+  const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const defaultTo = new Date().toISOString().split('T')[0];
+  const [reportDateFrom, setReportDateFrom] = useState(defaultFrom);
+  const [reportDateTo, setReportDateTo] = useState(defaultTo);
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  const handleGenerateReport = async (e) => {
+    if (e) e.preventDefault();
+    setGeneratingReport(true);
+    try {
+      const params = { from: reportDateFrom, to: reportDateTo };
+      const [sumRes, genRepRes, cityRepRes] = await Promise.all([
+        adminService.getSummaryReport(params).catch(() => ({ data: null })),
+        adminService.getTopGenresReport(params).catch(() => ({ data: [] })),
+        adminService.getByCityReport(params).catch(() => ({ data: [] })),
+      ]);
+
+      if (sumRes.success) setSummaryReport(sumRes.data?.summary || sumRes.data || null);
+      if (genRepRes.success) {
+        const rows = genRepRes.data?.genres || genRepRes.data?.rows || (Array.isArray(genRepRes.data) ? genRepRes.data : []);
+        setTopGenresReport(Array.isArray(rows) ? rows : []);
+      }
+      if (cityRepRes.success) {
+        const rows = cityRepRes.data?.cities || cityRepRes.data?.rows || (Array.isArray(cityRepRes.data) ? cityRepRes.data : []);
+        setCityReport(Array.isArray(rows) ? rows : []);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to generate report.');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+>>>>>>> Stashed changes
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -96,15 +132,24 @@ const AdminDashboard = () => {
         adminService.getSlots().catch(() => ({ data: [] })),
       ]);
 
-      if (uRes.success) setUsers(uRes.data.users || uRes.data || []);
-      if (sumRes.success) setSummaryReport(sumRes.data.summary || sumRes.data);
-      if (genRepRes.success) setTopGenresReport(genRepRes.data.genres || genRepRes.data || []);
-      if (cityRepRes.success) setCityReport(cityRepRes.data.cities || cityRepRes.data || []);
-      if (actRes.success) setActivityLog(actRes.data.activity_log || actRes.data || []);
-      if (gRes.success) setGenres(gRes.data.genres || gRes.data || []);
-      if (cRes.success) setConditions(cRes.data.conditions || cRes.data || []);
-      if (locRes.success) setMeetupLocations(locRes.data.locations || locRes.data || []);
-      if (slotRes.success) setSlots(slotRes.data.slots || slotRes.data || []);
+      if (uRes.success) setUsers(uRes.data?.users || (Array.isArray(uRes.data) ? uRes.data : []));
+      if (sumRes.success) setSummaryReport(sumRes.data?.summary || sumRes.data || null);
+      if (genRepRes.success) {
+        const rows = genRepRes.data?.genres || genRepRes.data?.rows || (Array.isArray(genRepRes.data) ? genRepRes.data : []);
+        setTopGenresReport(Array.isArray(rows) ? rows : []);
+      }
+      if (cityRepRes.success) {
+        const rows = cityRepRes.data?.cities || cityRepRes.data?.rows || (Array.isArray(cityRepRes.data) ? cityRepRes.data : []);
+        setCityReport(Array.isArray(rows) ? rows : []);
+      }
+      if (actRes.success) {
+        const rows = actRes.data?.activity_log || actRes.data?.rows || (Array.isArray(actRes.data) ? actRes.data : []);
+        setActivityLog(Array.isArray(rows) ? rows : []);
+      }
+      if (gRes.success) setGenres(gRes.data?.genres || (Array.isArray(gRes.data) ? gRes.data : []));
+      if (cRes.success) setConditions(cRes.data?.conditions || (Array.isArray(cRes.data) ? cRes.data : []));
+      if (locRes.success) setMeetupLocations(locRes.data?.locations || (Array.isArray(locRes.data) ? locRes.data : []));
+      if (slotRes.success) setSlots(slotRes.data?.slots || (Array.isArray(slotRes.data) ? slotRes.data : []));
     } catch (err) {
       console.error('Admin dashboard error:', err);
     } finally {
@@ -120,13 +165,24 @@ const AdminDashboard = () => {
     setSearchParams({ tab: tabId });
   };
 
+  // Helper to extract detailed validation error messages
+  const getErrorMessage = (err, fallback = 'Operation failed.') => {
+    if (err?.errors && typeof err.errors === 'object') {
+      const messages = Object.entries(err.errors).map(([field, msg]) => `• ${field}: ${msg}`);
+      if (messages.length > 0) {
+        return `${err.message || 'Validation failed'}:\n${messages.join('\n')}`;
+      }
+    }
+    return err?.response?.data?.message || err?.message || fallback;
+  };
+
   // Actions
   const handleUserStatusUpdate = async (userId, newStatus) => {
     try {
       await adminService.updateUserStatus(userId, newStatus);
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to update user status.');
+      alert(getErrorMessage(err, 'Failed to update user status.'));
     }
   };
 
@@ -135,7 +191,7 @@ const AdminDashboard = () => {
       await adminService.updateUserRole(userId, newRole);
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to update user role.');
+      alert(getErrorMessage(err, 'Failed to update user role.'));
     }
   };
 
@@ -145,7 +201,7 @@ const AdminDashboard = () => {
       await adminService.deleteUser(userId);
       fetchAdminData();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to delete user.');
+      alert(getErrorMessage(err, 'Failed to delete user.'));
     }
   };
 
@@ -159,7 +215,11 @@ const AdminDashboard = () => {
       setNewGenreName('');
       fetchAdminData();
     } catch (err) {
+<<<<<<< Updated upstream
       showFormError('genre', apiErrorMessage(err, 'Failed to add genre.'));
+=======
+      alert(getErrorMessage(err, 'Failed to add genre.'));
+>>>>>>> Stashed changes
     }
   };
 
@@ -176,7 +236,11 @@ const AdminDashboard = () => {
       setNewConditionDesc('');
       fetchAdminData();
     } catch (err) {
+<<<<<<< Updated upstream
       showFormError('condition', apiErrorMessage(err, 'Failed to add condition.'));
+=======
+      alert(getErrorMessage(err, 'Failed to add condition.'));
+>>>>>>> Stashed changes
     }
   };
 
@@ -200,12 +264,17 @@ const AdminDashboard = () => {
       setNewLocCity('');
       fetchAdminData();
     } catch (err) {
+<<<<<<< Updated upstream
       showFormError('location', apiErrorMessage(err, 'Failed to add meetup location.'));
+=======
+      alert(getErrorMessage(err, 'Failed to add meetup location.'));
+>>>>>>> Stashed changes
     }
   };
 
   const handleAddSlot = async (e) => {
     e.preventDefault();
+<<<<<<< Updated upstream
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     let problem = null;
@@ -217,6 +286,20 @@ const AdminDashboard = () => {
     else if (slotEndTime <= slotStartTime) problem = 'End time must be later than the start time.';
     showFormError('slot', problem);
     if (problem) return;
+=======
+    if (!slotLocId || !slotDate || !slotStartTime || !slotEndTime) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    if (slotDate < today) {
+      alert(`Validation failed:\n• slot_date: Handover slot date (${slotDate}) cannot be in the past. Today is ${today}.`);
+      return;
+    }
+    if (slotEndTime <= slotStartTime) {
+      alert('Validation failed:\n• end_time: End time must be later than start time.');
+      return;
+    }
+
+>>>>>>> Stashed changes
     try {
       await adminService.createSlot({
         location_id: parseInt(slotLocId),
@@ -224,9 +307,15 @@ const AdminDashboard = () => {
         start_time: slotStartTime,
         end_time: slotEndTime,
       });
+      alert('Handover slot created successfully.');
+      setSlotDate('');
       fetchAdminData();
     } catch (err) {
+<<<<<<< Updated upstream
       showFormError('slot', apiErrorMessage(err, 'Failed to create slot.'));
+=======
+      alert(getErrorMessage(err, 'Failed to create slot.'));
+>>>>>>> Stashed changes
     }
   };
 
@@ -533,8 +622,10 @@ const AdminDashboard = () => {
                   <FormInput
                     type="date"
                     label="Date"
+                    min={new Date().toISOString().split('T')[0]}
                     value={slotDate}
                     onChange={(e) => setSlotDate(e.target.value)}
+                    helperText={`Cannot be in the past. Today is ${new Date().toISOString().split('T')[0]}`}
                     required
                   />
                   <div className="grid grid-cols-2 gap-2">
@@ -592,24 +683,68 @@ const AdminDashboard = () => {
               </p>
             </div>
 
+            {/* Date Range Selector & Generate Report Form (Feature F-12) */}
+            <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm">
+              <form onSubmit={handleGenerateReport} className="flex flex-col md:flex-row items-end gap-4">
+                <div className="flex-1 w-full">
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    From Date
+                  </label>
+                  <input
+                    type="date"
+                    value={reportDateFrom}
+                    onChange={(e) => setReportDateFrom(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 bg-white"
+                    required
+                  />
+                </div>
+
+                <div className="flex-1 w-full">
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    To Date
+                  </label>
+                  <input
+                    type="date"
+                    value={reportDateTo}
+                    onChange={(e) => setReportDateTo(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 bg-white"
+                    required
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  icon={BarChart3}
+                  isLoading={generatingReport}
+                  className="w-full md:w-auto h-[42px] px-6"
+                >
+                  Generate Report
+                </Button>
+              </form>
+            </div>
+
             {/* Metric Cards */}
             {summaryReport && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-1">
                   <p className="text-xs font-semibold text-stone-400">Total Book Listings</p>
-                  <p className="text-3xl font-serif font-bold text-stone-900">{summaryReport.total_listings || 0}</p>
+                  <p className="text-3xl font-serif font-bold text-stone-900">{summaryReport.listings_posted ?? summaryReport.total_listings ?? 0}</p>
                   <p className="text-[11px] text-emerald-800 font-medium">Catalog size</p>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-1">
                   <p className="text-xs font-semibold text-stone-400">Exchanges Completed</p>
-                  <p className="text-3xl font-serif font-bold text-emerald-800">{summaryReport.completed_swaps || 0}</p>
+                  <p className="text-3xl font-serif font-bold text-emerald-800">{summaryReport.exchanges_completed ?? summaryReport.completed_swaps ?? 0}</p>
                   <p className="text-[11px] text-emerald-800 font-medium">Successful peer swaps</p>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-1">
                   <p className="text-xs font-semibold text-stone-400">Cancellation Rate</p>
-                  <p className="text-3xl font-serif font-bold text-rose-600">{summaryReport.cancellation_rate || '0%'}</p>
+                  <p className="text-3xl font-serif font-bold text-rose-600">
+                    {summaryReport.cancellation_rate != null ? `${summaryReport.cancellation_rate}%` : '0%'}
+                  </p>
                   <p className="text-[11px] text-stone-500 font-medium">Includes no-show rates</p>
                 </div>
               </div>
@@ -620,12 +755,16 @@ const AdminDashboard = () => {
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-3">
                 <h3 className="font-bold text-stone-800 text-sm">Most Requested Reading Genres</h3>
                 <div className="space-y-2 text-xs">
-                  {topGenresReport.map((g, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg">
-                      <span className="font-semibold text-stone-800">{g.genre_name || g.name}</span>
-                      <span className="font-bold text-emerald-800">{g.request_count} requests</span>
-                    </div>
-                  ))}
+                  {Array.isArray(topGenresReport) && topGenresReport.length > 0 ? (
+                    topGenresReport.map((g, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg">
+                        <span className="font-semibold text-stone-800">{g.genre_name || g.name}</span>
+                        <span className="font-bold text-emerald-800">{g.request_count} requests</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-stone-400 italic py-2">No genre activity recorded in this period.</p>
+                  )}
                 </div>
               </div>
 
@@ -633,12 +772,18 @@ const AdminDashboard = () => {
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-3">
                 <h3 className="font-bold text-stone-800 text-sm">Regional Reader Activity by City</h3>
                 <div className="space-y-2 text-xs">
-                  {cityReport.map((c, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg">
-                      <span className="font-semibold text-stone-800">{c.city || 'Unknown'}</span>
-                      <span className="font-bold text-emerald-800">{c.active_users || c.count} members</span>
-                    </div>
-                  ))}
+                  {Array.isArray(cityReport) && cityReport.length > 0 ? (
+                    cityReport.map((c, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-2 bg-stone-50 rounded-lg">
+                        <span className="font-semibold text-stone-800">{c.city || 'Unknown'}</span>
+                        <span className="font-bold text-emerald-800">
+                          {c.active_members ?? c.active_users ?? c.count ?? 0} members {c.completed_exchanges ? `(${c.completed_exchanges} swaps)` : ''}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-stone-400 italic py-2">No regional activity recorded in this period.</p>
+                  )}
                 </div>
               </div>
             </div>

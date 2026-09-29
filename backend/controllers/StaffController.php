@@ -111,6 +111,20 @@ class StaffController {
         $staff = requireAuth([ROLE_STAFF, ROLE_ADMIN]);
 
         $body   = getRequestBody();
+        if (!isset($body['action']) && isset($body['status'])) {
+            $statusToAction = [
+                'available' => 'approve',
+                'approve'   => 'approve',
+                'returned'  => 'return',
+                'return'    => 'return',
+                'rejected'  => 'reject',
+                'reject'    => 'reject',
+            ];
+            $body['action'] = $statusToAction[$body['status']] ?? $body['status'];
+        }
+        if (!isset($body['note']) && isset($body['staff_note'])) {
+            $body['note'] = $body['staff_note'];
+        }
         $errors = [];
         validateRequired(['action'], $body, $errors);
         if (empty($errors)) {

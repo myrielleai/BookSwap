@@ -263,11 +263,20 @@ function withTransaction(callable $work) {
 function runQuery(string $sql, array $params = []): PDOStatement {
     $pdo = getDBConnection();
     if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $sql = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*:([a-zA-Z0-9_]+)\s*DAY/i', "datetime('now', '-' || :\$1 || ' days')", $sql);
+        $sql = preg_replace('/NOW\(\)\s*\+\s*INTERVAL\s*:([a-zA-Z0-9_]+)\s*DAY/i', "datetime('now', '+' || :\$1 || ' days')", $sql);
+        $sql = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*:([a-zA-Z0-9_]+)\s*MINUTE/i', "datetime('now', '-' || :\$1 || ' minutes')", $sql);
+        $sql = preg_replace('/NOW\(\)\s*\+\s*INTERVAL\s*:([a-zA-Z0-9_]+)\s*MINUTE/i', "datetime('now', '+' || :\$1 || ' minutes')", $sql);
+        $sql = preg_replace('/CURDATE\(\)\s*-\s*INTERVAL\s*:([a-zA-Z0-9_]+)\s*DAY/i', "date('now', '-' || :\$1 || ' days')", $sql);
+        $sql = preg_replace('/CURDATE\(\)\s*\+\s*INTERVAL\s*:([a-zA-Z0-9_]+)\s*DAY/i', "date('now', '+' || :\$1 || ' days')", $sql);
         $sql = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*(\d+)\s*DAY/i', "datetime('now', '-\$1 days')", $sql);
         $sql = preg_replace('/NOW\(\)\s*\+\s*INTERVAL\s*(\d+)\s*DAY/i', "datetime('now', '+\$1 days')", $sql);
         $sql = preg_replace('/NOW\(\)\s*-\s*INTERVAL\s*(\d+)\s*MINUTE/i', "datetime('now', '-\$1 minutes')", $sql);
+        $sql = preg_replace('/CURDATE\(\)\s*-\s*INTERVAL\s*(\d+)\s*DAY/i', "date('now', '-\$1 days')", $sql);
+        $sql = preg_replace('/CURDATE\(\)\s*\+\s*INTERVAL\s*(\d+)\s*DAY/i', "date('now', '+\$1 days')", $sql);
         $sql = preg_replace('/\bNOW\(\)/i', "datetime('now')", $sql);
         $sql = preg_replace('/\bCURDATE\(\)/i', "date('now')", $sql);
+        $sql = preg_replace('/\bFOR\s+UPDATE\b/i', "", $sql);
     }
     $stmt = $pdo->prepare($sql);
     foreach ($params as $name => $value) {

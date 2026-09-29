@@ -247,6 +247,33 @@ class ExchangeController {
         $authUser = requireAuth(ROLE_CUSTOMER);
 
         $body   = getRequestBody();
+        if (!isset($body['reason']) && isset($body['decline_reason'])) {
+            $body['reason'] = $body['decline_reason'];
+        }
+
+        $textToKey = [
+            'not_interested'           => 'not_interested',
+            'prefer_different_book'    => 'prefer_different_book',
+            'condition_concern'        => 'condition_concern',
+            'book_no_longer_available' => 'book_no_longer_available',
+            'other'                    => 'other',
+            'Not interested in the offered book.'               => 'not_interested',
+            'Would prefer a different book in return.'          => 'prefer_different_book',
+            'Concerned about the condition of the offered book.' => 'condition_concern',
+            'The offered book condition is lower than desired.' => 'condition_concern',
+            'The requested book is no longer available.'        => 'book_no_longer_available',
+            'No longer looking to exchange this book.'          => 'book_no_longer_available',
+            'Currently negotiating another swap offer.'         => 'other',
+        ];
+
+        if (isset($body['reason']) && isset($textToKey[$body['reason']])) {
+            $rawText = $body['reason'];
+            $body['reason'] = $textToKey[$body['reason']];
+            if ($body['reason'] === 'other' && empty($body['note'])) {
+                $body['note'] = $rawText;
+            }
+        }
+
         $errors = [];
         validateRequired(['reason'], $body, $errors);
         if (empty($errors)) {

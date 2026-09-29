@@ -152,11 +152,14 @@ class UserController {
 
         $user = $this->userModel->findById($userId);
 
+        $incomingRequests = $this->exchangeModel->getIncomingForOwner($userId);
+
         sendSuccess([
             'completed_exchanges' => (int) $user['completed_exchanges'],
             'listings'            => $this->listingModel->getByUserId($userId),
             'sent_requests'       => $this->exchangeModel->getByRequester($userId),
-            'incoming_requests'   => $this->exchangeModel->getIncomingForOwner($userId),
+            'incoming_requests'   => $incomingRequests,
+            'received_requests'   => $incomingRequests,
             'transactions'        => $this->transactionModel->getByUserId($userId),
         ], 'Dashboard data retrieved.');
     }

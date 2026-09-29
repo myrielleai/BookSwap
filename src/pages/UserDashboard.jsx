@@ -54,7 +54,10 @@ const UserDashboard = () => {
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [declineReason, setDeclineReason] = useState('prefer_different_book');
   const [declineNote, setDeclineNote] = useState('');
+<<<<<<< Updated upstream
   const [declineError, setDeclineError] = useState(null);
+=======
+>>>>>>> Stashed changes
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -119,8 +122,13 @@ const UserDashboard = () => {
     e.preventDefault();
     setDeclineError(null);
     try {
+<<<<<<< Updated upstream
       await exchangeService.declineRequest(selectedRequestId, declineReason, declineNote.trim());
+=======
+      await exchangeService.declineRequest(selectedRequestId, declineReason, declineNote);
+>>>>>>> Stashed changes
       setDeclineModalOpen(false);
+      setDeclineNote('');
       fetchDashboard();
     } catch (err) {
       // Prefer the backend's field messages (e.g. the missing note) over the generic summary.
@@ -150,7 +158,11 @@ const UserDashboard = () => {
 
   const myListings = dashboardData?.listings || [];
   const sentRequests = dashboardData?.sent_requests || [];
+<<<<<<< Updated upstream
   const receivedRequests = dashboardData?.incoming_requests || [];
+=======
+  const receivedRequests = dashboardData?.received_requests || dashboardData?.incoming_requests || [];
+>>>>>>> Stashed changes
   const transactions = dashboardData?.transactions || [];
 
   return (
@@ -575,17 +587,26 @@ const UserDashboard = () => {
           <Dropdown
             label="Select Reason for Declining"
             options={[
+<<<<<<< Updated upstream
               { value: 'not_interested', label: 'Not interested in the offered book.' },
               { value: 'prefer_different_book', label: 'Would prefer a different book in return.' },
               { value: 'condition_concern', label: 'Concerned about the condition of the offered book.' },
               { value: 'book_no_longer_available', label: 'The requested book is no longer available.' },
               { value: 'other', label: 'Other' },
+=======
+              { id: 'prefer_different_book', name: 'Would prefer a different book in return.' },
+              { id: 'condition_concern', name: 'The offered book condition is lower than desired.' },
+              { id: 'not_interested', name: 'Not interested in the offered book.' },
+              { id: 'book_no_longer_available', name: 'No longer looking to exchange this book.' },
+              { id: 'other', name: 'Other reason' },
+>>>>>>> Stashed changes
             ]}
             value={declineReason}
             onChange={(e) => setDeclineReason(e.target.value)}
             required
           />
 
+<<<<<<< Updated upstream
           <div className="space-y-1">
             <label className="block text-sm font-medium text-stone-700">
               Note {declineReason === 'other' ? <span className="text-rose-500">*</span> : '(Optional)'}
@@ -600,6 +621,23 @@ const UserDashboard = () => {
               required={declineReason === 'other'}
             />
           </div>
+=======
+          {declineReason === 'other' && (
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
+                Reason Details <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                value={declineNote}
+                onChange={(e) => setDeclineNote(e.target.value)}
+                placeholder="Please describe why you are declining..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800"
+                rows={3}
+                required
+              />
+            </div>
+          )}
+>>>>>>> Stashed changes
 
           <div className="pt-2 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeclineModalOpen(false)}>
