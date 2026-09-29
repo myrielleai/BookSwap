@@ -238,19 +238,19 @@ class CategoryController {
         $endTime    = is_string($body['end_time']) ? normalizeTime($body['end_time']) : null;
 
         if ($startTime === null) {
-            $errors['start_time'] = 'start_time must be a time in HH:MM format.';
+            $errors['start_time'] = 'Start time must be a valid time (HH:MM).';
         }
         if ($endTime === null) {
-            $errors['end_time'] = 'end_time must be a time in HH:MM format.';
+            $errors['end_time'] = 'End time must be a valid time (HH:MM).';
         }
         if ($startTime !== null && $endTime !== null && $endTime <= $startTime) {
-            $errors['end_time'] = 'end_time must be later than start_time.';
+            $errors['end_time'] = 'End time must be later than the start time.';
         }
         if ($slotDate !== null && $slotDate < date('Y-m-d')) {
-            $errors['slot_date'] = 'slot_date cannot be in the past.';
+            $errors['slot_date'] = 'Date cannot be in the past.';
         }
-        if ($locationId !== null && !$this->categoryModel->isActiveLocation($locationId)) {
-            $errors['location_id'] = 'location_id does not match an active meetup location.';
+        if (isset($errors['location_id']) || ($locationId !== null && !$this->categoryModel->isActiveLocation($locationId))) {
+            $errors['location_id'] = 'Please choose a valid venue from the list.';
         }
         if (!empty($errors)) {
             sendError('Validation failed.', 422, $errors);
@@ -296,9 +296,11 @@ class CategoryController {
         $errors = [];
         validateRequired(['name'], $body, $errors);
         $name = sanitizeString($body['name'] ?? '');
-        validateMaxLength('name', $name, 100, $errors);
-        if (!isset($errors['name']) && $name === '') {
-            $errors['name'] = 'name is required.';
+        if (mb_strlen($name) > 100) {
+            $errors['name'] = 'Name must not exceed 100 characters.';
+        }
+        if ($name === '') {
+            $errors['name'] = 'Name is required.';
         }
         if (!empty($errors)) {
             sendError('Validation failed.', 422, $errors);

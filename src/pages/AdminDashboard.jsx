@@ -9,6 +9,7 @@ import Modal from '../components/Modal';
 import FormInput from '../components/FormInput';
 import Dropdown from '../components/Dropdown';
 import { LoadingState, EmptyState } from '../components/LoadingState';
+import { validateText, validateCity } from '../utils/validation';
 import {
   ShieldCheck,
   User,
@@ -72,6 +73,13 @@ const AdminDashboard = () => {
   const [slotDate, setSlotDate] = useState('');
   const [slotStartTime, setSlotStartTime] = useState('10:00');
   const [slotEndTime, setSlotEndTime] = useState('11:00');
+
+  // One validation message per taxonomy/slot form, shown under that form.
+  const [formErrors, setFormErrors] = useState({});
+  const showFormError = (form, message) => setFormErrors((prev) => ({ ...prev, [form]: message }));
+  // First field message from the API (e.g. "Date cannot be in the past."), else its summary.
+  const apiErrorMessage = (err, fallback) =>
+    (err.errors && Object.values(err.errors)[0]) || err.message || fallback;
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -143,50 +151,72 @@ const AdminDashboard = () => {
 
   const handleAddGenre = async (e) => {
     e.preventDefault();
-    if (!newGenreName.trim()) return;
+    const problem = validateText(newGenreName, 'Genre name', 100, true);
+    showFormError('genre', problem);
+    if (problem) return;
     try {
       await adminService.createGenre(newGenreName.trim());
       setNewGenreName('');
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to add genre.');
+      showFormError('genre', apiErrorMessage(err, 'Failed to add genre.'));
     }
   };
 
   const handleAddCondition = async (e) => {
     e.preventDefault();
-    if (!newConditionLabel.trim() || !newConditionDesc.trim()) return;
+    const problem =
+      validateText(newConditionLabel, 'Condition label', 50, true) ||
+      validateText(newConditionDesc, 'Rubric description', 1000, true);
+    showFormError('condition', problem);
+    if (problem) return;
     try {
       await adminService.createCondition(newConditionLabel.trim(), newConditionDesc.trim());
       setNewConditionLabel('');
       setNewConditionDesc('');
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to add condition.');
+      showFormError('condition', apiErrorMessage(err, 'Failed to add condition.'));
     }
   };
 
   const handleAddLocation = async (e) => {
     e.preventDefault();
-    if (!newLocName || !newLocAddress || !newLocCity) return;
+    const problem =
+      validateText(newLocName, 'Location name', 150, true) ||
+      validateText(newLocAddress, 'Address', 255, true) ||
+      validateText(newLocCity, 'City', 100, true) ||
+      validateCity(newLocCity);
+    showFormError('location', problem);
+    if (problem) return;
     try {
       await adminService.createMeetupLocation({
-        name: newLocName,
-        address: newLocAddress,
-        city: newLocCity,
+        name: newLocName.trim(),
+        address: newLocAddress.trim(),
+        city: newLocCity.trim(),
       });
       setNewLocName('');
       setNewLocAddress('');
       setNewLocCity('');
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to add meetup location.');
+      showFormError('location', apiErrorMessage(err, 'Failed to add meetup location.'));
     }
   };
 
   const handleAddSlot = async (e) => {
     e.preventDefault();
-    if (!slotLocId || !slotDate || !slotStartTime || !slotEndTime) return;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    let problem = null;
+    if (!slotLocId) problem = 'Venue is required.';
+    else if (!slotDate) problem = 'Date is required.';
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(slotDate)) problem = 'Date must be a valid date.';
+    else if (slotDate < today) problem = 'Date cannot be in the past.';
+    else if (!slotStartTime || !slotEndTime) problem = 'Start and end times are required.';
+    else if (slotEndTime <= slotStartTime) problem = 'End time must be later than the start time.';
+    showFormError('slot', problem);
+    if (problem) return;
     try {
       await adminService.createSlot({
         location_id: parseInt(slotLocId),
@@ -196,7 +226,7 @@ const AdminDashboard = () => {
       });
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to create slot.');
+      showFormError('slot', apiErrorMessage(err, 'Failed to create slot.'));
     }
   };
 
@@ -368,7 +398,7 @@ const AdminDashboard = () => {
               {/* Genres Governance */}
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-4">
                 <h3 className="font-bold text-stone-800 text-sm">Book Genres</h3>
-                <form onSubmit={handleAddGenre} className="flex gap-2">
+                <form noValidate onSubmit={handleAddGenre} className="flex gap-2">
                   <input
                     type="text"
                     placeholder="New genre name..."
@@ -381,6 +411,9 @@ const AdminDashboard = () => {
                     Add Genre
                   </Button>
                 </form>
+                {formErrors.genre && (
+                  <p className="text-xs text-rose-600 font-medium">{formErrors.genre}</p>
+                )}
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   {genres.map((g) => (
@@ -394,7 +427,7 @@ const AdminDashboard = () => {
               {/* Conditions Governance */}
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-4">
                 <h3 className="font-bold text-stone-800 text-sm">Condition Grading Rubrics</h3>
-                <form onSubmit={handleAddCondition} className="space-y-2">
+                <form noValidate onSubmit={handleAddCondition} className="space-y-2">
                   <input
                     type="text"
                     placeholder="Condition Label (e.g. Near Mint)..."
@@ -411,6 +444,9 @@ const AdminDashboard = () => {
                     className="w-full border border-stone-300 rounded-lg text-xs p-2.5 focus:outline-none"
                     required
                   />
+                  {formErrors.condition && (
+                    <p className="text-xs text-rose-600 font-medium">{formErrors.condition}</p>
+                  )}
                   <Button type="submit" variant="primary" size="sm" icon={Plus}>
                     Add Condition Rubric
                   </Button>
@@ -446,7 +482,7 @@ const AdminDashboard = () => {
               {/* Meetup Locations */}
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-4">
                 <h3 className="font-bold text-stone-800 text-sm">Add Designated Meetup Location</h3>
-                <form onSubmit={handleAddLocation} className="space-y-2">
+                <form noValidate onSubmit={handleAddLocation} className="space-y-2">
                   <FormInput
                     placeholder="Location Name (e.g. Ermita Public Library)"
                     value={newLocName}
@@ -465,6 +501,9 @@ const AdminDashboard = () => {
                     onChange={(e) => setNewLocCity(e.target.value)}
                     required
                   />
+                  {formErrors.location && (
+                    <p className="text-xs text-rose-600 font-medium">{formErrors.location}</p>
+                  )}
                   <Button type="submit" variant="primary" size="sm" icon={Plus}>
                     Add Meetup Venue
                   </Button>
@@ -483,7 +522,7 @@ const AdminDashboard = () => {
               {/* Handover Slots Pool */}
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-4">
                 <h3 className="font-bold text-stone-800 text-sm">Create Handover Slot</h3>
-                <form onSubmit={handleAddSlot} className="space-y-2">
+                <form noValidate onSubmit={handleAddSlot} className="space-y-2">
                   <Dropdown
                     label="Venue"
                     options={meetupLocations}
@@ -514,6 +553,9 @@ const AdminDashboard = () => {
                       required
                     />
                   </div>
+                  {formErrors.slot && (
+                    <p className="text-xs text-rose-600 font-medium">{formErrors.slot}</p>
+                  )}
                   <Button type="submit" variant="primary" size="sm" icon={Plus}>
                     Create Time Slot
                   </Button>
