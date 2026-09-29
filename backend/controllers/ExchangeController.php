@@ -73,7 +73,9 @@ class ExchangeController {
             }
         }
         $message = sanitizeString($body['message'] ?? '');
-        validateMaxLength('message', $message, 500, $errors);
+        if (mb_strlen($message) > 500) {
+            $errors['message'] = 'Message must not exceed 500 characters.';
+        }
         if (!empty($errors)) {
             sendError('Validation failed.', 422, $errors);
         }

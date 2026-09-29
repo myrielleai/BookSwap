@@ -14,6 +14,12 @@ import {
   Sparkles,
   ShieldCheck,
 } from 'lucide-react';
+import {
+  validateFullName,
+  validateEmailAddress,
+  validateNewPassword,
+  onlyErrors,
+} from '../utils/validation';
 
 const GoogleIcon = () => (
   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -44,6 +50,7 @@ export const HeroAuthCard = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
@@ -93,20 +100,29 @@ export const HeroAuthCard = () => {
     setError(null);
     setSuccessMsg(null);
 
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    // Client-side validation (the backend repeats every check). This card has
+    // one message area, so the first problem is shown.
+    const newErrors = onlyErrors({
+      name: validateFullName(name),
+      email: validateEmailAddress(email),
+      password: validateNewPassword(password),
+      confirm_password: !confirmPassword
+        ? 'Please confirm your password.'
+        : password !== confirmPassword
+        ? 'Passwords do not match.'
+        : null,
+    });
+    if (Object.keys(newErrors).length > 0) {
+      setError(Object.values(newErrors)[0]);
       return;
     }
 
     setSubmitting(true);
     const result = await register({
-      name,
-      email,
+      name: name.trim(),
+      email: email.trim(),
       password,
+      confirm_password: confirmPassword,
     });
     setSubmitting(false);
 
@@ -114,6 +130,9 @@ export const HeroAuthCard = () => {
       setSuccessMsg('Registration submitted! Pending administrator verification before sign in.');
       setMode('login');
       setPassword('');
+      setConfirmPassword('');
+    } else if (result.errors) {
+      setError(Object.values(result.errors)[0]);
     } else {
       setError(result.message || 'Registration failed.');
     }
@@ -309,7 +328,7 @@ export const HeroAuthCard = () => {
           </button>
         </form>
       ) : (
-        <form onSubmit={handleRegister} className="space-y-3.5">
+        <form onSubmit={handleRegister} className="space-y-3.5" noValidate>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-stone-700 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-emerald-800" />
@@ -350,6 +369,21 @@ export const HeroAuthCard = () => {
               placeholder="At least 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-none text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-stone-700 flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-emerald-800" />
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-none text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
             />

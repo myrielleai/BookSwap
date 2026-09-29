@@ -6,6 +6,13 @@ import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
 import { LoadingState } from '../components/LoadingState';
 import { User, MapPin, Phone, Mail, Award, CheckCircle, Heart, AlertCircle } from 'lucide-react';
+import { validateFullName, validatePhoneNumber, validateCity, onlyErrors } from '../utils/validation';
+
+// The API returns favorite_genres as a list of IDs; older data may be a CSV string.
+const toGenreIds = (value) =>
+  (Array.isArray(value) ? value : String(value || '').split(','))
+    .map((id) => parseInt(id, 10))
+    .filter((id) => id > 0);
 
 const Profile = () => {
   const { user, refreshProfile } = useAuth();
@@ -23,6 +30,7 @@ const Profile = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     categoryService
@@ -38,11 +46,9 @@ const Profile = () => {
         name: user.name || '',
         phone: user.phone || '',
         city: user.city || '',
-        favorite_genres: user.favorite_genres || '',
+        favorite_genres: toGenreIds(user.favorite_genres).join(','),
       });
-      if (user.favorite_genres) {
-        setSelectedGenres(user.favorite_genres.split(',').map((id) => parseInt(id.trim())));
-      }
+      setSelectedGenres(toGenreIds(user.favorite_genres));
     }
   }, [user]);
 
@@ -61,14 +67,27 @@ const Profile = () => {
     e.preventDefault();
     setMessage(null);
     setError(null);
+
+    // Client-side validation (the backend repeats every check).
+    const newErrors = onlyErrors({
+      name: validateFullName(formData.name),
+      phone: validatePhoneNumber(formData.phone),
+      city: validateCity(formData.city),
+    });
+    setFieldErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      setError('Please correct the highlighted fields.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       const res = await userService.updateProfile({
-        name: formData.name,
-        phone: formData.phone || null,
-        city: formData.city || null,
-        favorite_genres: selectedGenres.join(','),
+        name: formData.name.trim(),
+        phone: formData.phone.trim() || null,
+        city: formData.city.trim() || null,
+        favorite_genres: selectedGenres,
       });
 
       if (res.success) {
@@ -78,7 +97,12 @@ const Profile = () => {
         setError(res.message || 'Failed to update profile.');
       }
     } catch (err) {
-      setError(err.message || 'An error occurred while updating profile.');
+      if (err.errors) {
+        setFieldErrors(err.errors);
+        setError(err.errors.favorite_genres || 'Please correct the highlighted fields.');
+      } else {
+        setError(err.message || 'An error occurred while updating profile.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -140,13 +164,14 @@ const Profile = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormInput
               label="Full Name"
               icon={User}
               value={formData.name}
               onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+              error={fieldErrors.name}
               required
             />
 
@@ -155,6 +180,7 @@ const Profile = () => {
               icon={Phone}
               value={formData.phone}
               onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+              error={fieldErrors.phone}
               helperText="Shared with counterparty after swap acceptance"
             />
           </div>
@@ -164,6 +190,7 @@ const Profile = () => {
             icon={MapPin}
             value={formData.city}
             onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
+            error={fieldErrors.city}
             helperText="Used for meetup venue recommendations"
           />
 

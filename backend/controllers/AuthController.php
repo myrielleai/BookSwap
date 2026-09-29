@@ -61,23 +61,49 @@ class AuthController {
         $errors = [];
         validateRequired(['name', 'email', 'password', 'confirm_password'], $body, $errors);
 
+        // Human labels for the "is required" messages shown under each field.
+        $labels = ['name' => 'Full name', 'email' => 'Email address', 'password' => 'Password', 'confirm_password' => 'Confirm password'];
+        foreach ($labels as $field => $label) {
+            if (($errors[$field] ?? '') === "$field is required.") {
+                $errors[$field] = "$label is required.";
+            }
+        }
+
         $name  = sanitizeString($body['name'] ?? '');
         $email = strtolower(sanitizeString($body['email'] ?? ''));
         $phone = sanitizeString($body['phone'] ?? '');
         $city  = sanitizeString($body['city'] ?? '');
 
-        if (empty($errors)) {
+        // Each field is checked on its own, so every problem is reported at once.
+        if (!isset($errors['email'])) {
             validateEmail($email, $errors);
             validateMaxLength('email', $email, 255, $errors);
-            validateMaxLength('name', $name, 100, $errors);
+        }
+        if (!isset($errors['password'])) {
             validatePassword((string) $body['password'], $errors);
+        }
+        if (!isset($errors['password']) && !isset($errors['confirm_password'])) {
             validatePasswordMatch((string) $body['password'], (string) $body['confirm_password'], $errors);
-            if ($name === '') {
-                $errors['name'] = 'name is required.';
-            }
+        }
+        if (!isset($errors['name']) && $name === '') {
+            $errors['name'] = 'Full name is required.';
+        }
+
+        // Name and city are checked as typed (before strip_tags), so markup such
+        // as <script> is refused with a message instead of silently removed.
+        $rawName = trim((string) (is_scalar($body['name'] ?? null) ? $body['name'] : ''));
+        $rawCity = trim((string) (is_scalar($body['city'] ?? null) ? $body['city'] : ''));
+        if (!isset($errors['name'])) {
+            validateNameText('name', 'Full name', $rawName, $errors);
+        }
+        if (!isset($errors['name']) && mb_strlen($name) > 100) {
+            $errors['name'] = 'Full name must not exceed 100 characters.';
         }
         validatePhone('phone', $phone, $errors);
-        validateMaxLength('city', $city, 100, $errors);
+        validateNameText('city', 'City', $rawCity, $errors);
+        if (!isset($errors['city']) && mb_strlen($city) > 100) {
+            $errors['city'] = 'City must not exceed 100 characters.';
+        }
 
         if (!empty($errors)) {
             sendError('Validation failed.', 422, $errors);
@@ -129,6 +155,11 @@ class AuthController {
 
         $email     = strtolower(sanitizeString($body['email']));
         $ipAddress = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+
+        validateEmail($email, $errors);
+        if (!empty($errors)) {
+            sendError('Please enter a valid email address.', 422, $errors);
+        }
 
         // ── Throttle repeated failures ────────────────────────────────────────
         // Checked before the password, so guessing stops working even when a

@@ -103,12 +103,24 @@ class UserController {
         $phone = array_key_exists('phone', $body) ? sanitizeString($body['phone']) : (string) $user['phone'];
         $city  = array_key_exists('city', $body)  ? sanitizeString($body['city'])  : (string) $user['city'];
 
+        // Name and city are checked as typed (before strip_tags), so markup such
+        // as <script> is refused with a message instead of silently removed.
+        $rawName = array_key_exists('name', $body) && is_scalar($body['name']) ? trim((string) $body['name']) : $name;
+        $rawCity = array_key_exists('city', $body) && is_scalar($body['city']) ? trim((string) $body['city']) : $city;
+
         if ($name === '') {
-            $errors['name'] = 'name is required.';
+            $errors['name'] = 'Full name is required.';
+        } else {
+            validateNameText('name', 'Full name', $rawName, $errors);
         }
-        validateMaxLength('name', $name, 100, $errors);
+        if (!isset($errors['name']) && mb_strlen($name) > 100) {
+            $errors['name'] = 'Full name must not exceed 100 characters.';
+        }
         validatePhone('phone', $phone, $errors);
-        validateMaxLength('city', $city, 100, $errors);
+        validateNameText('city', 'City', $rawCity, $errors);
+        if (!isset($errors['city']) && mb_strlen($city) > 100) {
+            $errors['city'] = 'City must not exceed 100 characters.';
+        }
 
         $favoriteGenres = $user['favorite_genres'];
         if (array_key_exists('favorite_genres', $body)) {

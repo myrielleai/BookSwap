@@ -96,6 +96,12 @@ function validatePassword(string $password, array &$errors): void {
         $errors['password'] = 'Password must be at least 8 characters.';
         return;
     }
+    // bcrypt ignores everything past 72 bytes, so a longer password would
+    // silently match any other password sharing its first 72 bytes.
+    if (strlen($password) > 72) {
+        $errors['password'] = 'Password must not exceed 72 characters.';
+        return;
+    }
     if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
         $errors['password'] = 'Password must contain at least one letter and one number.';
     }
@@ -124,7 +130,24 @@ function validatePasswordMatch(string $password, string $confirmPassword, array 
  */
 function validatePhone(string $field, string $value, array &$errors): void {
     if ($value !== '' && !preg_match('/^\+?[0-9][0-9\s-]{6,19}$/', $value)) {
-        $errors[$field] = "$field must be a valid phone number.";
+        $errors[$field] = 'Phone number must be 7 to 20 digits (spaces, dashes and a leading + are allowed), e.g. 09171234567.';
+    }
+}
+
+/**
+ * Validate a person's name or a place name (city): letters from any language,
+ * spaces, periods, apostrophes and hyphens only, starting with a letter.
+ * Rejects symbols like @#$%^&* and HTML such as <script>. An empty value passes;
+ * callers check required fields separately.
+ *
+ * @param string $field   Field name (used in the error key).
+ * @param string $label   Human label for the message, e.g. 'Full name'.
+ * @param string $value   The value to check (already trimmed).
+ * @param array  &$errors Errors array to append to on failure.
+ */
+function validateNameText(string $field, string $label, string $value, array &$errors): void {
+    if ($value !== '' && !preg_match("/^\p{L}[\p{L}\p{M} .'-]*$/u", $value)) {
+        $errors[$field] = "$label may only contain letters, spaces, periods, apostrophes and hyphens.";
     }
 }
 

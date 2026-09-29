@@ -17,6 +17,17 @@
 
 require_once __DIR__ . '/../config/constants.php';
 
+/**
+ * Escape user-supplied text (names, titles, notes, reasons) before it is put
+ * into an email's HTML, so it always shows as text and never becomes markup.
+ *
+ * @param  string $value Raw text.
+ * @return string        HTML-safe text.
+ */
+function escapeEmailText(string $value): string {
+    return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // ── Core Sender ───────────────────────────────────────────────────────────────
 
 /**
@@ -83,8 +94,9 @@ function sendEmail(string $to, string $toName, string $subject, string $htmlBody
  * Informs them their account is pending admin approval.
  */
 function sendEmail_registrationPending(string $toEmail, string $toName): bool {
+    $safeToName = escapeEmailText($toName);
     $subject = 'BookSwap — Registration Received';
-    $html    = emailLayout("Hi $toName, welcome to BookSwap!", "
+    $html    = emailLayout("Hi $safeToName, welcome to BookSwap!", "
         <p>Thank you for registering on <strong>BookSwap</strong>!</p>
         <p>Your account is currently <strong>pending Administrator approval</strong>.
            You will receive another email once your account has been reviewed.</p>
@@ -97,8 +109,9 @@ function sendEmail_registrationPending(string $toEmail, string $toName): bool {
  * Sent to a user when an Admin approves (activates) their account.
  */
 function sendEmail_accountApproved(string $toEmail, string $toName): bool {
+    $safeToName = escapeEmailText($toName);
     $subject = 'BookSwap — Your Account Has Been Approved!';
-    $html    = emailLayout("Great news, $toName!", "
+    $html    = emailLayout("Great news, $safeToName!", "
         <p>Your <strong>BookSwap</strong> account has been approved by an Administrator.</p>
         <p>You can now log in, list your books, and start exchanging!</p>
         <p style='text-align:center; margin-top:24px;'>
@@ -115,14 +128,16 @@ function sendEmail_accountApproved(string $toEmail, string $toName): bool {
  * Sent to a user when an Admin suspends, deactivates, or reactivates their account.
  */
 function sendEmail_accountStatusChanged(string $toEmail, string $toName, string $newStatus): bool {
+    $safeToName = escapeEmailText($toName);
+    $safeNewStatus = escapeEmailText($newStatus);
     $statusMessages = [
         'inactive'  => 'Your account has been <strong>deactivated</strong>. If you believe this is a mistake, please contact support.',
         'suspended' => 'Your account has been <strong>suspended</strong> due to a violation of our community guidelines. Please contact support if you have questions.',
         'active'    => 'Your account has been <strong>reactivated</strong>. You can log in and continue exchanging books!',
     ];
-    $message = $statusMessages[$newStatus] ?? "Your account status has been updated to <strong>$newStatus</strong>.";
+    $message = $statusMessages[$newStatus] ?? "Your account status has been updated to <strong>$safeNewStatus</strong>.";
     $subject = 'BookSwap — Account Status Update';
-    $html    = emailLayout("Account Update, $toName", "<p>$message</p>");
+    $html    = emailLayout("Account Update, $safeToName", "<p>$message</p>");
     return sendEmail($toEmail, $toName, $subject, $html);
 }
 
@@ -130,12 +145,14 @@ function sendEmail_accountStatusChanged(string $toEmail, string $toName, string 
  * Sent to a listing owner when staff approves, returns, or rejects their listing.
  */
 function sendEmail_listingVerified(string $toEmail, string $toName, string $listingTitle, string $action, string $note = ''): bool {
+    $safeListingTitle = escapeEmailText($listingTitle);
+    $safeNote = escapeEmailText($note);
     $messages = [
-        'approve' => "<p>Your listing <strong>\"$listingTitle\"</strong> has been <strong>approved</strong> and is now visible in the BookSwap catalog!</p>",
-        'return'  => "<p>Your listing <strong>\"$listingTitle\"</strong> has been <strong>returned for revision</strong>.</p>"
-                   . ($note ? "<p><strong>Staff note:</strong> $note</p>" : ''),
-        'reject'  => "<p>Your listing <strong>\"$listingTitle\"</strong> has been <strong>rejected</strong>.</p>"
-                   . ($note ? "<p><strong>Reason:</strong> $note</p>" : ''),
+        'approve' => "<p>Your listing <strong>\"$safeListingTitle\"</strong> has been <strong>approved</strong> and is now visible in the BookSwap catalog!</p>",
+        'return'  => "<p>Your listing <strong>\"$safeListingTitle\"</strong> has been <strong>returned for revision</strong>.</p>"
+                   . ($safeNote ? "<p><strong>Staff note:</strong> $safeNote</p>" : ''),
+        'reject'  => "<p>Your listing <strong>\"$safeListingTitle\"</strong> has been <strong>rejected</strong>.</p>"
+                   . ($safeNote ? "<p><strong>Reason:</strong> $safeNote</p>" : ''),
     ];
     $titles = [
         'approve' => 'Listing Approved',
@@ -151,10 +168,13 @@ function sendEmail_listingVerified(string $toEmail, string $toName, string $list
  * Sent to a listing owner when someone sends them an exchange request.
  */
 function sendEmail_exchangeRequestReceived(string $toEmail, string $toName, string $requesterName, string $targetTitle): bool {
+    $safeToName = escapeEmailText($toName);
+    $safeRequesterName = escapeEmailText($requesterName);
+    $safeTargetTitle = escapeEmailText($targetTitle);
     $subject = 'BookSwap — New Exchange Request';
-    $html    = emailLayout("You have a new exchange request, $toName!", "
-        <p><strong>$requesterName</strong> wants to exchange a book with you for your listing
-           <strong>\"$targetTitle\"</strong>.</p>
+    $html    = emailLayout("You have a new exchange request, $safeToName!", "
+        <p><strong>$safeRequesterName</strong> wants to exchange a book with you for your listing
+           <strong>\"$safeTargetTitle\"</strong>.</p>
         <p>Log in to BookSwap to review their offered book and accept or decline.</p>
         <p style='text-align:center; margin-top:24px;'>
             <a href='" . BOOKSWAP_APP_URL . "'
@@ -170,9 +190,11 @@ function sendEmail_exchangeRequestReceived(string $toEmail, string $toName, stri
  * Sent to the requester when the listing owner accepts their exchange request.
  */
 function sendEmail_exchangeRequestAccepted(string $toEmail, string $toName, string $targetTitle): bool {
+    $safeToName = escapeEmailText($toName);
+    $safeTargetTitle = escapeEmailText($targetTitle);
     $subject = "BookSwap — Your Exchange Request Was Accepted!";
-    $html    = emailLayout("Good news, $toName!", "
-        <p>The owner of <strong>\"$targetTitle\"</strong> has <strong>accepted</strong> your exchange request!</p>
+    $html    = emailLayout("Good news, $safeToName!", "
+        <p>The owner of <strong>\"$safeTargetTitle\"</strong> has <strong>accepted</strong> your exchange request!</p>
         <p>A moderator will review and endorse the exchange shortly.
            You'll receive another notification once a handover is scheduled.</p>
     ");
@@ -183,10 +205,12 @@ function sendEmail_exchangeRequestAccepted(string $toEmail, string $toName, stri
  * Sent to the requester when the listing owner declines their exchange request.
  */
 function sendEmail_exchangeRequestDeclined(string $toEmail, string $toName, string $targetTitle, string $reason = ''): bool {
+    $safeTargetTitle = escapeEmailText($targetTitle);
+    $safeReason = escapeEmailText($reason);
     $subject = "BookSwap — Exchange Request Declined";
     $html    = emailLayout("Update on your exchange request", "
-        <p>Unfortunately, the owner of <strong>\"$targetTitle\"</strong> has <strong>declined</strong> your exchange request.</p>
-        " . ($reason ? "<p><strong>Reason:</strong> $reason</p>" : '') . "
+        <p>Unfortunately, the owner of <strong>\"$safeTargetTitle\"</strong> has <strong>declined</strong> your exchange request.</p>
+        " . ($safeReason ? "<p><strong>Reason:</strong> $safeReason</p>" : '') . "
         <p>Don't worry — there are plenty more books in the catalog!</p>
     ");
     return sendEmail($toEmail, $toName, $subject, $html);
@@ -196,8 +220,9 @@ function sendEmail_exchangeRequestDeclined(string $toEmail, string $toName, stri
  * Sent to both parties when staff endorses an exchange and a transaction is created.
  */
 function sendEmail_requestEndorsed(string $toEmail, string $toName): bool {
+    $safeToName = escapeEmailText($toName);
     $subject = "BookSwap — Exchange Endorsed by Moderator";
-    $html    = emailLayout("Your exchange has been endorsed, $toName!", "
+    $html    = emailLayout("Your exchange has been endorsed, $safeToName!", "
         <p>A BookSwap moderator has <strong>endorsed</strong> your exchange.
            A transaction has been created and will be reviewed for final approval shortly.</p>
     ");
@@ -215,22 +240,26 @@ function sendEmail_handoverScheduled(
     string $time,
     bool   $isReschedule = false
 ): bool {
+    $safeToName = escapeEmailText($toName);
+    $safeLocation = escapeEmailText($location);
+    $safeDate = escapeEmailText($date);
+    $safeTime = escapeEmailText($time);
     $verb    = $isReschedule ? 'Rescheduled' : 'Scheduled';
     $subject = "BookSwap — Handover $verb";
-    $html    = emailLayout("Handover $verb, $toName!", "
+    $html    = emailLayout("Handover $verb, $safeToName!", "
         <p>Your book exchange handover has been <strong>" . strtolower($verb) . "</strong>:</p>
         <table style='margin:16px 0; border-collapse:collapse; width:100%;'>
             <tr>
                 <td style='padding:8px; font-weight:600; width:120px;'>Location</td>
-                <td style='padding:8px;'>$location</td>
+                <td style='padding:8px;'>$safeLocation</td>
             </tr>
             <tr style='background:#f9fafb;'>
                 <td style='padding:8px; font-weight:600;'>Date</td>
-                <td style='padding:8px;'>$date</td>
+                <td style='padding:8px;'>$safeDate</td>
             </tr>
             <tr>
                 <td style='padding:8px; font-weight:600;'>Time</td>
-                <td style='padding:8px;'>$time</td>
+                <td style='padding:8px;'>$safeTime</td>
             </tr>
         </table>
         <p>Please make sure to bring the book listed in your exchange. After the handover,
@@ -243,8 +272,9 @@ function sendEmail_handoverScheduled(
  * Sent to both parties if a no-show is recorded and the transaction is cancelled.
  */
 function sendEmail_noShowRecorded(string $toEmail, string $toName): bool {
+    $safeToName = escapeEmailText($toName);
     $subject = "BookSwap — Handover No-Show Recorded";
-    $html    = emailLayout("No-show recorded, $toName", "
+    $html    = emailLayout("No-show recorded, $safeToName", "
         <p>A moderator has recorded a <strong>no-show</strong> for your scheduled handover.</p>
         <p>The transaction has been cancelled and your listing has been returned to available status.</p>
         <p>If you believe this was recorded in error, please contact BookSwap support.</p>

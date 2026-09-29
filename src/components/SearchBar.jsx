@@ -25,6 +25,7 @@ const SearchBar = ({ onSearch, initialValue = '', placeholder = 'Search by title
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
+          maxLength={100}
           className="block w-full pl-10 pr-24 py-3 bg-white border border-stone-300 rounded-xl text-sm placeholder-stone-400 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-sm transition-all"
         />
         {query && (

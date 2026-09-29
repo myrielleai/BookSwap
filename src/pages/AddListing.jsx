@@ -6,6 +6,7 @@ import Dropdown from '../components/Dropdown';
 import Button from '../components/Button';
 import { LoadingState } from '../components/LoadingState';
 import { BookOpen, Upload, Image as ImageIcon, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
+import { validateText, validatePhoto, onlyErrors, PHOTO_TYPES } from '../utils/validation';
 
 const AddListing = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const AddListing = () => {
   const [loadingTaxonomies, setLoadingTaxonomies] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState(false);
 
   // Form State
@@ -61,11 +63,19 @@ const AddListing = () => {
       ...prev,
       [name]: type === 'checkbox' ? (checked ? 1 : 0) : value,
     }));
+    setFieldErrors((prev) => ({ ...prev, [name]: null }));
   };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const photoError = validatePhoto(file);
+      setFieldErrors((prev) => ({ ...prev, photo: photoError }));
+      if (photoError) {
+        // Keep the previous valid photo (if any) and do not preview the bad file.
+        e.target.value = '';
+        return;
+      }
       setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -79,13 +89,21 @@ const AddListing = () => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.title || !formData.author || !formData.genre_id || !formData.condition_id) {
-      setError('Please fill in all required fields (Title, Author, Genre, Condition).');
-      return;
-    }
-
-    if (!photoFile) {
-      setError('At least one photograph of the actual book copy is required.');
+    // Client-side validation (the backend repeats every check). Entered
+    // values stay in the form so only the flagged fields need fixing.
+    const newErrors = onlyErrors({
+      title: validateText(formData.title, 'Book title', 255, true),
+      author: validateText(formData.author, 'Author', 255, true),
+      edition: validateText(formData.edition, 'Edition', 100),
+      publisher: validateText(formData.publisher, 'Publisher', 150),
+      preferred_return: validateText(formData.preferred_return, 'Preferred return', 255),
+      genre_id: formData.genre_id ? null : 'Genre is required.',
+      condition_id: formData.condition_id ? null : 'Condition grade is required.',
+      photo: validatePhoto(photoFile),
+    });
+    setFieldErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      setError('Please correct the highlighted fields.');
       return;
     }
 
@@ -93,8 +111,8 @@ const AddListing = () => {
 
     try {
       const data = new FormData();
-      data.append('title', formData.title);
-      data.append('author', formData.author);
+      data.append('title', formData.title.trim());
+      data.append('author', formData.author.trim());
       data.append('genre_id', formData.genre_id);
       data.append('condition_id', formData.condition_id);
       if (formData.edition) data.append('edition', formData.edition);
@@ -116,7 +134,14 @@ const AddListing = () => {
         setError(res.message || 'Failed to submit listing.');
       }
     } catch (err) {
-      setError(err.message || 'An error occurred while submitting the listing.');
+      if (err.errors) {
+        // Show each backend message under its field ("photos" maps to the photo box).
+        const { photos, ...rest } = err.errors;
+        setFieldErrors({ ...rest, photo: photos ? err.message : null });
+        setError('Please correct the highlighted fields.');
+      } else {
+        setError(err.message || 'An error occurred while submitting the listing.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -150,7 +175,7 @@ const AddListing = () => {
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6 pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6 pt-6" noValidate>
             {error && (
               <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -166,6 +191,7 @@ const AddListing = () => {
                 placeholder="e.g. The Hobbit"
                 value={formData.title}
                 onChange={handleChange}
+                error={fieldErrors.title}
                 required
               />
 
@@ -175,6 +201,7 @@ const AddListing = () => {
                 placeholder="e.g. J.R.R. Tolkien"
                 value={formData.author}
                 onChange={handleChange}
+                error={fieldErrors.author}
                 required
               />
 
@@ -184,6 +211,7 @@ const AddListing = () => {
                 placeholder="e.g. 75th Anniversary Edition"
                 value={formData.edition}
                 onChange={handleChange}
+                error={fieldErrors.edition}
               />
 
               <FormInput
@@ -192,6 +220,7 @@ const AddListing = () => {
                 placeholder="e.g. HarperCollins"
                 value={formData.publisher}
                 onChange={handleChange}
+                error={fieldErrors.publisher}
               />
             </div>
 
@@ -203,6 +232,7 @@ const AddListing = () => {
                 options={genres}
                 value={formData.genre_id}
                 onChange={handleChange}
+                error={fieldErrors.genre_id}
                 required
               />
 
@@ -212,6 +242,7 @@ const AddListing = () => {
                 options={formats}
                 value={formData.format_id}
                 onChange={handleChange}
+                error={fieldErrors.format_id}
               />
 
               <Dropdown
@@ -220,6 +251,7 @@ const AddListing = () => {
                 options={ageCategories}
                 value={formData.age_category_id}
                 onChange={handleChange}
+                error={fieldErrors.age_category_id}
               />
 
               <Dropdown
@@ -228,6 +260,7 @@ const AddListing = () => {
                 options={conditions.map((c) => ({ id: c.id, name: `${c.label}` }))}
                 value={formData.condition_id}
                 onChange={handleChange}
+                error={fieldErrors.condition_id}
                 required
               />
             </div>
@@ -240,6 +273,7 @@ const AddListing = () => {
                 placeholder="e.g. Sci-fi novels, Dune, or any fantasy classic"
                 value={formData.preferred_return}
                 onChange={handleChange}
+                error={fieldErrors.preferred_return}
                 helperText="Specify what you'd love to read next in return"
               />
 
@@ -276,7 +310,7 @@ const AddListing = () => {
                       Change Photo
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={PHOTO_TYPES.join(',')}
                         onChange={handlePhotoChange}
                         className="hidden"
                       />
@@ -297,13 +331,16 @@ const AddListing = () => {
                     </div>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept={PHOTO_TYPES.join(',')}
                       onChange={handlePhotoChange}
                       className="hidden"
                     />
                   </label>
                 )}
               </div>
+              {fieldErrors.photo && (
+                <p className="text-xs text-rose-600 font-medium mt-1">{fieldErrors.photo}</p>
+              )}
             </div>
 
             <div className="pt-4 flex justify-end gap-3 border-t border-stone-100">

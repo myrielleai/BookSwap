@@ -118,6 +118,10 @@ const BookDetails = () => {
       setProposalError('You must select one of your verified available books to offer.');
       return;
     }
+    if (proposalMessage.trim().length > 500) {
+      setProposalError('Message must not exceed 500 characters.');
+      return;
+    }
 
     setSubmittingProposal(true);
 
@@ -125,7 +129,7 @@ const BookDetails = () => {
       const res = await exchangeService.sendRequest({
         target_listing_id: parseInt(id),
         offered_listing_id: parseInt(selectedOfferedBook),
-        message: proposalMessage || null,
+        message: proposalMessage.trim() || null,
       });
 
       if (res.success) {
@@ -138,7 +142,8 @@ const BookDetails = () => {
         setProposalError(res.message || 'Failed to send exchange request.');
       }
     } catch (err) {
-      setProposalError(err.message || 'Error submitting exchange request.');
+      const fieldMessage = err.errors ? Object.values(err.errors)[0] : null;
+      setProposalError(fieldMessage || err.message || 'Error submitting exchange request.');
     } finally {
       setSubmittingProposal(false);
     }

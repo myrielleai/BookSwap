@@ -347,22 +347,39 @@ class ListingController {
             'condition_id'     => readPositiveInt($input, 'condition_id', $errors),
         ];
 
+        // Human labels, so the form can show each message under its field.
+        $labels = [
+            'title' => 'Book title', 'author' => 'Author', 'edition' => 'Edition',
+            'publisher' => 'Publisher', 'preferred_return' => 'Preferred return',
+            'genre_id' => 'Genre', 'format_id' => 'Format',
+            'age_category_id' => 'Age category', 'condition_id' => 'Condition grade',
+        ];
+
         foreach (['title' => 255, 'author' => 255, 'edition' => 100, 'publisher' => 150, 'preferred_return' => 255] as $field => $max) {
-            validateMaxLength($field, $data[$field], $max, $errors);
+            if (mb_strlen($data[$field]) > $max) {
+                $errors[$field] = "{$labels[$field]} must not exceed $max characters.";
+            }
         }
-        foreach (['title', 'author'] as $field) {
-            if (!isset($errors[$field]) && $data[$field] === '') {
-                $errors[$field] = "$field is required.";
+        foreach (['title', 'author', 'genre_id', 'condition_id'] as $field) {
+            $value = $data[$field];
+            if ((!isset($errors[$field]) && ($value === '' || $value === null))
+                || ($errors[$field] ?? '') === "$field is required.") {
+                $errors[$field] = "{$labels[$field]} is required.";
             }
         }
 
+        // A tampered select (e.g. value -1 or 999 set in DevTools) lands here.
         foreach (['genre_id' => 'genre', 'format_id' => 'format', 'age_category_id' => 'age_category'] as $field => $taxonomy) {
-            if ($data[$field] !== null && !$this->categoryModel->isActiveTaxonomy($taxonomy, $data[$field])) {
-                $errors[$field] = "$field does not match an active $taxonomy.";
+            if (isset($errors[$field]) && strpos($errors[$field], 'positive whole number') !== false) {
+                $errors[$field] = "Please choose a valid {$labels[$field]} from the list.";
+            } elseif ($data[$field] !== null && !$this->categoryModel->isActiveTaxonomy($taxonomy, $data[$field])) {
+                $errors[$field] = "Please choose a valid {$labels[$field]} from the list.";
             }
         }
-        if ($data['condition_id'] !== null && !$this->categoryModel->isActiveCondition($data['condition_id'])) {
-            $errors['condition_id'] = 'condition_id does not match an active condition grade.';
+        if (isset($errors['condition_id']) && strpos($errors['condition_id'], 'positive whole number') !== false) {
+            $errors['condition_id'] = 'Please choose a valid Condition grade from the list.';
+        } elseif ($data['condition_id'] !== null && !$this->categoryModel->isActiveCondition($data['condition_id'])) {
+            $errors['condition_id'] = 'Please choose a valid Condition grade from the list.';
         }
 
         return [$data, $errors];

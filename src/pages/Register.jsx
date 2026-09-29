@@ -4,6 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import FormInput from '../components/FormInput';
 import Button from '../components/Button';
 import { BookOpen, CheckCircle, AlertCircle, Mail, Lock, Phone, User, MapPin } from 'lucide-react';
+import {
+  validateFullName,
+  validateEmailAddress,
+  validatePhoneNumber,
+  validateCity,
+  validateNewPassword,
+  onlyErrors,
+} from '../utils/validation';
 
 const Register = () => {
   const { register } = useAuth();
@@ -37,15 +45,14 @@ const Register = () => {
     e.preventDefault();
     setErrors({});
 
-    // Client-side validation
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Full name is required.';
-    if (!formData.email.trim()) newErrors.email = 'Email address is required.';
-    if (!formData.password) {
-      newErrors.password = 'Password is required.';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters.';
-    }
+    // Client-side validation (the backend repeats every check)
+    const newErrors = onlyErrors({
+      name: validateFullName(formData.name),
+      email: validateEmailAddress(formData.email),
+      phone: validatePhoneNumber(formData.phone),
+      city: validateCity(formData.city),
+      password: validateNewPassword(formData.password),
+    });
     if (!formData.confirm_password) {
       newErrors.confirm_password = 'Please confirm your password.';
     } else if (formData.password !== formData.confirm_password) {
@@ -59,10 +66,10 @@ const Register = () => {
 
     setSubmitting(true);
     const result = await register({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone || null,
-      city: formData.city || null,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim() || null,
+      city: formData.city.trim() || null,
       password: formData.password,
       confirm_password: formData.confirm_password,
     });
@@ -73,7 +80,7 @@ const Register = () => {
       setRegisteredSuccess(true);
     } else {
       if (result.errors) {
-        setErrors(result.errors);
+        setErrors({ general: 'Please correct the highlighted fields.', ...result.errors });
       } else {
         setErrors({ general: result.message || 'Registration failed.' });
       }
@@ -109,7 +116,7 @@ const Register = () => {
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {errors.general && (
               <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-none flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
