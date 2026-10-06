@@ -36,3 +36,6 @@ define('DB_HOST', 'localhost');
 define('DB_NAME', 'bookswap');
 define('DB_USER', 'root');
 define('DB_PASS', '');
+
+// Cloudflare Turnstile Bot Protection Secret Key (from Cloudflare dashboard)
+// define('TURNSTILE_SECRET_KEY', 'your_cloudflare_turnstile_secret_key');
