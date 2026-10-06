@@ -37,7 +37,7 @@ const AppContent = () => {
   const isLandingPage = location.pathname === '/';
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className={`min-h-screen flex flex-col text-slate-800 ${isLandingPage ? 'bg-[#fdfbf7]' : 'skin'}`}>
       {!isLandingPage && <Navbar />}
       <main className="flex-1 w-full">
         <Routes>
@@ -100,15 +100,16 @@ const AppContent = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200/80 py-8 text-xs text-slate-500 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="leather-tan relative py-8 text-xs mt-auto">
+        <div className="absolute left-0 right-0 top-[5px] seam" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 deboss font-semibold">
           <p>© 2026 BookSwap Platform. ITS122P Web Systems Project Group 3.</p>
           <div className="flex items-center gap-4">
-            <span className="hover:text-slate-800 transition-colors">Peer-to-Peer Exchange</span>
-            <span>•</span>
-            <span className="hover:text-slate-800 transition-colors">Supervised Handovers</span>
-            <span>•</span>
-            <span className="hover:text-slate-800 transition-colors">Community Moderated</span>
+            <span>Peer-to-Peer Exchange</span>
+            <span className="text-moss-700">•</span>
+            <span>Supervised Handovers</span>
+            <span className="text-moss-700">•</span>
+            <span>Community Moderated</span>
           </div>
         </div>
       </footer>

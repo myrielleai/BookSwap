@@ -23,7 +23,7 @@ const Dropdown = forwardRef(
     return (
       <div className={`space-y-1 ${className}`}>
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-stone-700">
+          <label htmlFor={inputId} className="block text-sm font-bold text-stone-800">
             {label} {required && <span className="text-rose-500">*</span>}
           </label>
         )}
@@ -34,11 +34,11 @@ const Dropdown = forwardRef(
           value={value}
           onChange={onChange}
           required={required}
-          className={`block w-full rounded-lg border text-sm transition-colors duration-200 px-3.5 py-2.5 bg-white ${
+          className={`block w-full rounded-lg border text-sm transition-colors duration-200 px-3.5 py-2.5 field-inset ${
             error
-              ? 'border-rose-300 text-rose-900 focus:border-rose-500 focus:ring-rose-500 bg-rose-50/30'
-              : 'border-stone-300 text-stone-900 focus:border-emerald-700 focus:ring-emerald-700'
-          } focus:outline-none focus:ring-1`}
+              ? 'field-error text-rose-900'
+              : 'text-stone-900'
+          } focus:outline-none`}
           {...props}
         >
           {placeholder && (

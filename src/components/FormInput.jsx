@@ -21,13 +21,13 @@ const FormInput = forwardRef(
     return (
       <div className={`space-y-1 ${className}`}>
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-stone-700">
+          <label htmlFor={inputId} className="block text-sm font-bold text-stone-800">
             {label} {required && <span className="text-rose-500">*</span>}
           </label>
         )}
-        <div className="relative rounded-md shadow-sm">
+        <div className="relative">
           {Icon && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-leather-400 z-[1]">
               <Icon className="w-4 h-4" />
             </div>
           )}
@@ -41,9 +41,9 @@ const FormInput = forwardRef(
               Icon ? 'pl-9' : 'pl-3.5'
             } pr-3.5 ${
               error
-                ? 'border-rose-300 text-rose-900 focus:border-rose-500 focus:ring-rose-500 bg-rose-50/30'
-                : 'border-stone-300 text-stone-900 focus:border-emerald-700 focus:ring-emerald-700 bg-white'
-            } focus:outline-none focus:ring-1`}
+                ? 'field-error text-rose-900'
+                : 'text-stone-900'
+            } field-inset focus:outline-none`}
             {...props}
           />
         </div>

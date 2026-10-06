@@ -126,7 +126,7 @@
   box-shadow: 
     0 35px 70px -15px rgba(0, 0, 0, 0.65),
     0 20px 40px -20px rgba(0, 0, 0, 0.45),
-    0 0 50px rgba(16, 185, 129, 0.15);
+    0 0 50px rgba(176, 127, 69, 0.15);
 }
 
 /* Realistic Book Paper Background & Texture */
@@ -224,3 +224,703 @@
 .animate-spine-glow {
   animation: spineGlow 3s ease-in-out infinite;
 }
+
+/* ══════════════════════════════════════════════
+   SKEUOMORPHIC LANDING — leather, stitching, paper, wood
+   ══════════════════════════════════════════════ */
+:root {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .2 0 0 0 0 .08 0 0 0 .28 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .3 0 0 0 0 .15 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+/* Light sand leather — large surfaces (hero, strips) */
+.leather-sand {
+  background-color: #eedfc3;
+  background-image:
+    var(--grain),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 252, 244, 0.7), transparent 60%),
+    linear-gradient(180deg, #f3e7d1 0%, #e8d5b3 100%);
+}
+
+/* Tan leather — cards, bars, frames */
+.leather-tan {
+  background-color: #cfa874;
+  background-image:
+    var(--grain),
+    radial-gradient(ellipse at 50% -20%, rgba(255, 244, 222, 0.5), transparent 65%),
+    linear-gradient(180deg, #d6b07c 0%, #c39a63 100%);
+}
+
+/* Caramel leather — badges, accents */
+.leather-caramel {
+  background-color: #a8743f;
+  background-image:
+    var(--grain),
+    linear-gradient(180deg, #bd8a52 0%, #9e6b39 100%);
+}
+
+/* Stitching — dashed thread inset from the edge */
+.stitched { position: relative; }
+.stitched::before {
+  content: '';
+  position: absolute;
+  inset: var(--stitch-inset, 6px);
+  border: 2px dashed var(--stitch-color, rgba(255, 246, 228, 0.85));
+  border-radius: var(--stitch-radius, 10px);
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+  z-index: 1;
+}
+.stitched-sm { --stitch-inset: 3px; --stitch-radius: 6px; }
+.stitched-sm::before { border-width: 1.5px; }
+.stitched-dark { --stitch-color: rgba(122, 80, 43, 0.5); }
+.stitched-dark::before { filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7)); }
+
+/* Single horizontal stitched seam */
+.seam {
+  height: 0;
+  border-top: 2px dashed rgba(255, 246, 228, 0.8);
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+}
+
+/* Embossed / debossed lettering */
+.emboss { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55); }
+.emboss-light { color: #fffaf0; text-shadow: 0 -1px 0 rgba(70, 40, 15, 0.45), 0 1px 0 rgba(255, 255, 255, 0.15); }
+.deboss { color: #6b4a2b; text-shadow: 0 1px 0 rgba(255, 240, 215, 0.6), 0 -1px 0 rgba(70, 40, 15, 0.25); }
+
+/* Paper card — clean off-white, most content lives on these */
+.paper {
+  background-color: #fffdf8;
+  background-image: var(--paper-grain), linear-gradient(180deg, #ffffff 0%, #fbf7ee 100%);
+  border: 1px solid rgba(160, 125, 85, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 1px 2px rgba(90, 60, 30, 0.12),
+    0 10px 24px -12px rgba(90, 60, 30, 0.28);
+}
+
+/* Lined notepad paper (Notes app) */
+.paper-lined {
+  background-color: #fffbea;
+  background-image:
+    linear-gradient(90deg, transparent 46px, rgba(205, 90, 80, 0.45) 46px, rgba(205, 90, 80, 0.45) 47px, transparent 47px, transparent 50px, rgba(205, 90, 80, 0.3) 50px, rgba(205, 90, 80, 0.3) 51px, transparent 51px),
+    repeating-linear-gradient(180deg, transparent 0, transparent 35px, rgba(120, 160, 200, 0.35) 35px, rgba(120, 160, 200, 0.35) 36px),
+    var(--paper-grain);
+  background-position: 0 0, 0 14px, 0 0;
+}
+
+/* Inset well (pressed into the leather/paper) */
+.well {
+  background: linear-gradient(180deg, #f3e9d8 0%, #fbf6ec 100%);
+  box-shadow: inset 0 2px 3px rgba(90, 60, 30, 0.22), 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Grouped inset fields (Find My Friends sign-in) */
+.field-group {
+  background: #fffdf8;
+  border: 1px solid rgba(140, 100, 60, 0.35);
+  border-radius: 12px;
+  box-shadow: inset 0 2px 4px rgba(90, 60, 30, 0.14), 0 1px 0 rgba(255, 255, 255, 0.75);
+  overflow: hidden;
+}
+.field-group > * + * { border-top: 1px solid rgba(140, 100, 60, 0.18); }
+.field-group input { background: transparent; }
+.field-group input:focus { outline: none; }
+.field-group > label:focus-within { background: rgba(196, 154, 98, 0.1); }
+
+/* Pillow buttons */
+.btn-pillow {
+  background: linear-gradient(180deg, #fffaf1 0%, #eadcc3 100%);
+  border: 1px solid rgba(130, 92, 52, 0.38);
+  color: #5f3e23;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(90, 60, 30, 0.22), 0 3px 6px -3px rgba(90, 60, 30, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-pillow:hover { filter: brightness(1.02); box-shadow: inset 0 1px 0 #fff, 0 2px 4px rgba(90, 60, 30, 0.25), 0 6px 12px -6px rgba(90, 60, 30, 0.3); }
+.btn-pillow:active { transform: translateY(1px); background: linear-gradient(180deg, #e8d9bf 0%, #f6eddc 100%); box-shadow: inset 0 2px 4px rgba(90, 60, 30, 0.25); }
+
+.btn-leather {
+  position: relative;
+  color: #fffaf0;
+  text-shadow: 0 -1px 0 rgba(60, 35, 12, 0.5);
+  background-color: #a8743f;
+  background-image: var(--grain), linear-gradient(180deg, #c49159 0%, #9c6936 100%);
+  border: 1px solid rgba(95, 62, 35, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, 0.55), 0 1px 2px rgba(70, 40, 15, 0.3), 0 4px 10px -4px rgba(70, 40, 15, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-leather:hover { filter: brightness(1.06); }
+.btn-leather:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(60, 35, 12, 0.45); }
+.btn-leather:disabled, .btn-pillow:disabled { opacity: 0.55; transform: none; }
+
+/* Segmented control (iBooks grid/list toggle) */
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #d8c3a0, #e7d7bb);
+  box-shadow: inset 0 1px 3px rgba(90, 60, 30, 0.3), 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.segmented button { border-radius: 7px; color: #7a5a3a; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+.segmented button[aria-pressed='true'] {
+  color: #fffaf0;
+  text-shadow: 0 -1px 0 rgba(60, 35, 12, 0.45);
+  background-image: var(--grain), linear-gradient(180deg, #c49159 0%, #9c6936 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, 0.5), 0 1px 2px rgba(70, 40, 15, 0.35);
+}
+
+/* Light maple shelf plank */
+.wood-plank {
+  height: 18px;
+  background-color: #d9b688;
+  background-image:
+    linear-gradient(180deg, rgba(255, 245, 225, 0.65) 0, rgba(255, 245, 225, 0.65) 2px, transparent 2px, transparent 12px, rgba(110, 70, 30, 0.25) 12px, rgba(110, 70, 30, 0.35) 100%),
+    repeating-linear-gradient(90deg, rgba(150, 100, 50, 0.08) 0 3px, transparent 3px 11px, rgba(150, 100, 50, 0.06) 11px 13px, transparent 13px 29px),
+    linear-gradient(180deg, #e3c497, #c9a06c);
+  box-shadow: 0 8px 14px -6px rgba(90, 60, 30, 0.45);
+}
+
+/* ─── Book covers ─── */
+.book-cover {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 2px 5px 5px 2px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    1px 1px 0 rgba(0, 0, 0, 0.08),
+    6px 10px 14px -4px rgba(60, 35, 12, 0.4);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  transform-origin: bottom center;
+}
+/* spine hinge */
+.book-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 9%;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0%, rgba(255, 255, 255, 0.28) 38%, rgba(0, 0, 0, 0.12) 62%, rgba(0, 0, 0, 0) 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+/* gloss sheen */
+.book-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 32%, transparent 45%, transparent 80%, rgba(0, 0, 0, 0.08) 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+/* Moss green accents */
+.pill-moss {
+  background: linear-gradient(180deg, #f6faf3 0%, #e0ebda 100%);
+  border: 1px solid rgba(73, 114, 66, 0.35);
+  color: #3b5d36;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(48, 75, 44, 0.18);
+}
+.stitched-moss { --stitch-color: rgba(92, 139, 82, 0.55); }
+.stitched-moss::before { filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7)); }
+.thread-moss {
+  border-left: 2px dashed rgba(92, 139, 82, 0.5);
+  filter: drop-shadow(1px 0 0 rgba(255, 255, 255, 0.8));
+}
+
+/* ─── Closed book: front cover + page block + back board ─── */
+.closed-book { position: relative; }
+.closed-book .book-cover { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.closed-book__back {
+  position: absolute;
+  top: 6px; left: 6px; right: -9px; bottom: -9px;
+  border-radius: 2px 5px 5px 2px;
+  filter: brightness(0.82);
+  box-shadow: 8px 14px 22px -6px rgba(60, 35, 12, 0.45), 2px 3px 6px rgba(60, 35, 12, 0.25);
+}
+.closed-book__edge-r {
+  position: absolute;
+  top: 3px; bottom: -3px; right: -6px; width: 7px;
+  border-radius: 0 3px 3px 0;
+  background: repeating-linear-gradient(90deg, #fbf6ea 0 1px, #e4d9c4 1px 2px);
+  box-shadow: inset -1px 0 1px rgba(0, 0, 0, 0.12);
+}
+.closed-book__edge-b {
+  position: absolute;
+  left: 3px; right: -3px; bottom: -6px; height: 7px;
+  border-radius: 0 0 3px 3px;
+  background: repeating-linear-gradient(180deg, #fbf6ea 0 1px, #e4d9c4 1px 2px);
+  box-shadow: inset 0 -1px 1px rgba(0, 0, 0, 0.12);
+}
+
+/* Casual pile of books on the hero desk */
+.pile-book {
+  position: absolute;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pile-book:hover,
+.pile-book:focus-visible {
+  transform: rotate(calc(var(--rot, 0deg) * 0.3)) translateY(-10px) scale(1.04);
+  z-index: 30 !important;
+  outline: none;
+}
+.pile-book .pile-tag {
+  opacity: 0;
+  transform: translate(-50%, -4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.pile-book:hover .pile-tag,
+.pile-book:focus-visible .pile-tag { opacity: 1; transform: translate(-50%, 0); }
+
+.group:hover .book-cover {
+  transform: translateY(-6px) rotate(-1deg);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    10px 18px 22px -6px rgba(60, 35, 12, 0.45);
+}
+
+/* ─── More button / field finishes ─── */
+.btn-moss {
+  color: #fbfdf8;
+  text-shadow: 0 -1px 0 rgba(30, 50, 25, 0.45);
+  background-color: #5c8b52;
+  background-image: var(--grain), linear-gradient(180deg, #6f9c64 0%, #4f7d46 100%);
+  border: 1px solid rgba(48, 75, 44, 0.6);
+  box-shadow: inset 0 1px 0 rgba(220, 240, 210, 0.5), 0 1px 2px rgba(30, 50, 25, 0.3), 0 4px 10px -4px rgba(30, 50, 25, 0.35);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.btn-moss:hover { filter: brightness(1.06); }
+.btn-moss:active { transform: translateY(1px); }
+
+.btn-danger {
+  color: #fff7f5;
+  text-shadow: 0 -1px 0 rgba(90, 20, 20, 0.45);
+  background-image: linear-gradient(180deg, #c95a52 0%, #a8433c 100%);
+  border: 1px solid rgba(120, 35, 30, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 210, 200, 0.45), 0 1px 2px rgba(90, 20, 20, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.btn-danger:hover { filter: brightness(1.06); }
+.btn-danger:active { transform: translateY(1px); }
+
+/* Inset paper field (inputs, selects) */
+.field-inset {
+  background-color: #fffdf8;
+  border: 1px solid rgba(140, 100, 60, 0.35);
+  box-shadow: inset 0 2px 3px rgba(90, 60, 30, 0.12), 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field-inset:focus {
+  border-color: #5c8b52;
+  box-shadow: inset 0 2px 3px rgba(90, 60, 30, 0.1), 0 0 0 3px rgba(92, 139, 82, 0.2);
+}
+.field-inset.field-error,
+.field-error {
+  background-color: #fff6f4;
+  border-color: rgba(200, 80, 70, 0.55);
+}
+
+/* ══════════════════════════════════════════════
+   INNER-PAGE THEME (.skin, set on every page except the landing page)
+   Restyles the shared Tailwind patterns used across pages so the page
+   files themselves stay untouched. Anything not matched keeps its old look.
+   ══════════════════════════════════════════════ */
+.skin {
+  background-color: #fdfbf7;
+  background-image: var(--paper-grain);
+}
+.skin .font-serif { font-family: 'Playfair Display', Georgia, serif; font-weight: 800; }
+
+/* Paper cards */
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):not(.paper) {
+  background-color: #fffdf8;
+  background-image: var(--paper-grain), linear-gradient(180deg, #ffffff 0%, #fbf7ee 100%);
+  border-color: rgba(160, 125, 85, 0.25);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(90, 60, 30, 0.1), 0 10px 24px -14px rgba(90, 60, 30, 0.3);
+}
+
+/* Page/tab title strips (a card whose first child is the heading) → stitched leather */
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol)),
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> div:first-child > h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol)) {
+  position: relative;
+  background-color: #cfa874;
+  background-image: var(--grain), radial-gradient(ellipse at 50% -20%, rgba(255, 244, 222, 0.5), transparent 65%), linear-gradient(180deg, #d6b07c 0%, #c39a63 100%);
+  border-color: rgba(122, 80, 43, 0.4);
+  border-radius: 8px;
+}
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol))::before,
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> div:first-child > h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol))::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 2px dashed rgba(255, 246, 228, 0.85);
+  border-radius: 5px;
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+}
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol)) h2,
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> div:first-child > h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol)) h2 {
+  color: #fffaf0;
+  text-shadow: 0 -1px 0 rgba(70, 40, 15, 0.45);
+}
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol)) p,
+.skin .bg-white:is(.rounded-xl, .rounded-2xl, .rounded-3xl):has(> div:first-child > h2:first-child):not(:has(form, table, img, input, select, textarea, ul, ol)) p {
+  color: #4a301c;
+  text-shadow: 0 1px 0 rgba(255, 240, 215, 0.45);
+}
+
+/* Login / Register cards → paper sheet in a stitched leather frame */
+.skin .bg-\[\#faf6ee\].shadow-xl {
+  position: relative;
+  background-color: #fffdf8;
+  background-image: var(--paper-grain), linear-gradient(180deg, #ffffff 0%, #fbf7ee 100%);
+  border-color: rgba(122, 80, 43, 0.35);
+  border-radius: 6px;
+  margin-top: 14px;
+  box-shadow: 0 0 0 12px #cfa874, 0 0 0 13px rgba(122, 80, 43, 0.45), 0 26px 50px -18px rgba(70, 40, 15, 0.55);
+}
+.skin .bg-\[\#faf6ee\].shadow-xl::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 2px dashed rgba(255, 246, 228, 0.85);
+  border-radius: 9px;
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+}
+.skin .bg-\[\#faf6ee\].shadow-xl :is(.rounded-none) { border-radius: 8px; }
+
+/* Welcome banners (dark stone / amber / emerald variants) → light stitched leather */
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8 {
+  background-color: #cfa874;
+  background-image: var(--grain), radial-gradient(ellipse at 30% -20%, rgba(255, 244, 222, 0.55), transparent 65%), linear-gradient(180deg, #d6b07c 0%, #c39a63 100%);
+  border-color: rgba(122, 80, 43, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 14px 30px -14px rgba(70, 40, 15, 0.5);
+}
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px dashed rgba(255, 246, 228, 0.85);
+  border-radius: 7px;
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+}
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8 h2 { color: #fffaf0; text-shadow: 0 -1px 0 rgba(70, 40, 15, 0.45); }
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8 p { color: #4a301c; text-shadow: 0 1px 0 rgba(255, 240, 215, 0.45); }
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8 p:first-child { color: #304b2c; }
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8 > svg { color: rgba(255, 248, 232, 0.22); }
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8 .w-16.h-16 {
+  background: linear-gradient(180deg, #f3e9d8 0%, #fbf6ec 100%);
+  border-color: rgba(122, 80, 43, 0.3);
+  box-shadow: inset 0 2px 3px rgba(90, 60, 30, 0.22), 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.skin :is(.bg-stone-900, .bg-amber-950, .bg-emerald-950).rounded-2xl.px-8 > button {
+  background: linear-gradient(180deg, #fffaf1 0%, #eadcc3 100%);
+  border-color: rgba(130, 92, 52, 0.38);
+  color: #5f3e23;
+  box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(90, 60, 30, 0.22);
+}
+
+/* Important actions written inline with the old green fill → stitched green leather */
+.skin :is(button, a, label).bg-emerald-800,
+.skin :is(button, a, label).bg-emerald-700 {
+  position: relative;
+  color: #fbfdf8;
+  text-shadow: 0 -1px 0 rgba(30, 50, 25, 0.45);
+  background-color: #5c8b52;
+  background-image: var(--grain), linear-gradient(180deg, #6f9c64 0%, #4f7d46 100%);
+  border-color: rgba(48, 75, 44, 0.6);
+  box-shadow: inset 0 1px 0 rgba(220, 240, 210, 0.5), 0 1px 2px rgba(30, 50, 25, 0.3), 0 4px 10px -4px rgba(30, 50, 25, 0.35);
+}
+.skin :is(button, a, label).bg-emerald-800::after,
+.skin :is(button, a, label).bg-emerald-700::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed rgba(235, 248, 228, 0.65);
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* Secondary dark fills → caramel leather */
+.skin :is(button, a).bg-stone-800,
+.skin :is(button, a).bg-stone-900 {
+  color: #fffaf0;
+  text-shadow: 0 -1px 0 rgba(60, 35, 12, 0.5);
+  background-color: #a8743f;
+  background-image: var(--grain), linear-gradient(180deg, #c49159 0%, #9c6936 100%);
+  border-color: rgba(95, 62, 35, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, 0.55), 0 1px 2px rgba(70, 40, 15, 0.3), 0 4px 10px -4px rgba(70, 40, 15, 0.4);
+}
+.skin :is(button, a, label):is(.bg-emerald-800, .bg-stone-800):hover { filter: brightness(1.06); }
+.skin div.bg-emerald-800,
+.skin span.bg-emerald-800 {
+  background-color: #a8743f;
+  background-image: var(--grain), linear-gradient(180deg, #bd8a52 0%, #9e6b39 100%);
+  color: #fffaf0;
+}
+
+/* Green tints → moss */
+.skin :is(.text-emerald-600, .text-emerald-700) { color: #497242; }
+.skin :is(.text-emerald-800, .text-emerald-900) { color: #3b5d36; }
+.skin :is(.bg-emerald-50, .bg-emerald-900\/10, .bg-emerald-100\/50) { background-color: #eef4ea; }
+.skin :is(.border-emerald-900\/20, .border-emerald-200, .border-emerald-200\/80) { border-color: rgba(73, 114, 66, 0.3); }
+
+/* Neutral greys → warm paper tones */
+.skin .bg-stone-50 { background-color: #faf5ec; }
+.skin .bg-stone-100 { background-color: #f3ead9; }
+.skin :is(.border-stone-100, .border-stone-200, .border-stone-200\/90, .border-stone-200\/60, .border-stone-200\/80) { border-color: rgba(160, 125, 85, 0.22); }
+.skin .border-stone-300 { border-color: rgba(140, 100, 60, 0.32); }
+
+/* Form controls written inline on pages */
+.skin :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']), select, textarea):not(.field-inset) {
+  background-color: #fffdf8;
+  border-color: rgba(140, 100, 60, 0.35);
+  box-shadow: inset 0 2px 3px rgba(90, 60, 30, 0.12);
+}
+.skin :is(input, select, textarea):focus { border-color: #5c8b52; outline: none; }
+.skin :is(input[type='checkbox'], input[type='radio']) { accent-color: #5c8b52; }
+
+/* Book Details cover column → the book standing on the leather desk */
+.skin .md\:col-span-5.bg-stone-100 {
+  background-color: #eedfc3;
+  background-image: var(--grain), radial-gradient(ellipse at 30% 0%, rgba(255, 252, 244, 0.7), transparent 60%), linear-gradient(180deg, #f3e7d1 0%, #e8d5b3 100%);
+}
+.skin .md\:col-span-5.bg-stone-100 > img.object-contain {
+  width: 62%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 2px 5px 5px 2px;
+  box-shadow:
+    5px 5px 0 -1px #f8f1e2,
+    5px 5px 0 0 rgba(120, 90, 50, 0.3),
+    9px 9px 0 -1px #efe5d2,
+    9px 9px 0 0 rgba(120, 90, 50, 0.25),
+    14px 22px 30px -8px rgba(60, 35, 12, 0.5);
+}
+
+/* Tables → ledger */
+.skin thead {
+  background-color: #f3e7d3;
+  background-image: linear-gradient(180deg, #f6ecdb, #eedfc6);
+  color: #5f3e23;
+  border-bottom: 2px dashed rgba(122, 80, 43, 0.35);
+}
+.skin tbody tr:nth-child(even) { background-color: rgba(243, 231, 211, 0.25); }
+.skin tbody tr:hover { background-color: rgba(226, 236, 221, 0.45); }
+
+/* ─── Round 3 additions ─── */
+
+/* Stitched elements that must stay sticky (dashboard Control Panel) */
+@media (min-width: 1024px) {
+  .stitched.lg\:sticky { position: sticky; }
+}
+
+/* Green leather gets stitching too — it marks the important actions */
+.btn-moss { position: relative; }
+.btn-moss::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed rgba(235, 248, 228, 0.65);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Book grids (catalog, dashboard, watchlist) → fixed shelves:
+   5 books per row on desktop (3 on tablet, 2 on phone). The first book of each row
+   draws the plank across the full row, so every shelf has the same length
+   no matter how many books sit on it. */
+.skin .grid:has(.shelf-book) {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 0 !important;
+  row-gap: 2.75rem !important;
+}
+.skin .grid:has(.shelf-book) .shelf-book__plank { opacity: 0; }
+.skin .grid:has(.shelf-book) > :nth-child(2n + 1) .shelf-book__plank { opacity: 1; width: 200%; z-index: 0; }
+@media (min-width: 640px) {
+  .skin .grid:has(.shelf-book) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .skin .grid:has(.shelf-book) > :nth-child(n) .shelf-book__plank { opacity: 0; width: 100%; }
+  .skin .grid:has(.shelf-book) > :nth-child(3n + 1) .shelf-book__plank { opacity: 1; width: 300%; }
+}
+@media (min-width: 1024px) {
+  .skin .grid:has(.shelf-book) { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+  .skin .grid:has(.shelf-book) > :nth-child(n) .shelf-book__plank { opacity: 0; width: 100%; }
+  .skin .grid:has(.shelf-book) > :nth-child(5n + 1) .shelf-book__plank { opacity: 1; width: 500%; }
+}
+.shelf-book__plank { border-radius: 2px; }
+
+/* Full "Wants" text — a small lined note that pops up above the line */
+.wants-note__full {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  z-index: 40;
+  width: max-content;
+  max-width: 230px;
+  padding: 6px 12px 6px 58px;
+  border-radius: 3px;
+  font-family: Caveat, cursive;
+  font-size: 20px;
+  line-height: 1.15;
+  color: #3a2a1c;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 10px 22px -8px rgba(70, 40, 15, 0.5), 0 1px 2px rgba(70, 40, 15, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -4px) rotate(-1.5deg);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.wants-note:hover .wants-note__full,
+.wants-note:focus .wants-note__full {
+  opacity: 1;
+  transform: translate(-50%, 0) rotate(-1.5deg);
+}
+
+/* Browse page header → stitched leather */
+.skin .bg-white.rounded-3xl.space-y-4:has(h1) {
+  position: relative;
+  background-color: #cfa874;
+  background-image: var(--grain), radial-gradient(ellipse at 30% -20%, rgba(255, 244, 222, 0.55), transparent 65%), linear-gradient(180deg, #d6b07c 0%, #c39a63 100%);
+  border-color: rgba(122, 80, 43, 0.45);
+  border-radius: 10px;
+}
+.skin .bg-white.rounded-3xl.space-y-4:has(h1)::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px dashed rgba(255, 246, 228, 0.85);
+  border-radius: 7px;
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+}
+.skin .bg-white.rounded-3xl.space-y-4:has(h1) h1 { color: #fffaf0; text-shadow: 0 -1px 0 rgba(70, 40, 15, 0.45), 0 1px 0 rgba(255, 255, 255, 0.15); }
+.skin .bg-white.rounded-3xl.space-y-4:has(h1) :is(p, .text-stone-500) { color: #4a301c; text-shadow: 0 1px 0 rgba(255, 240, 215, 0.45); }
+.skin .bg-white.rounded-3xl.space-y-4:has(h1) .text-stone-800 { color: #2f1f12; }
+
+/* Book Details → stitched leather folio: desk on the left, paper page on the right */
+.skin .bg-white.rounded-3xl.grid.overflow-hidden {
+  position: relative;
+  padding: 12px;
+  background-color: #cfa874;
+  background-image: var(--grain), radial-gradient(ellipse at 50% -20%, rgba(255, 244, 222, 0.5), transparent 65%), linear-gradient(180deg, #d6b07c 0%, #c39a63 100%);
+  border-color: rgba(122, 80, 43, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 22px 44px -18px rgba(70, 40, 15, 0.55);
+}
+.skin .bg-white.rounded-3xl.grid.overflow-hidden::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 2px dashed rgba(255, 246, 228, 0.85);
+  border-radius: 8px;
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+}
+.skin .bg-white.rounded-3xl.grid.overflow-hidden > .md\:col-span-5 {
+  border-radius: 6px 6px 0 0;
+  box-shadow: inset 0 2px 6px rgba(90, 60, 30, 0.25);
+}
+.skin .bg-white.rounded-3xl.grid.overflow-hidden > .md\:col-span-7 {
+  background-color: #fffdf8;
+  background-image: var(--paper-grain), linear-gradient(180deg, #ffffff 0%, #fbf7ee 100%);
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 1px 3px rgba(70, 40, 15, 0.3);
+}
+@media (min-width: 768px) {
+  .skin .bg-white.rounded-3xl.grid.overflow-hidden > .md\:col-span-5 { border-radius: 6px 0 0 6px; }
+  .skin .bg-white.rounded-3xl.grid.overflow-hidden > .md\:col-span-7 { border-radius: 0 6px 6px 0; }
+}
+.skin .md\:col-span-5 > button.rounded-full.absolute {
+  border: 1px solid rgba(130, 92, 52, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 6px rgba(90, 60, 30, 0.3);
+}
+.skin .md\:col-span-5 > button.rounded-full.absolute.bg-white\/90 {
+  background: linear-gradient(180deg, #fffaf1 0%, #eadcc3 100%);
+  color: #5f3e23;
+}
+
+/* Form pages (Add Listing, Profile settings) → paper sheet in a stitched leather frame */
+.skin .bg-white.rounded-3xl.shadow-md:has(form) {
+  position: relative;
+  margin: 12px;
+  border-color: rgba(122, 80, 43, 0.35);
+  border-radius: 6px;
+  box-shadow: 0 0 0 12px #cfa874, 0 0 0 13px rgba(122, 80, 43, 0.45), 0 26px 50px -18px rgba(70, 40, 15, 0.5);
+}
+.skin .bg-white.rounded-3xl.shadow-md:has(form)::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 2px dashed rgba(255, 246, 228, 0.85);
+  border-radius: 9px;
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+}
+/* …with a stitched leather title plate at the top */
+.skin .bg-white.rounded-3xl.shadow-md:has(form) > :is(div.pb-6.border-b, h2.pb-4.border-b):first-child {
+  position: relative;
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(122, 80, 43, 0.4);
+  border-radius: 8px;
+  background-color: #cfa874;
+  background-image: var(--grain), radial-gradient(ellipse at 30% -20%, rgba(255, 244, 222, 0.55), transparent 65%), linear-gradient(180deg, #d6b07c 0%, #c39a63 100%);
+  box-shadow: 0 6px 14px -8px rgba(70, 40, 15, 0.45);
+}
+.skin .bg-white.rounded-3xl.shadow-md:has(form) > :is(div.pb-6.border-b, h2.pb-4.border-b):first-child::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 2px dashed rgba(255, 246, 228, 0.85);
+  border-radius: 5px;
+  filter: drop-shadow(0 1px 0 rgba(84, 52, 22, 0.45));
+  pointer-events: none;
+}
+.skin .bg-white.rounded-3xl.shadow-md:has(form) > :is(div.pb-6.border-b, h2.pb-4.border-b):first-child :is(h1, h2),
+.skin .bg-white.rounded-3xl.shadow-md:has(form) > h2.pb-4.border-b:first-child {
+  color: #fffaf0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 800;
+  text-shadow: 0 -1px 0 rgba(70, 40, 15, 0.45);
+}
+.skin .bg-white.rounded-3xl.shadow-md:has(form) > div.pb-6.border-b:first-child p { color: #4a301c; text-shadow: 0 1px 0 rgba(255, 240, 215, 0.45); }
+/* no icon in the title plate */
+.skin .bg-white.rounded-3xl.shadow-md:has(form) > div.pb-6.border-b:first-child > div:first-child:has(> svg) { display: none; }
+
+/* Stronger contrast for form text and fields */
+.skin form label { color: #2f1f12; font-weight: 700; }
+.skin form .text-stone-500 { color: #6b5a48; }
+.skin :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']), select, textarea) {
+  border-color: rgba(122, 80, 43, 0.45) !important;
+  box-shadow: inset 0 2px 4px rgba(90, 60, 30, 0.16), 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+.skin :is(input, select, textarea):focus {
+  border-color: #5c8b52 !important;
+  box-shadow: inset 0 2px 4px rgba(90, 60, 30, 0.12), 0 0 0 3px rgba(92, 139, 82, 0.22);
+}
+/* Grouped section inside a form (e.g. swap preferences) → stitched leather-light panel */
+.skin form .bg-stone-50.rounded-2xl {
+  background-color: #f4e9d6;
+  background-image: var(--grain), linear-gradient(180deg, #f7eedf, #efe1c8);
+  border-color: rgba(122, 80, 43, 0.3);
+  border-radius: 8px;
+  outline: 2px dashed rgba(122, 80, 43, 0.3);
+  outline-offset: -7px;
+}
+/* Photo drop zone → sand leather well with stitching */
+.skin form .border-2.border-dashed.rounded-2xl {
+  border: 1px solid rgba(122, 80, 43, 0.35);
+  border-radius: 8px;
+  background-color: #eedfc3;
+  background-image: var(--grain), linear-gradient(180deg, #f3e7d1 0%, #e8d5b3 100%);
+  box-shadow: inset 0 3px 8px rgba(90, 60, 30, 0.22);
+  outline: 2px dashed rgba(255, 246, 228, 0.9);
+  outline-offset: -8px;
+}
+.skin form .border-2.border-dashed.rounded-2xl .text-stone-400 { color: #6b4a2b; }

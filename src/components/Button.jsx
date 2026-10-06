@@ -13,15 +13,15 @@ const Button = ({
   onClick,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]';
+  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-moss-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none';
 
   const variants = {
-    primary: 'bg-emerald-800 text-amber-50 hover:bg-emerald-700 focus:ring-emerald-600 shadow-md',
-    secondary: 'bg-amber-700 text-amber-50 hover:bg-amber-800 focus:ring-amber-600 shadow-sm shadow-amber-900/10',
-    accent: 'bg-stone-800 text-amber-50 hover:bg-stone-900 focus:ring-stone-700 shadow-sm',
-    danger: 'bg-rose-700 text-amber-50 hover:bg-rose-800 focus:ring-rose-600 shadow-sm',
-    outline: 'border border-stone-300 text-stone-700 hover:bg-stone-100 focus:ring-stone-400 bg-white',
-    ghost: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 focus:ring-stone-300',
+    primary: 'btn-moss',
+    secondary: 'btn-leather',
+    accent: 'btn-leather',
+    danger: 'btn-danger',
+    outline: 'btn-pillow',
+    ghost: 'btn-pillow',
   };
 
   const sizes = {

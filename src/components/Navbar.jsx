@@ -47,17 +47,17 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-40 bg-[#faf7f2]/95 backdrop-blur-md border-b border-stone-300/60 shadow-sm">
+    <header className="sticky top-0 z-40 leather-tan shadow-[0_2px_6px_rgba(70,40,15,0.35)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
-          <Link to={isAuthenticated ? (isAdmin ? '/admin' : isStaff ? '/staff' : '/dashboard') : '/'} className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-emerald-800 text-amber-50 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-10 h-10 rounded-xl leather-caramel stitched stitched-sm text-amber-50 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform [&>svg]:relative [&>svg]:z-[2]">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-serif font-bold text-xl text-stone-900 tracking-tight">
-                Book<span className="text-emerald-800">Swap</span>
+              <span className="font-display font-extrabold text-xl deboss tracking-tight">
+                Book<span className="text-moss-700">Swap</span>
               </span>
             </div>
           </Link>
@@ -68,8 +68,8 @@ const Navbar = () => {
               to="/browse"
               className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                 isActive('/browse')
-                  ? 'bg-emerald-900/10 text-emerald-900 border border-emerald-900/20'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                  ? 'btn-pillow'
+                  : 'deboss hover:bg-white/30'
               }`}
             >
               <Search className="w-4 h-4" />
@@ -81,11 +81,11 @@ const Navbar = () => {
                 to="/add-listing"
                 className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                   isActive('/add-listing')
-                    ? 'bg-emerald-900/10 text-emerald-900 border border-emerald-900/20'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                    ? 'btn-pillow'
+                    : 'deboss hover:bg-white/30'
                 }`}
               >
-                <PlusCircle className="w-4 h-4 text-emerald-800" />
+                <PlusCircle className="w-4 h-4 text-moss-700" />
                 List a Book
               </Link>
             )}
@@ -104,9 +104,9 @@ const Navbar = () => {
                       ? '/staff'
                       : '/dashboard'
                   }
-                  className="px-3 py-1.5 bg-stone-200/70 hover:bg-stone-300/70 text-stone-800 font-semibold text-xs rounded-lg border border-stone-300/60 transition-colors flex items-center gap-1.5"
+                  className="btn-pillow px-3 py-1.5 font-semibold text-xs rounded-lg flex items-center gap-1.5"
                 >
-                  <LayoutDashboard className="w-3.5 h-3.5 text-stone-600" />
+                  <LayoutDashboard className="w-3.5 h-3.5 text-moss-700" />
                   <span>
                     {isAdmin ? 'Admin Dashboard' : isStaff ? 'Staff Moderation' : 'My Dashboard'}
                   </span>
@@ -116,7 +116,7 @@ const Navbar = () => {
                 {isCustomer && (
                 <Link
                   to="/dashboard?tab=notifications"
-                  className="relative p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-lg transition-colors"
+                  className="relative p-2 deboss hover:bg-white/30 rounded-lg transition-colors"
                   title="Notifications"
                 >
                   <Bell className="w-5 h-5" />
@@ -132,10 +132,13 @@ const Navbar = () => {
                 <div className="relative">
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-stone-200/60 transition-colors border border-stone-300/70 bg-white"
+                    className="btn-pillow flex items-center gap-2 p-1.5 rounded-xl"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-800 text-amber-50 font-bold text-xs flex items-center justify-center shadow-sm">
-                      {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    <div className="well w-8 h-8 rounded-full overflow-hidden ring-1 ring-leather-400/60 flex items-end justify-center" aria-hidden="true">
+                      <svg viewBox="0 0 32 32" className="w-7 h-7 text-leather-300">
+                        <circle cx="16" cy="12.5" r="6" fill="currentColor" />
+                        <path d="M4 32c0-7 5.4-11.5 12-11.5S28 25 28 32z" fill="currentColor" />
+                      </svg>
                     </div>
                     <div className="text-left hidden lg:block">
                       <p className="text-xs font-semibold text-stone-800 leading-tight">
@@ -150,17 +153,17 @@ const Navbar = () => {
 
                   {userDropdownOpen && (
                     <div
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-2"
+                      className="paper absolute right-0 mt-2 w-56 rounded-lg shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2"
                       onClick={() => setUserDropdownOpen(false)}
                     >
-                      <div className="px-4 py-2 border-b border-stone-100">
+                      <div className="px-4 py-2 border-b border-dashed border-leather-200">
                         <p className="text-xs font-bold text-stone-800">{user.name}</p>
                         <p className="text-xs text-stone-500 truncate">{user.email}</p>
                       </div>
 
                       <Link
                         to="/profile"
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-stone-700 hover:bg-leather-50"
                       >
                         <User className="w-4 h-4 text-stone-400" />
                         Profile Settings
@@ -169,7 +172,7 @@ const Navbar = () => {
                       {isCustomer && (
                       <Link
                         to="/dashboard"
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-stone-700 hover:bg-leather-50"
                       >
                         <LayoutDashboard className="w-4 h-4 text-stone-400" />
                         Reader Dashboard
@@ -196,7 +199,7 @@ const Navbar = () => {
                         </Link>
                       )}
 
-                      <div className="border-t border-stone-100 my-1"></div>
+                      <div className="border-t border-dashed border-leather-200 my-1"></div>
 
                       <button
                         onClick={handleLogout}
@@ -224,10 +227,16 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  to="/"
-                  className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-amber-50 font-medium text-sm rounded-lg shadow-md transition-all hover:scale-[1.02]"
+                  to="/login"
+                  className="btn-pillow px-4 py-2 font-semibold text-sm rounded-lg"
                 >
-                  Sign In / Register
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn-leather px-4 py-2 font-semibold text-sm rounded-lg"
+                >
+                  Register
                 </Link>
               </div>
             )}
@@ -237,7 +246,7 @@ const Navbar = () => {
           <div className="flex md:hidden items-center gap-2">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 rounded-lg text-stone-600 hover:bg-stone-200/50"
+              className="btn-pillow p-2 rounded-lg"
             >
               {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -247,11 +256,11 @@ const Navbar = () => {
 
       {/* Mobile Menu Dropdown */}
       {menuOpen && (
-        <div className="md:hidden border-t border-stone-200 bg-[#faf7f2] px-4 pt-2 pb-6 space-y-3">
+        <div className="md:hidden paper border-t-0 px-4 pt-2 pb-6 space-y-3">
           <Link
             to="/browse"
             onClick={() => setMenuOpen(false)}
-            className="block py-2 text-sm font-medium text-stone-700 hover:text-emerald-800"
+            className="block py-2 text-sm font-medium text-stone-700 hover:text-moss-700"
           >
             Browse Books
           </Link>
@@ -261,7 +270,7 @@ const Navbar = () => {
               <Link
                 to="/add-listing"
                 onClick={() => setMenuOpen(false)}
-                className="block py-2 text-sm font-medium text-stone-700 hover:text-emerald-800"
+                className="block py-2 text-sm font-medium text-stone-700 hover:text-moss-700"
               >
                 List a Book
               </Link>
@@ -270,7 +279,7 @@ const Navbar = () => {
               <Link
                 to="/dashboard"
                 onClick={() => setMenuOpen(false)}
-                className="block py-2 text-sm font-medium text-stone-700 hover:text-emerald-800"
+                className="block py-2 text-sm font-medium text-stone-700 hover:text-moss-700"
               >
                 My Dashboard
               </Link>
@@ -278,7 +287,7 @@ const Navbar = () => {
               <Link
                 to="/profile"
                 onClick={() => setMenuOpen(false)}
-                className="block py-2 text-sm font-medium text-stone-700 hover:text-emerald-800"
+                className="block py-2 text-sm font-medium text-stone-700 hover:text-moss-700"
               >
                 Profile Settings
               </Link>
@@ -316,11 +325,18 @@ const Navbar = () => {
           ) : (
             <div className="pt-2 border-t border-stone-200 flex flex-col gap-2">
               <Link
-                to="/"
+                to="/login"
                 onClick={() => setMenuOpen(false)}
-                className="w-full text-center py-2.5 bg-emerald-800 text-amber-50 font-medium text-sm rounded-lg shadow-sm"
+                className="btn-pillow w-full text-center py-2 font-semibold text-sm rounded-lg"
               >
-                Sign In / Register
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMenuOpen(false)}
+                className="btn-leather w-full text-center py-2 font-semibold text-sm rounded-lg"
+              >
+                Register
               </Link>
             </div>
           )}

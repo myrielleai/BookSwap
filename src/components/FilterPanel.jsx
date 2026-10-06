@@ -22,22 +22,22 @@ const FilterPanel = ({
   ];
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-        <div className="flex items-center gap-2 text-stone-800 font-semibold text-sm">
-          <Filter className="w-4 h-4 text-emerald-800" />
+    <div className="leather-tan stitched rounded-lg p-5 space-y-4 shadow-[0_14px_30px_-14px_rgba(70,40,15,0.5)] [&_label]:text-leather-900 [&_label]:[text-shadow:0_1px_0_rgba(255,240,215,0.5)]">
+      <div className="relative z-[2] flex items-center justify-between pb-3 border-b border-dashed border-amber-50/60">
+        <div className="flex items-center gap-2 font-display font-extrabold text-lg emboss-light">
+          <Filter className="w-4 h-4 text-amber-50" />
           <span>Filter & Sort Catalog</span>
         </div>
         <button
           onClick={onReset}
-          className="text-xs font-medium text-stone-500 hover:text-emerald-800 flex items-center gap-1 transition-colors"
+          className="btn-pillow px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Reset All
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="relative z-[2] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Dropdown
           label="Genre"
           placeholder="All Genres"

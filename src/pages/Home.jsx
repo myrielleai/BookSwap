@@ -20,9 +20,10 @@ import {
   Star,
 } from 'lucide-react';
 
-import FlipBookHero from '../components/FlipBookHero';
 import HeroAuthCard from '../components/HeroAuthCard';
 import GenreBookshelf from '../components/GenreBookshelf';
+import BookCover, { COVER_PALETTES } from '../components/BookCover';
+import { StepTag, StitchedCard, ShelfBook, ClosedBook, HeroBookPile } from '../components/LandingUI';
 
 /* ──────────────────────────────────────────────
    Intersection Observer hook for scroll-reveal
@@ -178,40 +179,63 @@ const Home = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="w-full bg-[#fdfbf7]">
       {/* ═══════════════════════════════════════════
-          HERO SECTION — Clean, Warm, Goodreads-Inspired
+          LEATHER TOOLBAR — iBooks / Find My Friends style
           ═══════════════════════════════════════════ */}
-      <section className="w-full bg-[#f4f1ea] text-stone-900 py-10 sm:pt-16 sm:pb-20 px-4 sm:px-6 lg:px-8 border-b border-stone-300/50">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
-          {/* LEFT COLUMN: Hero Headline & 3D Flipping Book */}
+      <header className="leather-tan relative z-20 shadow-[0_2px_6px_rgba(70,40,15,0.35)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <span className="leather-caramel stitched stitched-sm w-8 h-8 rounded-lg flex items-center justify-center shadow-sm">
+              <BookOpen className="w-4 h-4 text-amber-50 relative z-[2]" />
+            </span>
+            <span className="deboss font-display font-extrabold text-xl tracking-tight">BookSwap</span>
+          </Link>
+          <nav className="flex items-center gap-2">
+            <Link to="/browse" className="btn-pillow px-3.5 py-1.5 rounded-lg text-xs font-bold">
+              Browse
+            </Link>
+            <Link to="/register" className="btn-leather px-3.5 py-1.5 rounded-lg text-xs font-bold">
+              Join
+            </Link>
+          </nav>
+        </div>
+        <div className="absolute left-0 right-0 bottom-[5px] seam" />
+      </header>
+
+      {/* ═══════════════════════════════════════════
+          HERO — light leather desk with a pile of recently verified books
+          ═══════════════════════════════════════════ */}
+      <section className="leather-sand relative text-stone-900 pt-10 pb-14 sm:pt-14 sm:pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+          {/* LEFT COLUMN: Hero Headline & book pile */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
             <div className="space-y-3">
-              <h1 className="text-4xl sm:text-5xl font-serif font-bold tracking-tight text-stone-900">
-                BookSwap
+              <h1 className="text-4xl sm:text-6xl font-display font-extrabold tracking-tight deboss">
+                Book<span className="text-moss-700">Swap</span>
               </h1>
-              <p className="text-base sm:text-lg text-stone-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-base sm:text-lg text-leather-900/80 max-w-xl mx-auto lg:mx-0 leading-relaxed emboss">
                 BookSwap is the community for readers who believe great stories deserve to be shared — physically, personally, and freely.
               </p>
             </div>
 
-            {/* 3D Flipping Book Showcase */}
-            <div className="w-full py-1">
-              <FlipBookHero />
+            {/* Recently verified books, tossed on the desk */}
+            <div className="w-full pt-2 pb-6 sm:pb-2">
+              <HeroBookPile books={featuredBooks} loading={loading} />
             </div>
 
             {/* Quick Action Links */}
-            <div className="flex items-center justify-center lg:justify-start gap-3 pt-1">
+            <div className="flex items-center justify-center lg:justify-start gap-3">
               <Link
                 to="/browse"
-                className="px-6 py-2.5 bg-stone-800 hover:bg-stone-700 text-white font-semibold text-sm rounded-md shadow-sm transition-all flex items-center gap-2"
+                className="btn-leather px-6 py-3 font-semibold text-sm rounded-xl flex items-center gap-2"
               >
                 <Search className="w-4 h-4" />
                 Browse Catalog
               </Link>
               <Link
                 to="/register"
-                className="px-6 py-2.5 bg-transparent hover:bg-stone-200/60 text-stone-800 font-semibold text-sm rounded-md border border-stone-400 transition-all flex items-center gap-2"
+                className="btn-pillow px-6 py-3 font-semibold text-sm rounded-xl flex items-center gap-2"
               >
                 Join BookSwap
               </Link>
@@ -223,54 +247,21 @@ const Home = () => {
             <HeroAuthCard />
           </div>
         </div>
+
+        {/* stitched seam where leather meets the paper below */}
+        <div className="absolute left-0 right-0 bottom-2 seam" />
       </section>
 
       {/* ═══════════════════════════════════════════
-          MAIN CONTENT — Below Hero
+          MAIN CONTENT — on clean paper
           ═══════════════════════════════════════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* ─── VALUE PROPOSITIONS (Clean 3-Col) ─── */}
-        <section className="py-14 sm:py-20 border-b border-stone-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-            {[
-              {
-                icon: <BookMarked className="w-6 h-6" />,
-                title: 'Deciding what to read next?',
-                desc: 'Browse verified books from real readers in your area. Every listing includes condition photos and honest descriptions.',
-                color: 'text-emerald-700',
-                bg: 'bg-emerald-50',
-              },
-              {
-                icon: <ArrowRightLeft className="w-6 h-6" />,
-                title: 'Swap instead of buy.',
-                desc: "Trade books 1-for-1 with fellow readers. No money changes hands — just stories finding new homes.",
-                color: 'text-amber-700',
-                bg: 'bg-amber-50',
-              },
-              {
-                icon: <ShieldCheck className="w-6 h-6" />,
-                title: 'Safe & supervised exchanges.',
-                desc: 'Every meetup is moderated at verified public venues. Your safety and trust come first.',
-                color: 'text-emerald-800',
-                bg: 'bg-emerald-100/50',
-              },
-            ].map((item, i) => (
-              <div key={i} className={`reveal reveal-delay-${i + 1} text-center md:text-left space-y-3`}>
-                <div className={`w-12 h-12 ${item.bg} ${item.color} rounded-lg flex items-center justify-center mx-auto md:mx-0`}>
-                  {item.icon}
-                </div>
-                <h3 className="text-lg font-serif font-bold text-stone-900">{item.title}</h3>
-                <p className="text-sm text-stone-600 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ─── HOW BOOKSWAP WORKS ─── */}
-        <section className="py-14 sm:py-20 border-b border-stone-200">
-          <div className="text-center max-w-2xl mx-auto mb-12 reveal">
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900">
+        {/* ─── HOW BOOKSWAP WORKS — a stitched thread runs through the story ─── */}
+        <section className="py-16 sm:py-24">
+          <div className="text-center max-w-2xl mx-auto mb-14 reveal">
+            <span className="font-hand text-2xl text-moss-700">it's simpler than it sounds</span>
+            <h2 className="text-3xl sm:text-5xl font-display font-extrabold text-stone-900 emboss mt-1">
               How BookSwap Works
             </h2>
             <p className="text-sm sm:text-base text-stone-500 mt-3">
@@ -278,252 +269,203 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="space-y-14 lg:space-y-20">
-            {/* STEP 1 */}
-            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14 items-center">
-              <div className="space-y-4">
-                <span className="inline-block text-xs font-bold tracking-wider text-emerald-700 uppercase bg-emerald-50 px-3 py-1 rounded-md border border-emerald-200/80">
-                  Step 1
-                </span>
-                <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  List your verified copy
-                </h3>
-                <p className="text-stone-600 text-sm leading-relaxed">
-                  Post books you've already read. Upload actual photos, set physical condition grades, and state your preferred return genres.
-                </p>
-                <ul className="space-y-2.5">
-                  <li className="flex items-start gap-2.5 text-sm text-stone-700">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Authentic photo verification of cover, spine & pages</span>
-                  </li>
-                  <li className="flex items-start gap-2.5 text-sm text-stone-700">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Transparent condition grading from "Like New" to "Well-Loved"</span>
-                  </li>
-                </ul>
-              </div>
+          <div className="relative">
+            {/* the thread */}
+            <div className="thread-moss absolute top-10 bottom-10 left-[43px] md:left-1/2 md:-translate-x-px pointer-events-none" />
 
-              {/* Visual Card */}
-              <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-sm hover-lift">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                      <BookOpen className="w-4 h-4" />
-                    </div>
-                    <span className="text-xs font-bold text-stone-700">Listing Draft</span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Ready
-                  </span>
+            <div className="space-y-16 lg:space-y-24">
+              {/* STEP 1 */}
+              <div className="reveal relative grid grid-cols-[88px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-6 lg:gap-x-12 gap-y-6 items-center">
+                <div className="md:col-start-2 md:row-start-1 self-start md:self-center flex justify-center">
+                  <StepTag n={1} />
                 </div>
-
-                <div className="flex gap-4 items-center bg-stone-50 p-3 rounded-md border border-stone-200/60 mb-3">
-                  <div className="w-14 h-18 bg-emerald-900 rounded flex items-center justify-center text-amber-100 shrink-0 font-serif text-center p-1 text-[10px] leading-tight font-bold shadow-sm">
-                    The Midnight Library
-                  </div>
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <h5 className="font-bold text-stone-800 text-sm truncate">The Midnight Library</h5>
-                    <p className="text-xs text-stone-500">by Matt Haig</p>
-                    <div className="flex items-center gap-2 text-[11px]">
-                      <span className="px-2 py-0.5 bg-amber-50 text-amber-800 font-medium rounded border border-amber-200/60">Like New</span>
-                      <span className="text-stone-400">• Fiction</span>
-                    </div>
-                  </div>
+                <div className="md:col-start-1 md:row-start-1 space-y-4 md:text-right">
+                  <span className="font-hand text-2xl text-moss-700">snap · grade · post</span>
+                  <h3 className="text-2xl sm:text-3xl font-display font-extrabold text-stone-900">
+                    List your verified copy
+                  </h3>
+                  <p className="text-stone-600 text-base leading-relaxed">
+                    Post books you've already read. Upload actual photos, set physical condition grades, and state your preferred return genres.
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-stone-700">
+                    <li>Authentic photo verification of cover, spine & pages</li>
+                    <li>Transparent condition grading from "Like New" to "Well-Loved"</li>
+                  </ul>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {['Front Cover', 'Spine & Edges', 'Page Spread'].map((label) => (
-                    <div key={label} className="bg-stone-50 rounded-md p-2 text-center border border-stone-200/50">
-                      <Camera className="w-3.5 h-3.5 text-stone-400 mx-auto mb-0.5" />
-                      <span className="text-[10px] text-stone-600 font-medium block">{label}</span>
-                      <span className="text-[9px] text-emerald-600 font-bold">Uploaded</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* STEP 2 */}
-            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14 items-center">
-              {/* Visual Card (Left on desktop) */}
-              <div className="order-2 md:order-1 bg-white p-5 rounded-lg border border-stone-200 shadow-sm hover-lift">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-amber-50 text-amber-700 flex items-center justify-center">
-                      <ArrowRightLeft className="w-4 h-4" />
-                    </div>
-                    <span className="text-xs font-bold text-stone-700">1-to-1 Swap Match</span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
-                    Proposal Sent
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2 items-center bg-amber-50/50 p-4 rounded-md border border-amber-200/40 mb-3">
-                  <div className="col-span-2 text-center space-y-1">
-                    <div className="w-14 h-18 mx-auto bg-stone-800 rounded text-amber-200 font-serif text-[10px] p-1 flex items-center justify-center shadow-sm">
-                      Dune
-                    </div>
-                    <p className="text-[11px] font-bold text-stone-800">Your Book</p>
-                    <p className="text-[10px] text-stone-500">Frank Herbert</p>
-                  </div>
-
-                  <div className="col-span-1 flex items-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-sm">
-                      <ArrowRightLeft className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-
-                  <div className="col-span-2 text-center space-y-1">
-                    <div className="w-14 h-18 mx-auto bg-emerald-950 rounded text-amber-100 font-serif text-[10px] p-1 flex items-center justify-center shadow-sm">
-                      Project Hail Mary
-                    </div>
-                    <p className="text-[11px] font-bold text-stone-800">Requested</p>
-                    <p className="text-[10px] text-stone-500">Andy Weir</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-stone-600 bg-stone-50 px-3 py-2 rounded-md border border-stone-200/50">
-                  <span>Genre Match: <strong>Sci-Fi / Fantasy</strong></span>
-                  <span className="text-amber-700 font-semibold">Fair Exchange ★</span>
-                </div>
-              </div>
-
-              {/* Description (Right) */}
-              <div className="order-1 md:order-2 space-y-4">
-                <span className="inline-block text-xs font-bold tracking-wider text-amber-700 uppercase bg-amber-50 px-3 py-1 rounded-md border border-amber-200/80">
-                  Step 2
-                </span>
-                <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  Propose a 1-to-1 swap
-                </h3>
-                <p className="text-stone-600 text-sm leading-relaxed">
-                  Browse verified catalog offerings. Send a swap proposal offering one of your verified books. Owners retain full accept/decline rights.
-                </p>
-                <ul className="space-y-2.5">
-                  <li className="flex items-start gap-2.5 text-sm text-stone-700">
-                    <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span>1-for-1 fair book trade — no fees, no point systems</span>
-                  </li>
-                  <li className="flex items-start gap-2.5 text-sm text-stone-700">
-                    <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span>Review partner listing details before accepting any proposal</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* STEP 3 */}
-            <div className="reveal grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14 items-center">
-              <div className="space-y-4">
-                <span className="inline-block text-xs font-bold tracking-wider text-stone-800 uppercase bg-stone-100 px-3 py-1 rounded-md border border-stone-300">
-                  Step 3
-                </span>
-                <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  Supervised handover
-                </h3>
-                <p className="text-stone-600 text-sm leading-relaxed">
-                  Exchange Moderators assign official meetup venues and time slots. Meet safely, inspect condition, confirm receipt, and update your library.
-                </p>
-                <ul className="space-y-2.5">
-                  <li className="flex items-start gap-2.5 text-sm text-stone-700">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                    <span>Meetups at campus libraries, partner cafes, or official hubs</span>
-                  </li>
-                  <li className="flex items-start gap-2.5 text-sm text-stone-700">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                    <span>Moderator-escorted condition inspection & digital confirmation</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Visual Card */}
-              <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-sm hover-lift">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-stone-100 text-stone-800 flex items-center justify-center">
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-                    <span className="text-xs font-bold text-stone-700">Scheduled Handover</span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-800 border border-stone-300 text-[11px] font-semibold flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> Campus Hub
-                  </span>
-                </div>
-
-                <div className="bg-stone-50 p-4 rounded-md border border-stone-200/60 space-y-3 mb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-stone-800 text-amber-50 font-bold text-xs flex items-center justify-center">
-                        M
+                <div className="col-span-2 md:col-span-1 md:col-start-3 md:row-start-1">
+                  <StitchedCard label="Listing Draft" badge="Ready">
+                    <div className="flex gap-5 items-center">
+                      <div className="w-28 sm:w-32 shrink-0 pr-2 pb-2">
+                        <ClosedBook backColor={COVER_PALETTES.denim.bg}>
+                          <BookCover title="The Midnight Library" author="Matt Haig" palette="denim" variant="minimal" />
+                        </ClosedBook>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-stone-800">Moderator: Sarah M.</p>
-                        <p className="text-[10px] text-stone-500">Exchange Supervisor</p>
+                      <div className="flex-1 min-w-0 space-y-2.5">
+                        <div>
+                          <h5 className="font-display font-extrabold text-stone-900 text-xl leading-tight">The Midnight Library</h5>
+                          <p className="text-sm text-stone-500">by Matt Haig</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                          <span className="pill-moss px-2 py-0.5 font-bold rounded">Like New</span>
+                          <span className="btn-pillow px-2 py-0.5 font-semibold rounded">Fiction</span>
+                        </div>
+                        <div className="text-xs text-stone-600">
+                          <span className="font-bold text-stone-800">Photos:</span> Front cover · Spine & edges · Page spread
+                        </div>
+                        <div className="text-xs text-stone-600">
+                          <span className="font-bold text-stone-800">Wants back:</span> Mystery, Sci-Fi
+                        </div>
                       </div>
                     </div>
-                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                      Confirmed
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-white p-2 rounded border border-stone-200">
-                      <span className="text-[10px] text-stone-400 block">Time Slot</span>
-                      <span className="font-semibold text-stone-700">Fri, 3:30 PM</span>
-                    </div>
-                    <div className="bg-white p-2 rounded border border-stone-200">
-                      <span className="text-[10px] text-stone-400 block">Location</span>
-                      <span className="font-semibold text-stone-700">Main Library Rm 102</span>
-                    </div>
-                  </div>
+                  </StitchedCard>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-1.5 text-xs text-stone-800 bg-stone-100/80 px-3 py-2 rounded-md border border-stone-200">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                  <span className="font-medium">Condition Inspection & Digital Confirmation</span>
+              {/* STEP 2 */}
+              <div className="reveal relative grid grid-cols-[88px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-6 lg:gap-x-12 gap-y-6 items-center">
+                <div className="md:col-start-2 md:row-start-1 self-start md:self-center flex justify-center">
+                  <StepTag n={2} />
+                </div>
+                <div className="md:col-start-3 md:row-start-1 space-y-4">
+                  <span className="font-hand text-2xl text-moss-700">one book for one book</span>
+                  <h3 className="text-2xl sm:text-3xl font-display font-extrabold text-stone-900">
+                    Propose a 1-to-1 swap
+                  </h3>
+                  <p className="text-stone-600 text-base leading-relaxed">
+                    Browse verified catalog offerings. Send a swap proposal offering one of your verified books. Owners retain full accept/decline rights.
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-stone-700">
+                    <li>1-for-1 fair book trade — no fees, no point systems</li>
+                    <li>Review partner listing details before accepting any proposal</li>
+                  </ul>
+                </div>
+                <div className="col-span-2 md:col-span-1 md:col-start-1 md:row-start-1">
+                  <StitchedCard label="1-to-1 Swap Match" badge="Proposal Sent">
+                    <div className="grid grid-cols-[1fr_auto_1fr] gap-3 sm:gap-5 items-center">
+                      <div className="text-center space-y-2">
+                        <div className="w-24 sm:w-28 mx-auto pr-2 pb-2">
+                          <ClosedBook backColor={COVER_PALETTES.mustard.bg}>
+                            <BookCover title="Dune" author="Frank Herbert" palette="mustard" variant="bold" />
+                          </ClosedBook>
+                        </div>
+                        <p className="text-xs"><span className="font-bold text-stone-800">You offer</span> <span className="text-stone-500">· Herbert</span></p>
+                      </div>
+                      <div className="btn-leather w-10 h-10 rounded-full flex items-center justify-center -mt-6">
+                        <ArrowRightLeft className="w-4 h-4" />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <div className="w-24 sm:w-28 mx-auto pr-2 pb-2">
+                          <ClosedBook backColor={COVER_PALETTES.teal.bg}>
+                            <BookCover title="Project Hail Mary" author="Andy Weir" palette="teal" variant="stripe" />
+                          </ClosedBook>
+                        </div>
+                        <p className="text-xs"><span className="font-bold text-stone-800">You request</span> <span className="text-stone-500">· Weir</span></p>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-dashed border-leather-300 flex items-center justify-between text-xs text-stone-600">
+                      <span>Genre match: <strong className="text-stone-800">Sci-Fi / Fantasy</strong></span>
+                      <span className="text-moss-700 font-bold">Fair exchange</span>
+                    </div>
+                  </StitchedCard>
+                </div>
+              </div>
+
+              {/* STEP 3 */}
+              <div className="reveal relative grid grid-cols-[88px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-6 lg:gap-x-12 gap-y-6 items-center">
+                <div className="md:col-start-2 md:row-start-1 self-start md:self-center flex justify-center">
+                  <StepTag n={3} />
+                </div>
+                <div className="md:col-start-1 md:row-start-1 space-y-4 md:text-right">
+                  <span className="font-hand text-2xl text-moss-700">meet at a verified spot</span>
+                  <h3 className="text-2xl sm:text-3xl font-display font-extrabold text-stone-900">
+                    Supervised handover
+                  </h3>
+                  <p className="text-stone-600 text-base leading-relaxed">
+                    Exchange Moderators assign official meetup venues and time slots. Meet safely, inspect condition, confirm receipt, and update your library.
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-stone-700">
+                    <li>Meetups at campus libraries, partner cafes, or official hubs</li>
+                    <li>Moderator-escorted condition inspection & digital confirmation</li>
+                  </ul>
+                </div>
+                <div className="col-span-2 md:col-span-1 md:col-start-3 md:row-start-1">
+                  <StitchedCard label="Scheduled Handover" badge="Confirmed">
+                    <div className="flex gap-5 items-center">
+                      {/* the two books changing hands */}
+                      <div className="relative w-32 sm:w-36 h-36 sm:h-40 shrink-0">
+                        <div className="absolute left-0 top-1 w-[62%] -rotate-6">
+                          <ClosedBook backColor={COVER_PALETTES.mustard.bg}>
+                            <BookCover title="Dune" author="Frank Herbert" palette="mustard" variant="bold" />
+                          </ClosedBook>
+                        </div>
+                        <div className="absolute right-1 top-4 w-[62%] rotate-6">
+                          <ClosedBook backColor={COVER_PALETTES.teal.bg}>
+                            <BookCover title="Project Hail Mary" author="Andy Weir" palette="teal" variant="stripe" />
+                          </ClosedBook>
+                        </div>
+                      </div>
+                      <dl className="flex-1 min-w-0 space-y-2.5 text-sm">
+                        <div>
+                          <dt className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Moderator</dt>
+                          <dd className="font-semibold text-stone-800">Sarah M. <span className="font-normal text-stone-500">· Exchange Supervisor</span></dd>
+                        </div>
+                        <div>
+                          <dt className="text-[10px] font-bold uppercase tracking-wider text-stone-400">When</dt>
+                          <dd className="font-semibold text-stone-800">Fri, 3:30 PM</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Where</dt>
+                          <dd className="font-semibold text-stone-800">Main Library Rm 102 <span className="font-normal text-stone-500">· Campus Hub</span></dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </StitchedCard>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ─── LITERARY QUOTE SECTION ─── */}
-        <section className="py-14 sm:py-20 border-b border-stone-200">
-          <div className="reveal max-w-2xl mx-auto text-center">
-            <div className="mb-6">
-              <Quote className="w-8 h-8 text-emerald-600/40 mx-auto" />
-            </div>
-            <div className="min-h-[120px] flex flex-col items-center justify-center">
-              <p className="literary-quote text-lg sm:text-xl text-stone-700 px-8 sm:px-12 leading-relaxed mb-4 transition-opacity duration-500">
-                {LITERARY_QUOTES[activeQuote].text}
-              </p>
-              <div className="text-sm text-stone-500">
-                <span className="font-semibold text-stone-700">{LITERARY_QUOTES[activeQuote].author}</span>
-                {LITERARY_QUOTES[activeQuote].work && (
-                  <span className="italic"> — {LITERARY_QUOTES[activeQuote].work}</span>
-                )}
+        {/* ─── LITERARY QUOTE — Notes-style legal pad in a leather binder ─── */}
+        <section className="py-14 sm:py-20 border-t border-dashed border-moss-200">
+          <div className="reveal max-w-2xl mx-auto">
+            <div className="leather-tan stitched rounded-2xl p-2.5 shadow-[0_18px_40px_-16px_rgba(70,40,15,0.5)]">
+              <div className="relative z-[2] flex items-center justify-between px-4 pt-2 pb-3">
+                <Quote className="w-4 h-4 text-leather-800/60" />
+                <span className="deboss font-display font-extrabold text-sm">From the Reading Journal</span>
+                <span className="w-4" />
               </div>
-            </div>
-            <div className="flex items-center justify-center gap-2 mt-6">
-              {LITERARY_QUOTES.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveQuote(i)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    activeQuote === i ? 'bg-emerald-600 w-6' : 'bg-stone-300 hover:bg-stone-400'
-                  }`}
-                  aria-label={`Quote ${i + 1}`}
-                />
-              ))}
+              <div className="paper-lined relative z-[2] rounded-lg px-6 sm:px-16 pt-9 pb-8 min-h-[220px] flex flex-col justify-center shadow-inner">
+                <p className="font-hand text-2xl sm:text-3xl text-stone-800 leading-[36px] transition-opacity duration-500">
+                  {LITERARY_QUOTES[activeQuote].text}
+                </p>
+                <div className="font-hand text-xl text-moss-700 mt-2 leading-[36px]">
+                  — {LITERARY_QUOTES[activeQuote].author}
+                  {LITERARY_QUOTES[activeQuote].work && (
+                    <span className="italic">, {LITERARY_QUOTES[activeQuote].work}</span>
+                  )}
+                </div>
+              </div>
+              <div className="relative z-[2] flex items-center justify-center gap-2 py-3">
+                {LITERARY_QUOTES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveQuote(i)}
+                    className={`h-2.5 rounded-full transition-all duration-300 shadow-[inset_0_1px_2px_rgba(70,40,15,0.45),0_1px_0_rgba(255,240,215,0.5)] ${
+                      activeQuote === i ? 'w-7 bg-moss-400' : 'w-2.5 bg-leather-600/50 hover:bg-leather-600/70'
+                    }`}
+                    aria-label={`Quote ${i + 1}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ─── BROWSE BY GENRE ─── */}
-        <section className="py-14 sm:py-20 border-b border-stone-200">
+        {/* ─── BROWSE BY GENRE — bookshelf ─── */}
+        <section className="py-14 sm:py-20 border-t border-dashed border-moss-200">
           <div className="reveal text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
+            <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-stone-900 emboss">
               Browse by genre
             </h2>
             <p className="text-sm text-stone-500 mt-2">
@@ -536,19 +478,19 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ─── RECENTLY VERIFIED BOOKS ─── */}
-        <section className="py-14 sm:py-20 border-b border-stone-200">
+        {/* ─── RECENTLY VERIFIED BOOKS — shelf of real covers ─── */}
+        <section className="py-14 sm:py-20 border-t border-dashed border-moss-200">
           <div className="reveal flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-serif font-bold text-stone-900 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
+              <h2 className="text-2xl font-display font-extrabold text-stone-900 flex items-center gap-2 emboss">
+                <TrendingUp className="w-5 h-5 text-moss-600" />
                 Recently Verified Books
               </h2>
               <p className="text-xs text-stone-500 mt-1">Latest verified listings ready for exchange</p>
             </div>
             <Link
               to="/browse"
-              className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors"
+              className="btn-pillow px-3.5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1"
             >
               View All <ChevronRight className="w-4 h-4" />
             </Link>
@@ -558,57 +500,61 @@ const Home = () => {
             {loading ? (
               <LoadingState message="Loading latest verified listings..." />
             ) : featuredBooks.length === 0 ? (
-              <div className="p-10 text-center bg-white rounded-lg border border-stone-200 text-stone-500 text-sm">
+              <div className="paper p-10 text-center rounded-2xl text-stone-500 text-sm">
                 No public listings available right now. Be the first to list a book!
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-y-10">
                 {featuredBooks.map((book) => (
-                  <BookCard key={book.id} listing={book} />
+                  <ShelfBook key={book.id} listing={book} />
                 ))}
               </div>
             )}
           </div>
         </section>
 
-        {/* ─── COMMUNITY STATS ─── */}
-        <section className="py-14 sm:py-20 border-b border-stone-200">
-          <div className="reveal grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {[
-              { label: 'Books Listed', value: '1,200+', icon: <BookOpen className="w-5 h-5" /> },
-              { label: 'Verified Readers', value: '400+', icon: <Users className="w-5 h-5" /> },
-              { label: 'Successful Swaps', value: '850+', icon: <ArrowRightLeft className="w-5 h-5" /> },
-              { label: 'Community Rating', value: '4.9', icon: <Star className="w-5 h-5" /> },
-            ].map((stat, i) => (
-              <div key={i} className={`reveal-delay-${i + 1} space-y-2`}>
-                <div className="w-10 h-10 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center mx-auto">
-                  {stat.icon}
+        {/* ─── COMMUNITY STATS — stitched leather strip ─── */}
+        <section className="py-14 sm:py-20 border-t border-dashed border-moss-200">
+          <div className="reveal leather-sand stitched stitched-moss rounded-2xl px-6 py-10 shadow-[0_12px_30px_-14px_rgba(70,40,15,0.4)]">
+            <div className="relative z-[2] grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              {[
+                { label: 'Books Listed', value: '1,200+', icon: <BookOpen className="w-5 h-5" /> },
+                { label: 'Verified Readers', value: '400+', icon: <Users className="w-5 h-5" /> },
+                { label: 'Successful Swaps', value: '850+', icon: <ArrowRightLeft className="w-5 h-5" /> },
+                { label: 'Community Rating', value: '4.9', icon: <Star className="w-5 h-5" /> },
+              ].map((stat, i) => (
+                <div key={i} className={`reveal-delay-${i + 1} space-y-2`}>
+                  <div className="well w-12 h-12 rounded-full text-moss-600 flex items-center justify-center mx-auto">
+                    {stat.icon}
+                  </div>
+                  <p className="text-3xl sm:text-4xl font-display font-extrabold deboss">{stat.value}</p>
+                  <p className="text-xs text-leather-800 font-semibold emboss">{stat.label}</p>
                 </div>
-                <p className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">{stat.value}</p>
-                <p className="text-xs text-stone-500 font-medium">{stat.label}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
         {/* ─── FINAL CTA ─── */}
-        <section className="py-14 sm:py-20 pb-16">
-          <div className="reveal bg-[#f4f1ea] rounded-lg p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 border border-stone-300/50">
-            <div className="space-y-3 text-center md:text-left">
-              <h3 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
-                Ready to swap your first book?
-              </h3>
-              <p className="text-sm text-stone-600 max-w-xl leading-relaxed">
-                Registration is quick. All new reader accounts undergo administrator identity verification to keep the community safe and scam-free.
-              </p>
+        <section className="pt-4 pb-16 sm:pb-20">
+          <div className="reveal leather-tan stitched rounded-2xl p-8 sm:p-12 shadow-[0_18px_40px_-16px_rgba(70,40,15,0.55)]" style={{ '--stitch-inset': '9px', '--stitch-radius': '12px' }}>
+            <div className="relative z-[2] flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="space-y-3 text-center md:text-left">
+                <h3 className="text-2xl sm:text-3xl font-display font-extrabold emboss-light">
+                  Ready to swap your first book?
+                </h3>
+                <p className="text-sm text-leather-900 font-medium max-w-xl leading-relaxed emboss">
+                  Registration is quick. All new reader accounts undergo administrator identity verification to keep the community safe and scam-free.
+                </p>
+              </div>
+              <Link
+                to="/register"
+                className="btn-pillow !text-moss-700 px-8 py-3.5 font-bold text-sm rounded-xl flex items-center gap-2 shrink-0"
+              >
+                Create Reader Account
+                <ChevronRight className="w-4 h-4" />
+              </Link>
             </div>
-            <Link
-              to="/register"
-              className="px-8 py-3.5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-sm rounded-md shadow-sm transition-all flex items-center gap-2 shrink-0"
-            >
-              Create Reader Account
-              <ChevronRight className="w-4 h-4" />
-            </Link>
           </div>
         </section>
       </div>

@@ -22,28 +22,28 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-leather-900/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Dialog content */}
       <div
-        className={`relative w-full ${maxWidth} bg-white rounded-xl shadow-2xl border border-stone-200/90 overflow-hidden transform transition-all z-10 my-8`}
+        className={`relative w-full ${maxWidth} leather-tan stitched rounded-lg p-2.5 shadow-[0_24px_60px_-20px_rgba(70,40,15,0.6)] transform transition-all z-10 my-8`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-stone-50/70">
-          <h3 className="text-lg font-bold font-serif text-stone-800">{title}</h3>
+        <div className="relative z-[2] flex items-center justify-between px-3.5 pt-1.5 pb-3">
+          <h3 className="text-lg font-display font-extrabold emboss-light">{title}</h3>
           <button
             onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 p-1 rounded-lg hover:bg-stone-200/50 transition-colors"
+            className="btn-pillow p-1 rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <div className="paper relative z-[2] rounded p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
           {children}
         </div>
       </div>

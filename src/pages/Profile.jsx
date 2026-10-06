@@ -112,34 +112,38 @@ const Profile = () => {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-800 text-amber-50 font-bold text-2xl flex items-center justify-center shadow-md">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+      {/* Header Banner — the reader's pass */}
+      <div className="leather-tan stitched rounded-xl px-6 py-6 sm:px-8 shadow-[0_18px_40px_-16px_rgba(70,40,15,0.55)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6" style={{ '--stitch-radius': '8px' }}>
+        <div className="relative z-[2] flex items-center gap-5">
+          {/* Profile photo placeholder */}
+          <div className="well w-20 h-20 rounded-full overflow-hidden ring-4 ring-leather-300/70 shadow-[0_4px_10px_-2px_rgba(70,40,15,0.45)] flex items-end justify-center shrink-0" aria-hidden="true">
+            <svg viewBox="0 0 32 32" className="w-[70px] h-[70px] text-leather-300">
+              <circle cx="16" cy="12.5" r="6" fill="currentColor" />
+              <path d="M4 32c0-7 5.4-11.5 12-11.5S28 25 28 32z" fill="currentColor" />
+            </svg>
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-serif font-bold text-stone-900">{user?.name}</h1>
+            <span className="font-hand text-xl text-moss-800">reader's pass</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-display font-extrabold emboss-light leading-tight">{user?.name}</h1>
               <StatusBadge status={user?.status} />
             </div>
-            <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-1">
+            <p className="text-xs font-semibold deboss flex items-center gap-1.5 mt-1">
               <Mail className="w-3.5 h-3.5" />
               {user?.email}
             </p>
           </div>
         </div>
 
-        {/* Completed Swaps Reliability Indicator */}
-        <div className="bg-emerald-900/10 border border-emerald-900/20 p-3.5 rounded-2xl flex items-center gap-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-800 text-amber-50 flex items-center justify-center shadow-sm">
-            <Award className="w-5 h-5 text-amber-200" />
+        {/* Completed Swaps Reliability Indicator — green leather medallion */}
+        <div className="relative z-[2] flex items-center gap-3 shrink-0">
+          <div className="btn-moss w-[72px] h-[72px] rounded-full flex flex-col items-center justify-center shadow-md">
+            <Award className="w-4 h-4 text-moss-100" />
+            <span className="font-display font-extrabold text-2xl leading-none">{user?.exchange_count ?? 0}</span>
           </div>
           <div>
-            <p className="text-xs font-bold text-emerald-900">Reliability Indicator</p>
-            <p className="text-sm font-extrabold text-emerald-800">
-              {user?.exchange_count ?? 0} Completed Swaps
-            </p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] deboss">Reliability</p>
+            <p className="font-display font-extrabold text-base text-leather-900 leading-tight">Completed<br />Swaps</p>
           </div>
         </div>
       </div>

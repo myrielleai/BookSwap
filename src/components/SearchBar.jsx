@@ -17,7 +17,7 @@ const SearchBar = ({ onSearch, initialValue = '', placeholder = 'Search by title
   return (
     <form onSubmit={handleSubmit} className="relative w-full">
       <div className="relative flex items-center">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-leather-400 z-[1]">
           <Search className="w-5 h-5" />
         </div>
         <input
@@ -26,7 +26,7 @@ const SearchBar = ({ onSearch, initialValue = '', placeholder = 'Search by title
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
           maxLength={100}
-          className="block w-full pl-10 pr-24 py-3 bg-white border border-stone-300 rounded-xl text-sm placeholder-stone-400 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-sm transition-all"
+          className="field-inset block w-full pl-10 pr-24 py-3 rounded-xl text-sm placeholder-stone-400 text-stone-900 focus:outline-none"
         />
         {query && (
           <button
@@ -39,7 +39,7 @@ const SearchBar = ({ onSearch, initialValue = '', placeholder = 'Search by title
         )}
         <button
           type="submit"
-          className="absolute right-2 px-4 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-amber-50 text-xs font-semibold rounded-lg transition-colors shadow-sm"
+          className="btn-leather absolute right-2 px-4 py-1.5 text-xs font-semibold rounded-lg"
         >
           Search
         </button>
