@@ -19,6 +19,29 @@ if (is_file(__DIR__ . '/local.php')) {
     require_once __DIR__ . '/local.php';
 }
 
+// ── Environment Variables ─────────────────────────────────────────────────────
+// A hosted server (Render) has no local.php, so the same settings are read from
+// environment variables instead. Anything local.php already defined wins.
+foreach ([
+    'JWT_SECRET', 'APP_TIMEZONE', 'BOOKSWAP_APP_URL',
+    'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_SSL_CA',
+    'BREVO_API_KEY', 'BREVO_FROM_EMAIL', 'GOOGLE_CLIENT_ID',
+    'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY',
+] as $name) {
+    $value = getenv($name);
+    if ($value !== false && $value !== '' && !defined($name)) {
+        define($name, $value);
+    }
+}
+if (!defined('APP_DEBUG') && getenv('APP_DEBUG') !== false) {
+    define('APP_DEBUG', filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN));
+}
+// Comma-separated, e.g. "https://bookswap.vercel.app,http://localhost:3000".
+if (!defined('CORS_ORIGINS') && getenv('CORS_ORIGINS')) {
+    define('CORS_ORIGINS', array_values(array_filter(array_map('trim', explode(',', getenv('CORS_ORIGINS'))))));
+}
+unset($name, $value);
+
 // Anything local.php did not define falls back to a safe default. With the
 // placeholder secret, login is refused and no token is ever accepted, because
 // anyone reading this repository could forge tokens signed with it.
@@ -143,8 +166,8 @@ defined('BREVO_FROM_EMAIL') || define('BREVO_FROM_EMAIL', 'als.jn05@gmail.com');
 defined('BREVO_FROM_NAME')  || define('BREVO_FROM_NAME',  'BookSwap');
 
 // ── App URL (used in email links) ─────────────────────────────────────────────
-// TODO: Replace with your actual InfinityFree or Vercel deployment URL.
-define('BOOKSWAP_APP_URL', 'https://your-bookswap-app.rf.gd');
+// The Vercel site; set BOOKSWAP_APP_URL on the server to override.
+defined('BOOKSWAP_APP_URL') || define('BOOKSWAP_APP_URL', 'http://localhost:3000');
 
 // ── Local Storage (cached files: Google signing keys, etc.) ───────────────────
 define('STORAGE_DIR', __DIR__ . '/../../storage/');

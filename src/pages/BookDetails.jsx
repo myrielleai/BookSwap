@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { listingService, exchangeService, userService } from '../services/api';
+import { listingService, exchangeService, userService, getPhotoUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -153,15 +153,11 @@ const BookDetails = () => {
   if (error) return <ErrorMessage message={error} onRetry={fetchListingDetails} />;
   if (!listing) return null;
 
-  const rawPhoto =
-    listing.cover_photo_path ||
-    listing.cover_photo ||
-    (listing.photos && listing.photos[0] ? listing.photos[0].file_path : null) ||
-    (listing.cover_photo_id ? `/api/photos/${listing.cover_photo_id}` : null);
-
-  const photoUrl = rawPhoto
-    ? (rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`)
-    : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
+  const firstPhoto = listing.photos && listing.photos[0];
+  const photoUrl = getPhotoUrl(
+    listing.cover_photo_path || listing.cover_photo || firstPhoto?.file_path,
+    listing.cover_photo_id || firstPhoto?.id
+  );
 
   const isOwner = user && user.id === listing.user_id;
 

@@ -1,0 +1,11 @@
+node_modules
+dist
+src
+public
+docs
+screenshots
+storage
+uploads
+backend/config/local.php
+backend/database/*.sqlite
+.git

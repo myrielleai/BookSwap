@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, MapPin, User, Sparkles, ArrowRightLeft } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import { getPhotoUrl } from '../services/api';
 
 const BookCard = ({ listing, onQuickSwap, showActions = true }) => {
   const {
@@ -21,10 +22,7 @@ const BookCard = ({ listing, onQuickSwap, showActions = true }) => {
     cover_photo_id,
   } = listing;
 
-  const rawPhoto = cover_photo_path || cover_photo || (cover_photo_id ? `/api/photos/${cover_photo_id}` : null);
-  const photoUrl = rawPhoto
-    ? (rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`)
-    : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
+  const photoUrl = getPhotoUrl(cover_photo_path || cover_photo, cover_photo_id);
 
   const conditionText = condition_label || condition_name || 'Good';
 

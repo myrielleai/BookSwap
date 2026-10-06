@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { staffService, categoryService } from '../services/api';
+import { staffService, categoryService, getPhotoUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import StatusBadge from '../components/StatusBadge';
@@ -254,10 +254,7 @@ const StaffDashboard = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {unverifiedListings.map((item) => {
-                  const rawPhoto = item.cover_photo_path || item.cover_photo || (item.cover_photo_id ? `/api/photos/${item.cover_photo_id}` : null);
-                  const photoUrl = rawPhoto
-                    ? (rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`)
-                    : 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
+                  const photoUrl = getPhotoUrl(item.cover_photo_path || item.cover_photo, item.cover_photo_id);
 
                   return (
                     <div key={item.id} className="bg-white rounded-2xl border border-stone-200/90 shadow-sm overflow-hidden flex flex-col justify-between">
