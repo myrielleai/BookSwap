@@ -61,6 +61,45 @@ function getDBConnection(): PDO {
                 PDO::ATTR_EMULATE_PREPARES   => true, // SQLite needs this for correlated subqueries
             ]);
 
+            // Register MySQL-compatible function polyfills for SQLite
+            $pdo->sqliteCreateFunction('NOW', function() {
+                return date('Y-m-d H:i:s');
+            });
+            $pdo->sqliteCreateFunction('CURDATE', function() {
+                return date('Y-m-d');
+            });
+            $pdo->sqliteCreateFunction('DATE_FORMAT', function($date, $format) {
+                if (!$date) return null;
+                $ts = strtotime($date);
+                if ($ts === false) return null;
+                $map = [
+                    '%Y' => 'Y', '%y' => 'y', '%m' => 'm', '%c' => 'n',
+                    '%d' => 'd', '%e' => 'j', '%H' => 'H', '%h' => 'h',
+                    '%i' => 'i', '%s' => 's', '%p' => 'A', '%b' => 'M', '%M' => 'F'
+                ];
+                $phpFormat = strtr($format, $map);
+                return date($phpFormat, $ts);
+            });
+            $pdo->sqliteCreateFunction('TIMESTAMPDIFF', function($unit, $d1, $d2) {
+                $t1 = strtotime($d1);
+                $t2 = strtotime($d2);
+                if ($t1 === false || $t2 === false) return 0;
+                $diffSec = $t2 - $t1;
+                switch (strtoupper($unit)) {
+                    case 'SECOND': return $diffSec;
+                    case 'MINUTE': return (int)($diffSec / 60);
+                    case 'HOUR':   return (int)($diffSec / 3600);
+                    case 'DAY':    return (int)($diffSec / 86400);
+                    default:       return $diffSec;
+                }
+            });
+            $pdo->sqliteCreateFunction('IFNULL', function($val, $alt) {
+                return $val !== null ? $val : $alt;
+            });
+            $pdo->sqliteCreateFunction('CONCAT', function(...$args) {
+                return implode('', $args);
+            });
+
             if ($isNew) {
                 initSqliteDatabase($pdo);
             }

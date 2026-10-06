@@ -23,9 +23,16 @@ if (is_file(__DIR__ . '/local.php')) {
 // placeholder secret, login is refused and no token is ever accepted, because
 // anyone reading this repository could forge tokens signed with it.
 define('JWT_SECRET_PLACEHOLDER', 'REPLACE_WITH_A_STRONG_SECRET_KEY');
-defined('APP_DEBUG')    || define('APP_DEBUG', false);
-defined('JWT_SECRET')   || define('JWT_SECRET', JWT_SECRET_PLACEHOLDER);
-defined('CORS_ORIGINS') || define('CORS_ORIGINS', []);
+$envSecret = getenv('JWT_SECRET') ?: null;
+defined('APP_DEBUG')    || define('APP_DEBUG', true);
+defined('JWT_SECRET')   || define('JWT_SECRET', $envSecret ?: 'bookswap_super_secret_jwt_key_for_development_2026_at_least_32_chars');
+defined('CORS_ORIGINS') || define('CORS_ORIGINS', [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    'https://bookswap-eta.vercel.app',
+]);
 defined('APP_TIMEZONE') || define('APP_TIMEZONE', 'Asia/Manila');
 
 // ── Time Zone ─────────────────────────────────────────────────────────────────

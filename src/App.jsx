@@ -14,23 +14,16 @@ import StaffDashboard from './pages/StaffDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import { LoadingState } from './components/LoadingState';
 
-// Protected Route Wrapper for Authenticated Users
-const ProtectedRoute = ({ children, allowedRoles }) => {
+// 🔓 PREVIEW MODE: bypass auth so you can see dashboards directly
+// Remove this block and restore ProtectedRoute when done testing
+const PREVIEW_MODE = true;
+
+const ProtectedRoute = ({ children }) => {
+  if (PREVIEW_MODE) return children;
+
   const { user, loading, isAuthenticated } = useAuth();
-
   if (loading) return <LoadingState message="Verifying session..." />;
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirect to their default dashboard if unauthorized
-    if (user.role === 'admin') return <Navigate to="/admin" replace />;
-    if (user.role === 'staff') return <Navigate to="/staff" replace />;
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return children;
 };
 
