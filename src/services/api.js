@@ -1,9 +1,6 @@
 import axios from 'axios';
 
-const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
-// Ignore dead or unresolvable InfinityFree host that causes network errors on Vercel
-const isDeadHost = rawBaseUrl.includes('bookswap.rf.gd') || rawBaseUrl.includes('rf.gd');
-const API_BASE_URL = (!rawBaseUrl || isDeadHost) ? '/api' : rawBaseUrl;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim() || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,7 +27,7 @@ api.interceptors.response.use(
     // If response returns standard JSON envelope { success, message, data, meta }
     return response.data;
   },
-  async (error) => {
+  (error) => {
     if (error.response) {
       // Server responded with non-2xx status
       const resData = error.response.data;
@@ -51,18 +48,8 @@ api.interceptors.response.use(
         data: resData,
       });
     } else if (error.request) {
-      // If external host failed with a network error, retry once pointing to same-origin /api
-      const cfg = error.config;
-      if (cfg && !cfg._retriedSameOrigin && cfg.baseURL && cfg.baseURL !== '/api') {
-        cfg._retriedSameOrigin = true;
-        cfg.baseURL = '/api';
-        try {
-          const retryRes = await axios(cfg);
-          return retryRes.data;
-        } catch (retryErr) {
-          error = retryErr;
-        }
-      }
+      // Request was made but no response received. Do not retry against the
+      // Vercel mock API: a real backend that is down must show as an error.
       return Promise.reject({
         status: 0,
         message: 'Network error. Please check your connection to the BookSwap server.',
