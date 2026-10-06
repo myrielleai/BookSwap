@@ -14,16 +14,21 @@ import StaffDashboard from './pages/StaffDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import { LoadingState } from './components/LoadingState';
 
-// 🔓 PREVIEW MODE: bypass auth so you can see dashboards directly
-// Remove this block and restore ProtectedRoute when done testing
-const PREVIEW_MODE = true;
-
-const ProtectedRoute = ({ children }) => {
-  if (PREVIEW_MODE) return children;
-
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading, isAuthenticated } = useAuth();
   if (loading) return <LoadingState message="Verifying session..." />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Redirect to their default dashboard if unauthorized
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'staff') return <Navigate to="/staff" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return children;
 };
 
@@ -38,8 +43,8 @@ const AppContent = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><Login /></div>} />
-          <Route path="/register" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><Register /></div>} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/register" element={<Navigate to="/" replace />} />
           <Route path="/browse" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><BrowseBooks /></div>} />
           <Route path="/listings/:id" element={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><BookDetails /></div>} />
 

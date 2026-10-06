@@ -41,7 +41,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const isActive = (path) => location.pathname === path;
@@ -224,16 +224,10 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  to="/login"
-                  className="px-4 py-2 text-stone-700 hover:text-stone-900 font-medium text-sm transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register"
+                  to="/"
                   className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-amber-50 font-medium text-sm rounded-lg shadow-md transition-all hover:scale-[1.02]"
                 >
-                  Register
+                  Sign In / Register
                 </Link>
               </div>
             )}
@@ -322,18 +316,11 @@ const Navbar = () => {
           ) : (
             <div className="pt-2 border-t border-stone-200 flex flex-col gap-2">
               <Link
-                to="/login"
+                to="/"
                 onClick={() => setMenuOpen(false)}
-                className="w-full text-center py-2 text-stone-700 font-medium text-sm border border-stone-300 rounded-lg bg-white"
+                className="w-full text-center py-2.5 bg-emerald-800 text-amber-50 font-medium text-sm rounded-lg shadow-sm"
               >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                onClick={() => setMenuOpen(false)}
-                className="w-full text-center py-2 bg-emerald-800 text-amber-50 font-medium text-sm rounded-lg"
-              >
-                Register
+                Sign In / Register
               </Link>
             </div>
           )}

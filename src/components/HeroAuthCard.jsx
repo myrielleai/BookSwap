@@ -20,6 +20,7 @@ import {
   validateNewPassword,
   onlyErrors,
 } from '../utils/validation';
+import TurnstileWidget from './TurnstileWidget';
 
 export const HeroAuthCard = () => {
   const { user, login, logout, register } = useAuth();
@@ -30,6 +31,7 @@ export const HeroAuthCard = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
@@ -46,7 +48,7 @@ export const HeroAuthCard = () => {
     }
 
     setSubmitting(true);
-    const result = await login(email, password);
+    const result = await login(email, password, turnstileToken);
     setSubmitting(false);
 
     if (result.success && result.user) {
@@ -87,6 +89,7 @@ export const HeroAuthCard = () => {
       email: email.trim(),
       password,
       confirm_password: confirmPassword,
+      turnstile_token: turnstileToken,
     });
     setSubmitting(false);
 
@@ -263,10 +266,16 @@ export const HeroAuthCard = () => {
             />
           </div>
 
+          {/* Cloudflare Turnstile Human Verification */}
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+          />
+
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 px-4 bg-emerald-800 hover:bg-emerald-700 text-amber-50 font-semibold text-xs sm:text-sm rounded-none shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+            className="w-full py-3 px-4 bg-emerald-800 hover:bg-emerald-700 text-amber-50 font-semibold text-xs sm:text-sm rounded-none shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-1"
           >
             {submitting ? 'Signing In...' : 'Sign In'}
           </button>
@@ -316,6 +325,9 @@ export const HeroAuthCard = () => {
               required
               className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-none text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
             />
+            <p className="text-[10px] text-stone-500 pt-0.5">
+              Verified against data breaches via HaveIBeenPwned API (k-Anonymity)
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -333,10 +345,16 @@ export const HeroAuthCard = () => {
             />
           </div>
 
+          {/* Cloudflare Turnstile Human Verification */}
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+          />
+
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 px-4 bg-emerald-800 hover:bg-emerald-700 text-amber-50 font-semibold text-xs sm:text-sm rounded-none shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+            className="w-full py-3 px-4 bg-emerald-800 hover:bg-emerald-700 text-amber-50 font-semibold text-xs sm:text-sm rounded-none shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-1"
           >
             {submitting ? 'Creating Account...' : 'Create Account'}
           </button>
