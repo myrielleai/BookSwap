@@ -3,7 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import FormInput from '../components/FormInput';
 import Button from '../components/Button';
-import { BookOpen, AlertCircle, Mail, Lock, KeyRound } from 'lucide-react';
+import { BookOpen, AlertCircle, Mail, Lock, KeyRound, ShieldCheck } from 'lucide-react';
+import TurnstileWidget from '../components/TurnstileWidget';
 
 const Login = () => {
   const { login } = useAuth();
@@ -12,6 +13,7 @@ const Login = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -27,7 +29,7 @@ const Login = () => {
     }
 
     setSubmitting(true);
-    const result = await login(email, password);
+    const result = await login(email, password, turnstileToken);
     setSubmitting(false);
 
     if (result.success && result.user) {
@@ -85,7 +87,13 @@ const Login = () => {
             required
           />
 
-          <div className="pt-2">
+          {/* Cloudflare Turnstile Human Verification */}
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+          />
+
+          <div className="pt-1">
             <button
               type="submit"
               disabled={submitting}

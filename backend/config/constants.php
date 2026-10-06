@@ -156,3 +156,10 @@ define('BOOK_CACHE_MISSING_DAYS',  1);  // How long an ISBN that returned nothin
 // ── Security API (HaveIBeenPwned Passwords API) ───────────────────────────────
 define('HIBP_PWNED_API_URL',        'https://api.pwnedpasswords.com/range/');
 
+// ── Bot Protection API (Cloudflare Turnstile) ──────────────────────────────────
+// Defaults to Cloudflare's official testing keys (always passes for local development).
+// In production, set custom keys in config/local.php.
+defined('TURNSTILE_SITE_KEY')   || define('TURNSTILE_SITE_KEY',   '1x00000000000000000000AA');
+defined('TURNSTILE_SECRET_KEY') || define('TURNSTILE_SECRET_KEY', '1x0000000000000000000000000000000AA');
+define('TURNSTILE_VERIFY_URL',    'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+

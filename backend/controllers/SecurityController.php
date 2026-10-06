@@ -77,6 +77,13 @@ class SecurityController {
                     'privacy'     => 'Zero Google user passwords stored locally',
                 ],
                 [
+                    'name'        => 'Cloudflare Turnstile Bot Protection API',
+                    'endpoint'    => TURNSTILE_VERIFY_URL,
+                    'purpose'     => 'Non-intrusive human verification and automated bot mitigation on login & register',
+                    'technique'   => 'Server-side siteverify proof-of-humanity verification',
+                    'privacy'     => 'Privacy-preserving browser challenge with no puzzle solving',
+                ],
+                [
                     'name'        => 'Open Library Books API',
                     'endpoint'    => OPEN_LIBRARY_BASE_URL,
                     'purpose'     => 'Book metadata and cover lookup proxy',

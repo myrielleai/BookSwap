@@ -37,9 +37,9 @@ export const AuthProvider = ({ children }) => {
     fetchProfile();
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, turnstileToken = null) => {
     try {
-      const res = await authService.login(email, password);
+      const res = await authService.login(email, password, turnstileToken);
       if (res.success && res.data) {
         const { token: newToken, user: userData } = res.data;
         localStorage.setItem('bookswap_token', newToken);

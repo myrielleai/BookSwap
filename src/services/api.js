@@ -63,7 +63,7 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  login: (email, password) => api.post('/auth/login', { email, password }),
+  login: (email, password, turnstile_token) => api.post('/auth/login', { email, password, turnstile_token }),
   register: (userData) => api.post('/auth/register', userData),
   logout: () => api.post('/auth/logout'),
 };

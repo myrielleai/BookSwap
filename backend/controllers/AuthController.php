@@ -27,6 +27,7 @@ require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../helpers/google_auth.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
+require_once __DIR__ . '/../helpers/turnstile.php';
 require_once __DIR__ . '/../helpers/email.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../config/database.php';
@@ -56,6 +57,14 @@ class AuthController {
      */
     public function register(): void {
         $body = getRequestBody();
+
+        // ── Bot Protection Check (Cloudflare Turnstile) ──────────────────────
+        if (isset($body['turnstile_token'])) {
+            $turnstile = verifyTurnstileToken((string) $body['turnstile_token']);
+            if (!$turnstile['success']) {
+                sendError($turnstile['error'], 422, ['turnstile' => $turnstile['error']]);
+            }
+        }
 
         // ── Validate inputs ───────────────────────────────────────────────────
         $errors = [];
@@ -141,6 +150,14 @@ class AuthController {
      */
     public function login(): void {
         $body = getRequestBody();
+
+        // ── Bot Protection Check (Cloudflare Turnstile) ──────────────────────
+        if (isset($body['turnstile_token'])) {
+            $turnstile = verifyTurnstileToken((string) $body['turnstile_token']);
+            if (!$turnstile['success']) {
+                sendError($turnstile['error'], 422, ['turnstile' => $turnstile['error']]);
+            }
+        }
 
         // ── Validate inputs ───────────────────────────────────────────────────
         $errors = [];

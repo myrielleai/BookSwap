@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import FormInput from '../components/FormInput';
 import Button from '../components/Button';
-import { BookOpen, CheckCircle, AlertCircle, Mail, Lock, Phone, User, MapPin } from 'lucide-react';
+import { BookOpen, CheckCircle, AlertCircle, Mail, Lock, Phone, User, MapPin, ShieldCheck } from 'lucide-react';
+import TurnstileWidget from '../components/TurnstileWidget';
 import {
   validateFullName,
   validateEmailAddress,
@@ -26,6 +27,7 @@ const Register = () => {
     confirm_password: '',
   });
 
+  const [turnstileToken, setTurnstileToken] = useState(null);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
@@ -72,6 +74,7 @@ const Register = () => {
       city: formData.city.trim() || null,
       password: formData.password,
       confirm_password: formData.confirm_password,
+      turnstile_token: turnstileToken,
     });
 
     setSubmitting(false);
@@ -195,7 +198,13 @@ const Register = () => {
               required
             />
 
-            <div className="pt-2">
+            {/* Cloudflare Turnstile Human Verification */}
+            <TurnstileWidget
+              onVerify={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken(null)}
+            />
+
+            <div className="pt-1">
               <Button type="submit" variant="primary" className="w-full" isLoading={submitting}>
                 Register Account
               </Button>
