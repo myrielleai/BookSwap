@@ -224,9 +224,11 @@ class AuthController {
             'token'      => $token,
             'expires_at' => date(DATE_ATOM, $expiresAt),
             'user'       => [
-                'id'   => (int) $user['id'],
-                'name' => $user['name'],
-                'role' => $user['role'],
+                'id'     => (int) $user['id'],
+                'name'   => $user['name'],
+                'email'  => $user['email'],
+                'role'   => $user['role'],
+                'status' => $user['status'],
             ],
         ], 'Login successful.');
     }
@@ -319,9 +321,11 @@ class AuthController {
             'expires_at' => date(DATE_ATOM, $expiresAt),
             'provider'   => 'google',
             'user'       => [
-                'id'   => (int) $user['id'],
-                'name' => $user['name'],
-                'role' => $user['role'],
+                'id'     => (int) $user['id'],
+                'name'   => $user['name'],
+                'email'  => $user['email'],
+                'role'   => $user['role'],
+                'status' => $user['status'],
             ],
         ], 'Login successful.');
     }

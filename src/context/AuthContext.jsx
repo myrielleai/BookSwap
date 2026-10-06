@@ -44,8 +44,10 @@ export const AuthProvider = ({ children }) => {
         const { token: newToken, user: userData } = res.data;
         localStorage.setItem('bookswap_token', newToken);
         setToken(newToken);
-        setUser(userData);
-        return { success: true, user: userData };
+        const fullUser = { status: 'active', ...userData };
+        setUser(fullUser);
+        fetchProfile();
+        return { success: true, user: fullUser };
       }
       return { success: false, message: res.message || 'Login failed' };
     } catch (err) {
@@ -88,7 +90,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         refreshProfile,
-        isAuthenticated: !!user && user.status === 'active',
+        isAuthenticated: !!user && (user.status ? user.status === 'active' : true),
         isPending: !!user && user.status === 'pending',
         isAdmin: user?.role === 'admin',
         isStaff: user?.role === 'staff' || user?.role === 'admin',
