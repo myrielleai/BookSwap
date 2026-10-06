@@ -18,6 +18,7 @@
 
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/response.php';
+require_once __DIR__ . '/security_pwned.php';
 
 // ── Field Validation ──────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ function validateInList(string $field, $value, array $allowed, array &$errors): 
  * @param string $password The plain-text password from the form.
  * @param array  &$errors  Errors array to append to on failure.
  */
-function validatePassword(string $password, array &$errors): void {
+function validatePassword(string $password, array &$errors, bool $checkBreached = true): void {
     if (strlen($password) < 8) {
         $errors['password'] = 'Password must be at least 8 characters.';
         return;
@@ -104,6 +105,15 @@ function validatePassword(string $password, array &$errors): void {
     }
     if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
         $errors['password'] = 'Password must contain at least one letter and one number.';
+        return;
+    }
+
+    if ($checkBreached) {
+        $breach = checkPasswordBreach($password);
+        if ($breach['breached']) {
+            $countFormatted = number_format($breach['count']);
+            $errors['password'] = "This password was compromised in {$countFormatted} public data breaches (verified via HaveIBeenPwned API). Please choose a more secure password.";
+        }
     }
 }
 

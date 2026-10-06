@@ -179,6 +179,7 @@ const Register = () => {
               value={formData.password}
               onChange={handleChange}
               error={errors.password}
+              helperText="Verified against public data breaches via HaveIBeenPwned API (k-Anonymity)"
               required
             />
 

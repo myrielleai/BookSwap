@@ -153,3 +153,6 @@ define('OPEN_LIBRARY_BASE_URL',    'https://openlibrary.org');
 define('BOOK_CACHE_FOUND_DAYS',    30); // How long a found book's details are cached
 define('BOOK_CACHE_MISSING_DAYS',  1);  // How long an ISBN that returned nothing is cached
 
+// ── Security API (HaveIBeenPwned Passwords API) ───────────────────────────────
+define('HIBP_PWNED_API_URL',        'https://api.pwnedpasswords.com/range/');
+

@@ -32,12 +32,17 @@ require_once __DIR__ . '/../controllers/ExchangeController.php';
 require_once __DIR__ . '/../controllers/TransactionController.php';
 require_once __DIR__ . '/../controllers/CategoryController.php';
 require_once __DIR__ . '/../controllers/BookController.php';
+require_once __DIR__ . '/../controllers/SecurityController.php';
 require_once __DIR__ . '/../helpers/response.php';
 
 // ── Route Table ───────────────────────────────────────────────────────────────
 // Format: 'METHOD /api/path'     → ['Controller', 'method']
 //         'METHOD /api/path/{id}'→ ['Controller', 'method']  ← {id} auto-extracted
 $routes = [
+
+    // ── Security API (HaveIBeenPwned & Status) ─────────────────────────────────
+    'POST /api/security/check-password' => ['SecurityController', 'checkPassword'],
+    'GET  /api/security/status'         => ['SecurityController', 'status'],
 
     // ── Auth ──────────────────────────────────────────────────────────────────
     'POST /api/auth/register' => ['AuthController', 'register'],
