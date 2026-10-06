@@ -24,7 +24,7 @@ import {
 const BookDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isCustomer } = useAuth();
 
   const [listing, setListing] = useState(null);
   const [userListings, setUserListings] = useState([]);
@@ -187,6 +187,8 @@ const BookDetails = () => {
             }}
           />
 
+          {/* Watchlist button — customers only */}
+          {isCustomer && (
           <button
             onClick={handleToggleWatchlist}
             className={`absolute top-4 right-4 p-3 rounded-full shadow-md backdrop-blur-md transition-all ${
@@ -198,6 +200,7 @@ const BookDetails = () => {
           >
             {isWatchlisted ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
           </button>
+          )}
         </div>
 
         {/* Details Content Column */}
@@ -302,7 +305,7 @@ const BookDetails = () => {
               >
                 Manage This Listing in Dashboard
               </Link>
-            ) : listing.status === 'available' ? (
+            ) : isCustomer && listing.status === 'available' ? (
               <Button
                 variant="primary"
                 size="lg"
@@ -312,11 +315,11 @@ const BookDetails = () => {
               >
                 Propose 1-to-1 Exchange
               </Button>
-            ) : (
+            ) : listing.status !== 'available' ? (
               <div className="w-full p-3 bg-stone-100 text-stone-500 text-xs text-center rounded-xl font-medium">
                 This listing is currently {listing.status} and not taking new swap proposals.
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

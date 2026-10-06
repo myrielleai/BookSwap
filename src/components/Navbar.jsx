@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 const Navbar = () => {
-  const { user, isAuthenticated, isPending, logout, isAdmin, isStaff } = useAuth();
+  const { user, isAuthenticated, isPending, logout, isAdmin, isStaff, isCustomer } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -76,7 +76,7 @@ const Navbar = () => {
               Browse Catalog
             </Link>
 
-            {isAuthenticated && (
+            {isCustomer && (
               <Link
                 to="/add-listing"
                 className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
@@ -112,7 +112,8 @@ const Navbar = () => {
                   </span>
                 </Link>
 
-                {/* Notifications Link */}
+                {/* Notifications Link — customers only (staff/admin have no notifications tab in their dashboards) */}
+                {isCustomer && (
                 <Link
                   to="/dashboard?tab=notifications"
                   className="relative p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-lg transition-colors"
@@ -125,6 +126,7 @@ const Navbar = () => {
                     </span>
                   )}
                 </Link>
+                )}
 
                 {/* Profile Dropdown */}
                 <div className="relative">
@@ -164,6 +166,7 @@ const Navbar = () => {
                         Profile Settings
                       </Link>
 
+                      {isCustomer && (
                       <Link
                         to="/dashboard"
                         className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50"
@@ -171,6 +174,7 @@ const Navbar = () => {
                         <LayoutDashboard className="w-4 h-4 text-stone-400" />
                         Reader Dashboard
                       </Link>
+                      )}
 
                       {isStaff && (
                         <Link
@@ -259,6 +263,7 @@ const Navbar = () => {
           </Link>
           {isAuthenticated ? (
             <>
+              {isCustomer && (
               <Link
                 to="/add-listing"
                 onClick={() => setMenuOpen(false)}
@@ -266,13 +271,16 @@ const Navbar = () => {
               >
                 List a Book
               </Link>
+              )}
+              {isCustomer && (
               <Link
                 to="/dashboard"
                 onClick={() => setMenuOpen(false)}
                 className="block py-2 text-sm font-medium text-stone-700 hover:text-emerald-800"
               >
-                Dashboard
+                My Dashboard
               </Link>
+              )}
               <Link
                 to="/profile"
                 onClick={() => setMenuOpen(false)}

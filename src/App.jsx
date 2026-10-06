@@ -54,7 +54,7 @@ const AppContent = () => {
           <Route
             path="/add-listing"
             element={
-              <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+              <ProtectedRoute allowedRoles={['customer']}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><AddListing /></div>
               </ProtectedRoute>
             }
@@ -62,7 +62,7 @@ const AppContent = () => {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+              <ProtectedRoute allowedRoles={['customer']}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><UserDashboard /></div>
               </ProtectedRoute>
             }
