@@ -62,6 +62,9 @@ function getDBConnection(): PDO {
         // A hosted database that refuses the connection is a real outage. Falling
         // back to SQLite there would serve seed data that a redeploy wipes.
         if (!in_array(DB_HOST, ['localhost', '127.0.0.1'], true)) {
+            if (DB_SSL_CA !== '' && !is_readable(DB_SSL_CA)) {
+                error_log('[BookSwap DB Error] CA certificate not readable: ' . DB_SSL_CA);
+            }
             error_log('[BookSwap DB Error] MySQL: ' . $e->getMessage());
             sendError('Database connection failed.', 500);
         }

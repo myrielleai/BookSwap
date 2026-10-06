@@ -14,7 +14,13 @@ RUN mkdir -p /var/www/uploads/books /var/www/storage \
  && chown -R www-data:www-data /var/www/uploads /var/www/storage
 
 # Render routes traffic to $PORT (10000 by default).
+# Render's secret files (/etc/secrets) are readable by root only, but PHP runs
+# as www-data, so the database CA certificate is copied somewhere it can read.
 ENV PORT=10000
-CMD sed -i "s/Listen 80$/Listen ${PORT}/" /etc/apache2/ports.conf \
+CMD if [ -n "$DB_SSL_CA" ] && [ -f "$DB_SSL_CA" ]; then \
+      cp "$DB_SSL_CA" /etc/ssl/certs/db-ca.pem && chmod 644 /etc/ssl/certs/db-ca.pem \
+      && export DB_SSL_CA=/etc/ssl/certs/db-ca.pem; \
+    fi \
+ && sed -i "s/Listen 80$/Listen ${PORT}/" /etc/apache2/ports.conf \
  && sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf \
  && apache2-foreground
