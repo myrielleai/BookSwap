@@ -184,24 +184,21 @@ const StaffDashboard = () => {
       {/* ── Welcome Banner ── */}
       {showWelcome && (
         <div
-          style={{
-            background: 'linear-gradient(135deg, #15803d 0%, #16a34a 60%, #22c55e 100%)',
-            animation: 'slideDownFade 0.5s ease forwards',
-          }}
-          className="relative flex items-center justify-between gap-4 rounded-2xl px-6 py-4 mb-6 shadow-lg text-white overflow-hidden"
+          style={{ animation: 'slideDownFade 0.5s ease forwards' }}
+          className="relative flex items-center justify-between gap-4 rounded-2xl px-6 py-5 mb-6 glass-panel border border-stone-200/60 shadow-sm overflow-hidden"
         >
-          <div className="absolute -top-8 -left-8 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          {/* subtle decorative background instead of glowing blobs */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-stone-100/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl shrink-0">👋</div>
+            <div className="w-10 h-10 rounded-full bg-[#f4f1ea] border border-stone-200 flex items-center justify-center text-xl shrink-0 shadow-inner">👋</div>
             <div>
-              <p className="text-base font-bold leading-tight">Welcome back, {welcomeName}!</p>
-              <p className="text-xs text-white/80 mt-0.5">You're signed in as Staff — ready to moderate listings. 🛡️</p>
+              <p className="text-base font-serif font-bold text-stone-900 leading-tight">Welcome back, {welcomeName}!</p>
+              <p className="text-xs text-stone-600 mt-0.5">You're signed in as Staff — ready to moderate listings. 🛡️</p>
             </div>
           </div>
           <button
             onClick={() => setShowWelcome(false)}
-            className="relative z-10 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shrink-0"
+            className="relative z-10 w-7 h-7 rounded-full bg-stone-100/80 hover:bg-stone-200 flex items-center justify-center text-stone-500 transition-colors shrink-0"
             aria-label="Dismiss welcome"
           >
             <X className="w-4 h-4" />
