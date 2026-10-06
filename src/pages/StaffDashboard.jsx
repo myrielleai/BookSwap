@@ -184,25 +184,41 @@ const StaffDashboard = () => {
       {/* ── Welcome Banner ── */}
       {showWelcome && (
         <div
-          style={{ animation: 'slideDownFade 0.5s ease forwards' }}
-          className="relative flex items-center justify-between gap-4 rounded-2xl px-6 py-5 mb-6 glass-panel border border-stone-200/60 shadow-sm overflow-hidden"
+          style={{ animation: 'slideDownFade 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards' }}
+          className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl px-8 py-8 mb-8 bg-amber-950 border border-amber-900 shadow-xl overflow-hidden"
         >
-          {/* subtle decorative background instead of glowing blobs */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-stone-100/50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="w-10 h-10 rounded-full bg-[#f4f1ea] border border-stone-200 flex items-center justify-center text-xl shrink-0 shadow-inner">👋</div>
-            <div>
-              <p className="text-base font-serif font-bold text-stone-900 leading-tight">Welcome back, {welcomeName}!</p>
-              <p className="text-xs text-stone-600 mt-0.5">You're signed in as Staff — ready to moderate listings. 🛡️</p>
+          {/* Elegant pattern overlay */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+          
+          {/* Large decorative background icon */}
+          <CheckCircle className="absolute -right-8 -bottom-12 w-64 h-64 text-amber-900/50 transform -rotate-12 pointer-events-none" />
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6 relative z-10 w-full">
+            <div className="w-16 h-16 rounded-2xl bg-amber-900/60 border border-amber-700/50 flex items-center justify-center shrink-0 shadow-inner backdrop-blur-sm">
+              <span className="text-3xl">🛡️</span>
+            </div>
+            
+            <div className="flex-1">
+              <p className="text-xs font-bold tracking-widest text-emerald-400/90 uppercase mb-1">
+                Exchange Moderator
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-serif text-amber-50 leading-tight">
+                Welcome back, <span className="italic font-medium">{welcomeName}</span>.
+              </h2>
+              <p className="text-sm text-amber-200/70 mt-2 max-w-xl leading-relaxed">
+                The community relies on your reviews. Verify new listings, assign handover slots, and resolve member disputes.
+              </p>
             </div>
           </div>
+
           <button
             onClick={() => setShowWelcome(false)}
-            className="relative z-10 w-7 h-7 rounded-full bg-stone-100/80 hover:bg-stone-200 flex items-center justify-center text-stone-500 transition-colors shrink-0"
+            className="relative z-10 w-8 h-8 rounded-full bg-amber-900/60 hover:bg-amber-800 border border-amber-700/50 flex items-center justify-center text-amber-300 transition-colors shrink-0 self-start sm:self-center"
             aria-label="Dismiss welcome"
           >
             <X className="w-4 h-4" />
           </button>
+
           <style>{`
             @keyframes slideDownFade {
               from { opacity: 0; transform: translateY(-12px); }
