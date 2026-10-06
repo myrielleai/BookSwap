@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { listingService } from '../services/api';
 import BookCard from '../components/BookCard';
 import { LoadingState } from '../components/LoadingState';
@@ -127,10 +128,18 @@ const DUMMY_BOOKS = [
 ];
 
 const Home = () => {
+  const { isAuthenticated, isAdmin, isStaff } = useAuth();
+  const navigate = useNavigate();
   const [featuredBooks, setFeaturedBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeQuote, setActiveQuote] = useState(0);
   const containerRef = useReveal();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(isAdmin ? '/admin' : isStaff ? '/staff' : '/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, isStaff, navigate]);
 
   useEffect(() => {
     const fetchBooks = async () => {

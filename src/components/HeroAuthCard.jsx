@@ -155,7 +155,10 @@ export const HeroAuthCard = () => {
           </button>
 
           <button
-            onClick={logout}
+            onClick={async () => {
+              await logout();
+              navigate('/');
+            }}
             className="w-full py-2.5 px-4 bg-stone-200/80 hover:bg-stone-300/80 text-stone-800 font-medium text-xs rounded-none border border-stone-300 transition-colors flex items-center justify-center gap-2"
           >
             <LogOut className="w-3.5 h-3.5" />
