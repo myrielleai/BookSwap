@@ -1,5 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#16a34a"/>
-  <path d="M8 8.5C8 7.67 8.67 7 9.5 7H14c1.1 0 2 .9 2 2v14c0-.55-.45-1-1-1H9.5c-.83 0-1.5.67-1.5 1.5V8.5z" fill="white" opacity="0.9"/>
-  <path d="M24 8.5C24 7.67 23.33 7 22.5 7H18c-1.1 0-2 .9-2 2v14c0-.55.45-1 1-1h5.5c.83 0 1.5.67 1.5 1.5V8.5z" fill="white" opacity="0.9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs>
+        <filter id="grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="noise" />
+          <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0.18  0 0 0 0 0.1  0 0 0 0 0.04  0 0 0 -1.6 1.05" result="specks" />
+          <feComposite in="specks" in2="SourceGraphic" operator="in" result="grain" />
+          <feMerge>
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="grain" />
+          </feMerge>
+        </filter>
+        <linearGradient id="caramel" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#8a5a2b" />
+          <stop offset="0.45" stop-color="#c08a50" />
+          <stop offset="1" stop-color="#956536" />
+        </linearGradient>
+        <linearGradient id="moss" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#304b2c" />
+          <stop offset="0.45" stop-color="#5c8b52" />
+          <stop offset="1" stop-color="#3b5d36" />
+        </linearGradient>
+        <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff4de" stop-opacity="0.35" />
+          <stop offset="0.5" stop-color="#fff4de" stop-opacity="0" />
+          <stop offset="1" stop-color="#2a1608" stop-opacity="0.25" />
+        </linearGradient>
+        <marker id="headBrown" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="1.7" markerHeight="1.7" orient="auto">
+          <path d="M0 0 L10 5 L0 10 Z" fill="#5f3e23" />
+        </marker>
+        <marker id="headMoss" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="1.7" markerHeight="1.7" orient="auto">
+          <path d="M0 0 L10 5 L0 10 Z" fill="#304b2c" />
+        </marker>
+      </defs>
+
+      
+        <g>
+          <rect x="1" y="1" width="62" height="62" rx="14" fill="#e8d5b3" />
+          <rect x="1" y="1" width="62" height="62" rx="14" fill="url(#sheen)" />
+          <rect x="4.5" y="4.5" width="55" height="55" rx="11" fill="none" stroke="#a8743f" stroke-width="1" stroke-dasharray="2.4 1.8" />
+        </g>
+
+      
+      <ellipse cx="32" cy="50.5" rx="22" ry="2.6" fill="#4a301c" opacity="0.28" />
+
+      
+      <g>
+        <rect x="27.6" y="18.6" width="3" height="29.8" rx="1" fill="#f3e7d3" stroke="#d6b483" stroke-width="0.4" />
+        <rect x="10" y="17" width="19" height="32" rx="3" fill="url(#caramel)" filter="url(#grain)" />
+        <rect x="10" y="17" width="19" height="32" rx="3" fill="url(#sheen)" />
+        <rect x="10" y="17" width="4.2" height="32" rx="2" fill="#6b4423" opacity="0.55" />
+        <line x1="10.6" y1="23" x2="14.2" y2="23" stroke="#e6d0ac" stroke-width="0.7" opacity="0.8" />
+        <line x1="10.6" y1="43" x2="14.2" y2="43" stroke="#e6d0ac" stroke-width="0.7" opacity="0.8" />
+        <rect x="16.2" y="20" width="10.6" height="26" rx="1.6" fill="none" stroke="#fbeed6" stroke-width="0.75" stroke-dasharray="1.5 1.1" opacity="0.9" />
+        <rect x="17.8" y="27" width="7.4" height="2" rx="0.6" fill="#5f3e23" opacity="0.45" />
+        <rect x="17.8" y="26.6" width="7.4" height="2" rx="0.6" fill="#f3e7d3" opacity="0.55" />
+      </g>
+
+      
+      <g>
+        <rect x="51.6" y="18.6" width="3" height="29.8" rx="1" fill="#f3e7d3" stroke="#d6b483" stroke-width="0.4" />
+        <rect x="34" y="17" width="19" height="32" rx="3" fill="url(#moss)" filter="url(#grain)" />
+        <rect x="34" y="17" width="19" height="32" rx="3" fill="url(#sheen)" />
+        <rect x="34" y="17" width="4.2" height="32" rx="2" fill="#263c24" opacity="0.55" />
+        <line x1="34.6" y1="23" x2="38.2" y2="23" stroke="#c6d9bf" stroke-width="0.7" opacity="0.8" />
+        <line x1="34.6" y1="43" x2="38.2" y2="43" stroke="#c6d9bf" stroke-width="0.7" opacity="0.8" />
+        <rect x="40.2" y="20" width="10.6" height="26" rx="1.6" fill="none" stroke="#eef4e8" stroke-width="0.75" stroke-dasharray="1.5 1.1" opacity="0.9" />
+        <rect x="41.8" y="27" width="7.4" height="2" rx="0.6" fill="#263c24" opacity="0.45" />
+        <rect x="41.8" y="26.6" width="7.4" height="2" rx="0.6" fill="#e2ecdd" opacity="0.55" />
+      </g>
+
+      
+      <path d="M18 13.5 Q32 2.5 45 11.5" fill="none" stroke="#5f3e23" stroke-width="3.2" stroke-linecap="round" marker-end="url(#headBrown)" />
+      <path d="M18 13.5 Q32 2.5 45 11.5" fill="none" stroke="#d6b483" stroke-width="0.9" stroke-linecap="round" opacity="0.7" />
+      <path d="M46 55.5 Q32 63.5 19 56" fill="none" stroke="#304b2c" stroke-width="3.2" stroke-linecap="round" marker-end="url(#headMoss)" />
+      <path d="M46 55.5 Q32 63.5 19 56" fill="none" stroke="#a0c095" stroke-width="0.9" stroke-linecap="round" opacity="0.7" />
 </svg>

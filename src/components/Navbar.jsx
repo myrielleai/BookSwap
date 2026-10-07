@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { userService } from '../services/api';
+import BrandLogo from './BrandLogo';
 import {
   BookOpen,
   PlusCircle,
@@ -104,9 +105,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl leather-caramel stitched stitched-sm text-amber-50 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform [&>svg]:relative [&>svg]:z-[2]">
-              <BookOpen className="w-5 h-5" />
-            </div>
+            <BrandLogo withTile className="w-11 h-11 drop-shadow-md group-hover:scale-105 transition-transform" />
             <div>
               <span className="font-display font-extrabold text-xl deboss tracking-tight">
                 Book<span className="text-moss-700">Swap</span>
