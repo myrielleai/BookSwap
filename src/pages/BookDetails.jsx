@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { listingService, exchangeService, userService, getPhotoUrl } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
+import { ListingCoverArt } from '../components/BookCover';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Dropdown from '../components/Dropdown';
@@ -174,14 +175,9 @@ const BookDetails = () => {
       <div className="bg-white rounded-3xl border border-stone-200/90 shadow-md overflow-hidden grid grid-cols-1 md:grid-cols-12 gap-0">
         {/* Cover Photo Column */}
         <div className="md:col-span-5 bg-stone-100 p-6 flex items-center justify-center relative min-h-[380px]">
-          <img
-            src={photoUrl}
-            alt={listing.title}
-            className="w-full max-h-[460px] object-contain rounded-2xl shadow-lg"
-            onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
-            }}
-          />
+          <div className="book-cover w-full max-w-[300px] shadow-lg">
+            <ListingCoverArt title={listing.title} author={listing.author} photoUrl={photoUrl} seed={listing.id} />
+          </div>
 
           {/* Watchlist button — customers only */}
           {isCustomer && (

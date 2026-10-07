@@ -1,43 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import BookCover, { PhotoBookCover, COVER_PALETTES } from './BookCover';
+import { COVER_PALETTES, ListingCoverArt, coverStyleFor } from './BookCover';
+import { getPhotoUrl } from '../services/api';
 
-// Placeholder listings use stock photos (not real covers) — show them as printed covers instead
-const PLACEHOLDER_COVERS = [
-  { palette: 'ivory', variant: 'classic' },
-  { palette: 'sage', variant: 'arch' },
-  { palette: 'terracotta', variant: 'bold' },
-  { palette: 'denim', variant: 'minimal' },
-  { palette: 'mustard', variant: 'band' },
-  { palette: 'plum', variant: 'stripe' },
-];
-
-const FALLBACK_COVER = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
-
-const placeholderStyle = (id) => {
-  const n = parseInt(String(id).replace('dummy-', ''), 10) || 1;
-  return PLACEHOLDER_COVERS[(n - 1) % PLACEHOLDER_COVERS.length];
-};
-
-/* Front cover for a listing — uploaded photo, or a printed cover for placeholders */
+/* Front cover for a listing: its uploaded photo, or a printed cover with its title and author */
 export const ListingCover = ({ listing }) => {
   const { id, title, author, cover_photo_path, cover_photo, cover_photo_id } = listing;
-
-  const rawPhoto = cover_photo_path || cover_photo || (cover_photo_id ? `/api/photos/${cover_photo_id}` : null);
-
-  // Dummy books with a hardcoded cover_photo_path → show the real photo
-  if (rawPhoto) {
-    const photoUrl = rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`;
-    return <PhotoBookCover src={photoUrl} alt={title} fallback={FALLBACK_COVER} />;
-  }
-
-  // Dummy books without a photo → fall back to the generated CSS cover
-  if (String(id).startsWith('dummy-')) {
-    return <BookCover title={title} author={author} {...placeholderStyle(id)} />;
-  }
-
-  // Real listings with no photo yet → generic fallback
-  return <PhotoBookCover src={FALLBACK_COVER} alt={title} fallback={FALLBACK_COVER} />;
+  return (
+    <div className="book-cover">
+      <ListingCoverArt
+        title={title}
+        author={author}
+        photoUrl={getPhotoUrl(cover_photo_path || cover_photo, cover_photo_id)}
+        seed={id}
+      />
+    </div>
+  );
 };
 
 /* A closed physical book: back board + page edges + front cover */
@@ -50,10 +28,8 @@ export const ClosedBook = ({ backColor = '#8c7458', children, className = '' }) 
   </div>
 );
 
-const backFor = (listing) =>
-  String(listing.id).startsWith('dummy-')
-    ? (COVER_PALETTES[placeholderStyle(listing.id).palette] || {}).bg
-    : '#8c7458';
+// Back board matches the generated cover's colour (a photo cover simply sits on top of it).
+const backFor = (listing) => (COVER_PALETTES[coverStyleFor(listing.id).palette] || {}).bg || '#8c7458';
 
 /* ─────────────────────────────────────────────────────────────
    HERO — recently verified books tossed casually on the desk

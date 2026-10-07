@@ -4,6 +4,7 @@ import { staffService, categoryService, getPhotoUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import StatusBadge from '../components/StatusBadge';
+import { ListingCoverArt } from '../components/BookCover';
 import CompletionRecord from '../components/CompletionRecord';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -263,11 +264,9 @@ const StaffDashboard = () => {
                     <div key={item.id} className="bg-white rounded-2xl border border-stone-200/90 shadow-sm overflow-hidden flex flex-col justify-between">
                       <div className="p-4 space-y-3">
                         <div className="flex gap-4">
-                          <img
-                            src={photoUrl}
-                            alt={item.title}
-                            className="w-24 h-32 object-cover rounded-xl border border-stone-200 shrink-0"
-                          />
+                          <div className="book-cover w-24 shrink-0">
+                            <ListingCoverArt title={item.title} author={item.author} photoUrl={photoUrl} seed={item.id} />
+                          </div>
                           <div className="space-y-1 text-xs">
                             <span className="font-bold text-emerald-900 bg-emerald-900/10 px-2 py-0.5 rounded-md">
                               {item.genre_name}

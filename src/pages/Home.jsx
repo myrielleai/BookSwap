@@ -22,6 +22,7 @@ import HeroAuthCard from '../components/HeroAuthCard';
 import GenreBookshelf from '../components/GenreBookshelf';
 import BookCover, { COVER_PALETTES } from '../components/BookCover';
 import { StepTag, StitchedCard, ClosedBook, HeroBookPile } from '../components/LandingUI';
+import BrandLogo from '../components/BrandLogo';
 
 /* ──────────────────────────────────────────────
    Intersection Observer hook for scroll-reveal
@@ -101,7 +102,6 @@ const DUMMY_BOOKS = [
     owner_name: 'Alex D.',
     city: 'Manila',
     preferred_return: 'Classic Literature',
-    cover_photo_path: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=300&h=420',
   },
   {
     id: 'dummy-2',
@@ -113,7 +113,6 @@ const DUMMY_BOOKS = [
     owner_name: 'Sarah M.',
     city: 'Quezon City',
     preferred_return: 'Fiction, Mystery',
-    cover_photo_path: 'https://images.unsplash.com/photo-1629992101753-56d196c8aabb?auto=format&fit=crop&q=80&w=300&h=420',
   },
   {
     id: 'dummy-3',
@@ -125,7 +124,6 @@ const DUMMY_BOOKS = [
     owner_name: 'Myrielle J.',
     city: 'Makati',
     preferred_return: 'Sci-Fi, Fantasy',
-    cover_photo_path: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=300&h=420',
   },
 ];
 
@@ -187,9 +185,7 @@ const Home = () => {
       <header className="leather-tan relative z-20 shadow-[0_2px_6px_rgba(70,40,15,0.35)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="leather-caramel stitched stitched-sm w-8 h-8 rounded-lg flex items-center justify-center shadow-sm">
-              <BookOpen className="w-4 h-4 text-amber-50 relative z-[2]" />
-            </span>
+            <BrandLogo withTile className="w-10 h-10 drop-shadow-md" />
             <span className="deboss font-display font-extrabold text-xl tracking-tight">BookSwap</span>
           </Link>
           <nav className="flex items-center gap-2">

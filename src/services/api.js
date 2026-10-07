@@ -160,14 +160,13 @@ export const adminService = {
   retireSlot: (id) => api.put(`/admin/handover-slots/${id}/retire`),
 };
 
-const FALLBACK_PHOTO = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
-
 // Uploaded photos are served by the API (GET /api/photos/{id}), which lives on
 // another host in production, so they must go through API_BASE_URL.
+// Returns null when a listing has no photo; ListingCoverArt then draws a printed cover.
 export const getPhotoUrl = (path, photoId) => {
   if (path && path.startsWith('http')) return path;
   if (photoId) return `${API_BASE_URL}/photos/${photoId}`;
-  return FALLBACK_PHOTO;
+  return null;
 };
 
 export default api;

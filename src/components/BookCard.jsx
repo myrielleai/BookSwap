@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, MapPin, User, Sparkles, ArrowRightLeft } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { getPhotoUrl } from '../services/api';
+import { ListingCoverArt } from './BookCover';
 
 const BookCard = ({ listing, onQuickSwap, showActions = true }) => {
   const {
@@ -31,14 +32,7 @@ const BookCard = ({ listing, onQuickSwap, showActions = true }) => {
       {/* The book itself, standing on the shelf */}
       <div className="relative px-[14%] pt-3">
         <div className="book-cover relative z-[1]">
-          <img
-            src={photoUrl}
-            alt={title}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600';
-            }}
-          />
+          <ListingCoverArt title={title} author={author} photoUrl={photoUrl} seed={listing.id} />
 
           {/* Status sticker on the cover */}
           <div className="absolute top-2 right-2 z-[5]">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 /* ─────────────────────────────────────────────────────────────
    Realistic printed book covers, drawn in CSS.
@@ -21,7 +21,32 @@ export const COVER_PALETTES = {
 
 const fs = (n) => ({ fontSize: `${n}cqw` });
 
-export const BookCover = ({ title, author, palette = 'cream', variant = 'classic', className = '' }) => {
+// Palette + layout pairs used for generated covers. Every pair keeps the title readable.
+const GENERATED_STYLES = [
+  { palette: 'ivory', variant: 'classic' },
+  { palette: 'sage', variant: 'arch' },
+  { palette: 'terracotta', variant: 'bold' },
+  { palette: 'denim', variant: 'minimal' },
+  { palette: 'mustard', variant: 'band' },
+  { palette: 'plum', variant: 'stripe' },
+  { palette: 'forest', variant: 'classic' },
+  { palette: 'teal', variant: 'bold' },
+  { palette: 'rose', variant: 'minimal' },
+  { palette: 'cream', variant: 'arch' },
+  { palette: 'olive', variant: 'stripe' },
+  { palette: 'sky', variant: 'band' },
+];
+
+// Same book, same cover: the style is picked from a stable hash of the seed (listing id or title).
+export const coverStyleFor = (seed) => {
+  const text = String(seed ?? '');
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return GENERATED_STYLES[hash % GENERATED_STYLES.length];
+};
+
+// The printed design alone, filling whatever .book-cover box it is placed in.
+export const CoverDesign = ({ title, author, palette = 'cream', variant = 'classic' }) => {
   const p = COVER_PALETTES[palette] || COVER_PALETTES.cream;
 
   const designs = {
@@ -85,10 +110,37 @@ export const BookCover = ({ title, author, palette = 'cream', variant = 'classic
   };
 
   return (
-    <div className={`book-cover ${className}`} style={{ background: p.bg }}>
+    <div className="absolute inset-0" style={{ background: p.bg }}>
       {designs[variant] || designs.classic}
     </div>
   );
+};
+
+export const BookCover = ({ title, author, palette = 'cream', variant = 'classic', className = '' }) => (
+  <div className={`book-cover ${className}`}>
+    <CoverDesign title={title} author={author} palette={palette} variant={variant} />
+  </div>
+);
+
+/*
+ * Cover art for a listing, placed inside a .book-cover box: the uploaded photo
+ * when there is one, otherwise (or if it fails to load) a printed cover showing
+ * the book's own title and author.
+ */
+export const ListingCoverArt = ({ title, author, photoUrl, seed }) => {
+  const [failedUrl, setFailedUrl] = useState(null);
+
+  if (photoUrl && failedUrl !== photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={title}
+        className="absolute inset-0 w-full h-full object-cover"
+        onError={() => setFailedUrl(photoUrl)}
+      />
+    );
+  }
+  return <CoverDesign title={title} author={author} {...coverStyleFor(seed ?? title)} />;
 };
 
 /* A real uploaded photo, dressed as a physical cover (spine hinge + gloss). */
