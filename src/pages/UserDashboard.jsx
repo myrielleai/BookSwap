@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar';
 import BookCard from '../components/BookCard';
 import ReaderDesk from '../components/ReaderDesk';
 import StatusBadge from '../components/StatusBadge';
+import CompletionRecord from '../components/CompletionRecord';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Dropdown from '../components/Dropdown';
@@ -506,6 +507,8 @@ const UserDashboard = () => {
                         </div>
                       </div>
                     )}
+
+                    {tx.status === 'completed' && <CompletionRecord tx={tx} />}
 
                     {/* Accepted but not yet scheduled: the next step is the moderator's */}
                     {tx.status === 'accepted' && (

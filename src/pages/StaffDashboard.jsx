@@ -4,6 +4,7 @@ import { staffService, categoryService, getPhotoUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import StatusBadge from '../components/StatusBadge';
+import CompletionRecord from '../components/CompletionRecord';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Dropdown from '../components/Dropdown';
@@ -73,7 +74,8 @@ const StaffDashboard = () => {
         staffService.getDashboard(),
         staffService.getAvailableSlots().catch(() => ({ data: [] })),
         staffService.getReports().catch(() => ({ data: [] })),
-        staffService.getTransactions().catch(() => ({ data: [] })),
+        // The API pages at 10 by default; 50 is its maximum.
+        staffService.getTransactions({ per_page: 50 }).catch(() => ({ data: [] })),
       ]);
 
       if (dashRes.success) setDashboardData(dashRes.data);
@@ -444,6 +446,8 @@ const StaffDashboard = () => {
                       </p>
                     </div>
                   </div>
+
+                  {tx.status === 'completed' && <CompletionRecord tx={tx} />}
 
                   {tx.status === 'scheduled' && (
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-stone-100">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { adminService, categoryService } from '../services/api';
+import { adminService, categoryService, staffService } from '../services/api';
+import { formatDateTime } from '../components/CompletionRecord';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import StatusBadge from '../components/StatusBadge';
@@ -51,6 +52,7 @@ const AdminDashboard = () => {
   const [topGenresReport, setTopGenresReport] = useState([]);
   const [cityReport, setCityReport] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
+  const [completedTxs, setCompletedTxs] = useState([]);
 
   const [genres, setGenres] = useState([]);
   const [conditions, setConditions] = useState([]);
@@ -125,7 +127,7 @@ const AdminDashboard = () => {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [uRes, sumRes, genRepRes, cityRepRes, actRes, gRes, cRes, locRes, slotRes] = await Promise.all([
+      const [uRes, sumRes, genRepRes, cityRepRes, actRes, gRes, cRes, locRes, slotRes, doneRes] = await Promise.all([
         adminService.getUsers(),
         adminService.getSummaryReport().catch(() => ({ data: null })),
         adminService.getTopGenresReport().catch(() => ({ data: [] })),
@@ -135,6 +137,8 @@ const AdminDashboard = () => {
         categoryService.getConditions(),
         categoryService.getMeetupLocations(),
         adminService.getSlots().catch(() => ({ data: [] })),
+        // Administrators may read the staff transaction list (Phase 1 §3.1.4).
+        staffService.getTransactions({ status: 'completed', per_page: 50 }).catch(() => ({ data: [] })),
       ]);
 
       if (uRes.success) setUsers(uRes.data?.users || (Array.isArray(uRes.data) ? uRes.data : []));
@@ -154,6 +158,10 @@ const AdminDashboard = () => {
       if (gRes.success) setGenres(gRes.data?.genres || (Array.isArray(gRes.data) ? gRes.data : []));
       if (cRes.success) setConditions(cRes.data?.conditions || (Array.isArray(cRes.data) ? cRes.data : []));
       if (locRes.success) setMeetupLocations(locRes.data?.locations || (Array.isArray(locRes.data) ? locRes.data : []));
+      if (doneRes.success) {
+        const rows = doneRes.data?.transactions || doneRes.data;
+        setCompletedTxs(Array.isArray(rows) ? rows : []);
+      }
       if (slotRes.success) setSlots(slotRes.data?.slots || (Array.isArray(slotRes.data) ? slotRes.data : []));
     } catch (err) {
       console.error('Admin dashboard error:', err);
@@ -815,6 +823,47 @@ const AdminDashboard = () => {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Completed exchanges: the record of every finished swap */}
+            <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm">
+              <h3 className="font-bold text-stone-800 text-sm flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-700" />
+                Completed Exchanges ({completedTxs.length})
+              </h3>
+              <p className="text-xs text-stone-500 mt-1 mb-3">Most recent first. Each row was recorded by a moderator after both members confirmed receipt.</p>
+              {completedTxs.length === 0 ? (
+                <p className="text-stone-400 italic text-xs py-2">No completed exchanges yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-stone-50 text-stone-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="p-3">#</th>
+                        <th className="p-3">Books</th>
+                        <th className="p-3">Members</th>
+                        <th className="p-3">Handover</th>
+                        <th className="p-3">Moderator</th>
+                        <th className="p-3">Completed</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {completedTxs.map((tx) => (
+                        <tr key={tx.id} className="hover:bg-stone-50/60">
+                          <td className="p-3 font-bold text-stone-700">{tx.id}</td>
+                          <td className="p-3 text-stone-800">{tx.target_title} ↔ {tx.offered_title}</td>
+                          <td className="p-3 text-stone-600">{tx.owner_name} &amp; {tx.requester_name}</td>
+                          <td className="p-3 text-stone-600">
+                            {tx.slot_date || '-'}{tx.location_name ? `, ${tx.location_name}` : ''}
+                          </td>
+                          <td className="p-3 text-stone-600">{tx.handler_name || '-'}</td>
+                          <td className="p-3 text-emerald-800 font-semibold">{formatDateTime(tx.completed_at) || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}

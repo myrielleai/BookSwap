@@ -14,7 +14,59 @@ import {
   Menu,
   X,
   ChevronDown,
+  Crown,
 } from 'lucide-react';
+
+// Each role gets its own avatar colour, badge icon, and label, so it is clear at a
+// glance which kind of account is signed in (handy when switching roles in a demo).
+const ROLE_STYLES = {
+  admin: {
+    label: 'Administrator',
+    Icon: Crown,
+    avatar: 'bg-purple-700 text-white ring-purple-300',
+    badge: 'bg-purple-100 text-purple-800 border-purple-200',
+  },
+  staff: {
+    label: 'Exchange Moderator',
+    Icon: ShieldCheck,
+    avatar: 'bg-indigo-600 text-white ring-indigo-300',
+    badge: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  },
+  customer: {
+    label: 'Reader',
+    Icon: BookOpen,
+    avatar: 'bg-emerald-700 text-white ring-emerald-300',
+    badge: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  },
+};
+
+const roleStyle = (role) => ROLE_STYLES[role] || ROLE_STYLES.customer;
+
+// "Ana Santos" → "AS"; "System Administrator" → "SA"
+const initials = (name = '') =>
+  name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || '?';
+
+const RoleAvatar = ({ user, size = 'w-8 h-8 text-xs' }) => {
+  const style = roleStyle(user.role);
+  return (
+    <div className={`relative ${size} rounded-full ring-2 ${style.avatar} flex items-center justify-center font-bold shrink-0`} aria-hidden="true">
+      {initials(user.name)}
+      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow">
+        <style.Icon className="w-2.5 h-2.5 text-stone-700" />
+      </span>
+    </div>
+  );
+};
+
+const RoleBadge = ({ role }) => {
+  const style = roleStyle(role);
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] font-bold ${style.badge}`}>
+      <style.Icon className="w-3 h-3" />
+      {style.label}
+    </span>
+  );
+};
 
 const Navbar = () => {
   const { user, isAuthenticated, isPending, logout, isAdmin, isStaff, isCustomer } = useAuth();
@@ -134,19 +186,12 @@ const Navbar = () => {
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                     className="btn-pillow flex items-center gap-2 p-1.5 rounded-xl"
                   >
-                    <div className="well w-8 h-8 rounded-full overflow-hidden ring-1 ring-leather-400/60 flex items-end justify-center" aria-hidden="true">
-                      <svg viewBox="0 0 32 32" className="w-7 h-7 text-leather-300">
-                        <circle cx="16" cy="12.5" r="6" fill="currentColor" />
-                        <path d="M4 32c0-7 5.4-11.5 12-11.5S28 25 28 32z" fill="currentColor" />
-                      </svg>
-                    </div>
+                    <RoleAvatar user={user} />
                     <div className="text-left hidden lg:block">
                       <p className="text-xs font-semibold text-stone-800 leading-tight">
                         {user.name}
                       </p>
-                      <p className="text-[10px] font-medium text-stone-500 capitalize">
-                        {user.role}
-                      </p>
+                      <RoleBadge role={user.role} />
                     </div>
                     <ChevronDown className="w-4 h-4 text-stone-400" />
                   </button>
@@ -156,9 +201,13 @@ const Navbar = () => {
                       className="paper absolute right-0 mt-2 w-56 rounded-lg shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2"
                       onClick={() => setUserDropdownOpen(false)}
                     >
-                      <div className="px-4 py-2 border-b border-dashed border-leather-200">
-                        <p className="text-xs font-bold text-stone-800">{user.name}</p>
-                        <p className="text-xs text-stone-500 truncate">{user.email}</p>
+                      <div className="px-4 py-2 border-b border-dashed border-leather-200 flex items-center gap-3">
+                        <RoleAvatar user={user} size="w-10 h-10 text-sm" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-stone-800 truncate">{user.name}</p>
+                          <p className="text-xs text-stone-500 truncate">{user.email}</p>
+                          <div className="mt-1"><RoleBadge role={user.role} /></div>
+                        </div>
                       </div>
 
                       <Link
@@ -266,6 +315,14 @@ const Navbar = () => {
           </Link>
           {isAuthenticated ? (
             <>
+              <div className="flex items-center gap-3 py-2 border-b border-dashed border-leather-200">
+                <RoleAvatar user={user} size="w-10 h-10 text-sm" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-stone-800 truncate">{user.name}</p>
+                  <p className="text-xs text-stone-500 truncate">{user.email}</p>
+                  <div className="mt-1"><RoleBadge role={user.role} /></div>
+                </div>
+              </div>
               {isCustomer && (
               <Link
                 to="/add-listing"
