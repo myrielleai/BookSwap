@@ -3,14 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { listingService } from '../services/api';
 import BookCard from '../components/BookCard';
-import { LoadingState } from '../components/LoadingState';
 import {
   BookOpen,
   ArrowRightLeft,
   ShieldCheck,
   Search,
   CheckCircle2,
-  TrendingUp,
   Camera,
   MapPin,
   Quote,
@@ -23,7 +21,7 @@ import {
 import HeroAuthCard from '../components/HeroAuthCard';
 import GenreBookshelf from '../components/GenreBookshelf';
 import BookCover, { COVER_PALETTES } from '../components/BookCover';
-import { StepTag, StitchedCard, ShelfBook, ClosedBook, HeroBookPile } from '../components/LandingUI';
+import { StepTag, StitchedCard, ClosedBook, HeroBookPile } from '../components/LandingUI';
 
 /* ──────────────────────────────────────────────
    Intersection Observer hook for scroll-reveal
@@ -225,17 +223,17 @@ const Home = () => {
             </div>
 
             {/* Quick Action Links */}
-            <div className="flex items-center justify-center lg:justify-start gap-3">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
               <Link
                 to="/browse"
-                className="btn-leather px-6 py-3 font-semibold text-sm rounded-xl flex items-center gap-2"
+                className="btn-leather px-4 sm:px-6 py-3 font-semibold text-sm rounded-xl flex items-center gap-2 whitespace-nowrap"
               >
                 <Search className="w-4 h-4" />
                 Browse Catalog
               </Link>
               <Link
                 to="/register"
-                className="btn-pillow px-6 py-3 font-semibold text-sm rounded-xl flex items-center gap-2"
+                className="btn-pillow px-4 sm:px-6 py-3 font-semibold text-sm rounded-xl flex items-center gap-2 whitespace-nowrap"
               >
                 Join BookSwap
               </Link>
@@ -271,11 +269,11 @@ const Home = () => {
 
           <div className="relative">
             {/* the thread */}
-            <div className="thread-moss absolute top-10 bottom-10 left-[43px] md:left-1/2 md:-translate-x-px pointer-events-none" />
+            <div className="thread-moss absolute top-10 bottom-10 left-[31px] md:left-1/2 md:-translate-x-px pointer-events-none" />
 
             <div className="space-y-16 lg:space-y-24">
               {/* STEP 1 */}
-              <div className="reveal relative grid grid-cols-[88px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-6 lg:gap-x-12 gap-y-6 items-center">
+              <div className="reveal relative grid grid-cols-[64px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-4 sm:gap-x-6 lg:gap-x-12 gap-y-6 items-center">
                 <div className="md:col-start-2 md:row-start-1 self-start md:self-center flex justify-center">
                   <StepTag n={1} />
                 </div>
@@ -322,7 +320,7 @@ const Home = () => {
               </div>
 
               {/* STEP 2 */}
-              <div className="reveal relative grid grid-cols-[88px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-6 lg:gap-x-12 gap-y-6 items-center">
+              <div className="reveal relative grid grid-cols-[64px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-4 sm:gap-x-6 lg:gap-x-12 gap-y-6 items-center">
                 <div className="md:col-start-2 md:row-start-1 self-start md:self-center flex justify-center">
                   <StepTag n={2} />
                 </div>
@@ -371,7 +369,7 @@ const Home = () => {
               </div>
 
               {/* STEP 3 */}
-              <div className="reveal relative grid grid-cols-[88px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-6 lg:gap-x-12 gap-y-6 items-center">
+              <div className="reveal relative grid grid-cols-[64px_1fr] md:grid-cols-[1fr_88px_1fr] gap-x-4 sm:gap-x-6 lg:gap-x-12 gap-y-6 items-center">
                 <div className="md:col-start-2 md:row-start-1 self-start md:self-center flex justify-center">
                   <StepTag n={3} />
                 </div>
@@ -435,7 +433,7 @@ const Home = () => {
                 <span className="deboss font-display font-extrabold text-sm">From the Reading Journal</span>
                 <span className="w-4" />
               </div>
-              <div className="paper-lined relative z-[2] rounded-lg px-6 sm:px-16 pt-9 pb-8 min-h-[220px] flex flex-col justify-center shadow-inner">
+              <div className="paper-lined relative z-[2] rounded-lg pl-16 pr-5 sm:px-16 pt-9 pb-8 min-h-[220px] flex flex-col justify-center shadow-inner">
                 <p className="font-hand text-2xl sm:text-3xl text-stone-800 leading-[36px] transition-opacity duration-500">
                   {LITERARY_QUOTES[activeQuote].text}
                 </p>
@@ -475,41 +473,6 @@ const Home = () => {
 
           <div className="reveal reveal-delay-1">
             <GenreBookshelf genres={GENRES} />
-          </div>
-        </section>
-
-        {/* ─── RECENTLY VERIFIED BOOKS — shelf of real covers ─── */}
-        <section className="py-14 sm:py-20 border-t border-dashed border-moss-200">
-          <div className="reveal flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-display font-extrabold text-stone-900 flex items-center gap-2 emboss">
-                <TrendingUp className="w-5 h-5 text-moss-600" />
-                Recently Verified Books
-              </h2>
-              <p className="text-xs text-stone-500 mt-1">Latest verified listings ready for exchange</p>
-            </div>
-            <Link
-              to="/browse"
-              className="btn-pillow px-3.5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1"
-            >
-              View All <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="reveal reveal-delay-1">
-            {loading ? (
-              <LoadingState message="Loading latest verified listings..." />
-            ) : featuredBooks.length === 0 ? (
-              <div className="paper p-10 text-center rounded-2xl text-stone-500 text-sm">
-                No public listings available right now. Be the first to list a book!
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-y-10">
-                {featuredBooks.map((book) => (
-                  <ShelfBook key={book.id} listing={book} />
-                ))}
-              </div>
-            )}
           </div>
         </section>
 

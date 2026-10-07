@@ -102,9 +102,9 @@ const AppContent = () => {
       {/* Footer */}
       <footer className="leather-tan relative py-8 text-xs mt-auto">
         <div className="absolute left-0 right-0 top-[5px] seam" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 deboss font-semibold">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 text-center md:text-left deboss font-semibold">
           <p>© 2026 BookSwap Platform. ITS122P Web Systems Project Group 3.</p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 md:gap-4">
             <span>Peer-to-Peer Exchange</span>
             <span className="text-moss-700">•</span>
             <span>Supervised Handovers</span>

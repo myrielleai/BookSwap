@@ -149,9 +149,9 @@ export const HeroBookPile = ({ books, loading }) => {
 
 /* Big stitched leather patch — "STEP 1" */
 export const StepTag = ({ n }) => (
-  <span className="leather-caramel stitched inline-flex flex-col items-center justify-center w-[88px] h-[88px] rounded-xl shadow-[0_8px_18px_-8px_rgba(70,40,15,0.6)]" style={{ '--stitch-radius': '7px' }}>
-    <span className="relative z-[2] emboss-light text-[10px] font-bold tracking-[0.3em] uppercase pl-[0.3em]">Step</span>
-    <span className="relative z-[2] emboss-light font-display font-extrabold text-5xl leading-none">{n}</span>
+  <span className="leather-caramel stitched inline-flex flex-col items-center justify-center w-16 h-16 md:w-[88px] md:h-[88px] rounded-xl shadow-[0_8px_18px_-8px_rgba(70,40,15,0.6)]" style={{ '--stitch-radius': '7px' }}>
+    <span className="relative z-[2] emboss-light text-[8px] md:text-[10px] font-bold tracking-[0.3em] uppercase pl-[0.3em]">Step</span>
+    <span className="relative z-[2] emboss-light font-display font-extrabold text-4xl md:text-5xl leading-none">{n}</span>
   </span>
 );
 

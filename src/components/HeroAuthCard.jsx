@@ -179,9 +179,9 @@ export const HeroAuthCard = () => {
       </div>
 
       {/* Paper sheet tucked into the leather folio */}
-      <div className="paper relative z-[2] rounded-xl p-5 sm:p-6 text-left text-stone-900 space-y-5">
+      <div className="paper relative z-[2] rounded-xl p-4 sm:p-6 text-left text-stone-900 space-y-5">
         {/* Mode Switch Header */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start justify-between gap-3">
           <div>
             <h3 className="text-xl font-display font-extrabold text-stone-900 emboss">
               {mode === 'login' ? 'Sign In to BookSwap' : 'Create Reader Account'}
@@ -194,7 +194,7 @@ export const HeroAuthCard = () => {
           </div>
 
           {/* Tab Switcher */}
-          <div className="segmented shrink-0">
+          <div className="segmented shrink-0 w-full sm:w-auto">
             <button
               type="button"
               aria-pressed={mode === 'login'}
@@ -202,7 +202,7 @@ export const HeroAuthCard = () => {
                 setMode('login');
                 setError(null);
               }}
-              className="px-3 py-1.5 text-xs font-bold transition-all"
+              className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold transition-all"
             >
               Sign In
             </button>
@@ -213,7 +213,7 @@ export const HeroAuthCard = () => {
                 setMode('register');
                 setError(null);
               }}
-              className="px-3 py-1.5 text-xs font-bold transition-all"
+              className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold transition-all"
             >
               Sign Up
             </button>
