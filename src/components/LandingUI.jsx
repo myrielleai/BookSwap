@@ -23,16 +23,21 @@ const placeholderStyle = (id) => {
 export const ListingCover = ({ listing }) => {
   const { id, title, author, cover_photo_path, cover_photo, cover_photo_id } = listing;
 
+  const rawPhoto = cover_photo_path || cover_photo || (cover_photo_id ? `/api/photos/${cover_photo_id}` : null);
+
+  // Dummy books with a hardcoded cover_photo_path → show the real photo
+  if (rawPhoto) {
+    const photoUrl = rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`;
+    return <PhotoBookCover src={photoUrl} alt={title} fallback={FALLBACK_COVER} />;
+  }
+
+  // Dummy books without a photo → fall back to the generated CSS cover
   if (String(id).startsWith('dummy-')) {
     return <BookCover title={title} author={author} {...placeholderStyle(id)} />;
   }
 
-  const rawPhoto = cover_photo_path || cover_photo || (cover_photo_id ? `/api/photos/${cover_photo_id}` : null);
-  const photoUrl = rawPhoto
-    ? (rawPhoto.startsWith('http') || rawPhoto.startsWith('/') ? rawPhoto : `/${rawPhoto}`)
-    : FALLBACK_COVER;
-
-  return <PhotoBookCover src={photoUrl} alt={title} fallback={FALLBACK_COVER} />;
+  // Real listings with no photo yet → generic fallback
+  return <PhotoBookCover src={FALLBACK_COVER} alt={title} fallback={FALLBACK_COVER} />;
 };
 
 /* A closed physical book: back board + page edges + front cover */

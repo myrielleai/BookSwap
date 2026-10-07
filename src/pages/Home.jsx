@@ -99,8 +99,9 @@ const DUMMY_BOOKS = [
     condition_label: 'Good',
     status: 'available',
     owner_name: 'Alex D.',
-    city: 'New York',
-    cover_photo_path: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=300&h=400',
+    city: 'Manila',
+    preferred_return: 'Classic Literature',
+    cover_photo_path: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=300&h=420',
   },
   {
     id: 'dummy-2',
@@ -110,20 +111,22 @@ const DUMMY_BOOKS = [
     condition_label: 'Like New',
     status: 'available',
     owner_name: 'Sarah M.',
-    city: 'Chicago',
-    cover_photo_path: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=300&h=400',
+    city: 'Quezon City',
+    preferred_return: 'Fiction, Mystery',
+    cover_photo_path: 'https://images.unsplash.com/photo-1629992101753-56d196c8aabb?auto=format&fit=crop&q=80&w=300&h=420',
   },
   {
     id: 'dummy-3',
-    title: '1984',
-    author: 'George Orwell',
+    title: 'Dune',
+    author: 'Frank Herbert',
     genre_name: 'Science Fiction',
-    condition_label: 'Fair',
+    condition_label: 'Good',
     status: 'available',
-    owner_name: 'John K.',
-    city: 'Seattle',
-    cover_photo_path: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=300&h=400',
-  }
+    owner_name: 'Myrielle J.',
+    city: 'Makati',
+    preferred_return: 'Sci-Fi, Fantasy',
+    cover_photo_path: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=300&h=420',
+  },
 ];
 
 const Home = () => {
