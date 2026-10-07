@@ -125,6 +125,7 @@ const StaffDashboard = () => {
     try {
       await staffService.scheduleHandover(selectedTxId, parseInt(selectedSlotId));
       setScheduleModalOpen(false);
+      alert('Handover scheduled. Both members have been notified.');
       fetchStaffData();
     } catch (err) {
       alert(err.message || 'Scheduling failed.');

@@ -174,6 +174,10 @@ const UserDashboard = () => {
     }
   };
 
+  // Whether the signed-in member has already confirmed receipt for this exchange.
+  const hasConfirmed = (tx) =>
+    Number(user?.id) === Number(tx.owner_id) ? tx.owner_confirmed === 1 : tx.requester_confirmed === 1;
+
   const handleMarkNotificationRead = async (id) => {
     await userService.markNotificationRead(id).catch(() => {});
     fetchDashboard();
@@ -497,9 +501,20 @@ const UserDashboard = () => {
                           </p>
                           <p className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5 text-emerald-800 shrink-0" />
-                            <span><strong>Location:</strong> {tx.location_name}, {tx.location_address}</span>
+                            <span><strong>Location:</strong> {tx.location_name}{tx.location_city ? `, ${tx.location_city}` : ''}</span>
                           </p>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Accepted but not yet scheduled: the next step is the moderator's */}
+                    {tx.status === 'accepted' && (
+                      <div className="bg-sky-50 p-3 rounded-xl border border-sky-200 text-xs text-sky-900 flex items-center gap-2">
+                        <Clock className="w-4 h-4 shrink-0" />
+                        <span>
+                          Waiting for a BookSwap moderator to assign the meetup date, time, and venue. You will get a
+                          notification and an email once it is scheduled.
+                        </span>
                       </div>
                     )}
 
@@ -517,7 +532,8 @@ const UserDashboard = () => {
                             Report Issue
                           </Button>
                         )}
-                        {tx.status !== 'completed' && tx.status !== 'cancelled' && (
+                        {/* Receipt can only be confirmed for a scheduled handover, once per member */}
+                        {tx.status === 'scheduled' && !hasConfirmed(tx) && (
                           <Button
                             variant="primary"
                             size="sm"
@@ -525,6 +541,13 @@ const UserDashboard = () => {
                           >
                             Confirm Physical Receipt
                           </Button>
+                        )}
+                        {tx.status === 'scheduled' && hasConfirmed(tx) && (
+                          <span className="text-xs font-semibold text-emerald-800 self-center">
+                            {tx.owner_confirmed === 1 && tx.requester_confirmed === 1
+                              ? 'Both confirmed: a moderator will mark it completed'
+                              : 'You confirmed: waiting for the other member'}
+                          </span>
                         )}
                       </div>
                     </div>
