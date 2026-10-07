@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { adminService, categoryService, staffService } from '../services/api';
-import { formatDateTime } from '../components/CompletionRecord';
+import { formatDateTime, ReceiptButton } from '../components/CompletionRecord';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import StatusBadge from '../components/StatusBadge';
@@ -845,6 +845,7 @@ const AdminDashboard = () => {
                         <th className="p-3">Handover</th>
                         <th className="p-3">Moderator</th>
                         <th className="p-3">Completed</th>
+                        <th className="p-3 text-right">Receipt</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
@@ -858,6 +859,7 @@ const AdminDashboard = () => {
                           </td>
                           <td className="p-3 text-stone-600">{tx.handler_name || '-'}</td>
                           <td className="p-3 text-emerald-800 font-semibold">{formatDateTime(tx.completed_at) || '-'}</td>
+                          <td className="p-3 text-right"><ReceiptButton tx={tx} /></td>
                         </tr>
                       ))}
                     </tbody>
