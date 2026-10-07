@@ -45,10 +45,17 @@ unset($name, $value);
 // Anything local.php did not define falls back to a safe default. With the
 // placeholder secret, login is refused and no token is ever accepted, because
 // anyone reading this repository could forge tokens signed with it.
+//
+// PHP's built-in dev server (`npm run backend`) only ever runs on a developer's
+// machine, so it alone gets debug output and a development secret, letting a
+// fresh clone log in without local.php. Apache (XAMPP, Render) never does.
 define('JWT_SECRET_PLACEHOLDER', 'REPLACE_WITH_A_STRONG_SECRET_KEY');
-$envSecret = getenv('JWT_SECRET') ?: null;
-defined('APP_DEBUG')    || define('APP_DEBUG', true);
-defined('JWT_SECRET')   || define('JWT_SECRET', $envSecret ?: 'bookswap_super_secret_jwt_key_for_development_2026_at_least_32_chars');
+$isDevServer = PHP_SAPI === 'cli-server';
+defined('APP_DEBUG')    || define('APP_DEBUG', $isDevServer);
+defined('JWT_SECRET')   || define('JWT_SECRET', $isDevServer
+    ? 'bookswap_super_secret_jwt_key_for_development_2026_at_least_32_chars'
+    : JWT_SECRET_PLACEHOLDER);
+unset($isDevServer);
 defined('CORS_ORIGINS') || define('CORS_ORIGINS', [
     'http://localhost:5173',
     'http://localhost:3000',

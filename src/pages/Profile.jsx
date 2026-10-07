@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { userService, categoryService } from '../services/api';
 import FormInput from '../components/FormInput';
 import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
 import { LoadingState } from '../components/LoadingState';
-import { User, MapPin, Phone, Mail, Award, CheckCircle, Heart, AlertCircle } from 'lucide-react';
+import { User, MapPin, Phone, Mail, Award, CheckCircle, Heart, AlertCircle, Lock } from 'lucide-react';
 import { validateFullName, validatePhoneNumber, validateCity, onlyErrors } from '../utils/validation';
 
 // The API returns favorite_genres as a list of IDs; older data may be a CSV string.
@@ -15,7 +16,8 @@ const toGenreIds = (value) =>
     .filter((id) => id > 0);
 
 const Profile = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +33,11 @@ const Profile = () => {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+
+  // Self-deactivation (Phase 1 §4.3)
+  const [deactivatePassword, setDeactivatePassword] = useState('');
+  const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState(null);
 
   useEffect(() => {
     categoryService
@@ -105,6 +112,27 @@ const Profile = () => {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeactivate = async (e) => {
+    e.preventDefault();
+    setDeactivateError(null);
+    if (!deactivatePassword) {
+      setDeactivateError('Enter your password to confirm.');
+      return;
+    }
+    if (!window.confirm('Deactivate your account? Your listings will be withdrawn and you will be signed out.')) return;
+
+    setDeactivating(true);
+    try {
+      await userService.deactivateAccount(deactivatePassword);
+      await logout();
+      navigate('/');
+    } catch (err) {
+      setDeactivateError((err.errors && err.errors.password) || err.message || 'Failed to deactivate account.');
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -237,6 +265,40 @@ const Profile = () => {
           </div>
         </form>
       </div>
+
+      {/* Deactivate Account — members only; staff and admins are managed by an Administrator */}
+      {user?.role === 'customer' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-200 shadow-md">
+          <h2 className="text-lg font-bold text-rose-800 pb-4 border-b border-rose-100 mb-4">Deactivate Account</h2>
+          <p className="text-xs text-stone-600 mb-4">
+            Your listings are withdrawn, your pending requests are closed, and you are signed out. You cannot
+            deactivate while an exchange is accepted or scheduled. An Administrator can reactivate the account later.
+          </p>
+
+          {deactivateError && (
+            <div className="p-3 mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{deactivateError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleDeactivate} className="flex flex-col sm:flex-row sm:items-end gap-3" noValidate>
+            <div className="flex-1">
+              <FormInput
+                label="Confirm with your password"
+                type="password"
+                icon={Lock}
+                value={deactivatePassword}
+                onChange={(e) => setDeactivatePassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            <Button type="submit" variant="danger" isLoading={deactivating}>
+              Deactivate Account
+            </Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

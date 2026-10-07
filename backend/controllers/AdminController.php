@@ -33,6 +33,7 @@ require_once __DIR__ . '/../models/ReportModel.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
 require_once __DIR__ . '/../helpers/auth.php';
+require_once __DIR__ . '/../helpers/email.php';
 require_once __DIR__ . '/../config/constants.php';
 
 class AdminController {
@@ -122,6 +123,11 @@ class AdminController {
         $sessionsEnded = $status !== ACCOUNT_ACTIVE ? $this->sessionModel->revokeAllForUser($id) : 0;
 
         $this->reportModel->logActivity($admin['sub'], 'user', $id, 'status_changed', "Status set to $status");
+
+        // Approving a pending registration tells the member they can now log in.
+        if ($user['status'] === ACCOUNT_PENDING && $status === ACCOUNT_ACTIVE) {
+            sendEmail_accountApproved($user['email'], $user['name']);
+        }
 
         sendSuccess(['sessions_ended' => $sessionsEnded], "User status updated to $status.");
     }

@@ -9,7 +9,7 @@ import Modal from '../components/Modal';
 import FormInput from '../components/FormInput';
 import Dropdown from '../components/Dropdown';
 import { LoadingState, EmptyState } from '../components/LoadingState';
-import { validateText, validateCity } from '../utils/validation';
+import { validateText, validateCity, validateNewPassword } from '../utils/validation';
 import {
   ShieldCheck,
   User,
@@ -76,6 +76,13 @@ const AdminDashboard = () => {
 
   // One validation message per taxonomy/slot form, shown under that form.
   const [formErrors, setFormErrors] = useState({});
+
+  // Password reset modal (Phase 1 §3.1.1)
+  const [resetUser, setResetUser] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirm, setResetConfirm] = useState('');
+  const [resetError, setResetError] = useState(null);
+  const [resetting, setResetting] = useState(false);
   const showFormError = (form, message) => setFormErrors((prev) => ({ ...prev, [form]: message }));
   // First field message from the API (e.g. "Date cannot be in the past."), else its summary.
   const apiErrorMessage = (err, fallback) =>
@@ -190,6 +197,33 @@ const AdminDashboard = () => {
       fetchAdminData();
     } catch (err) {
       alert(getErrorMessage(err, 'Failed to update user role.'));
+    }
+  };
+
+  const openResetPassword = (u) => {
+    setResetUser(u);
+    setResetPassword('');
+    setResetConfirm('');
+    setResetError(null);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    const problem = validateNewPassword(resetPassword)
+      || (resetPassword !== resetConfirm ? 'Passwords do not match.' : null);
+    setResetError(problem);
+    if (problem) return;
+
+    setResetting(true);
+    try {
+      await adminService.resetPassword(resetUser.id, resetPassword, resetConfirm);
+      alert(`Password reset for ${resetUser.name}. They have been signed out everywhere.`);
+      setResetUser(null);
+    } catch (err) {
+      const fieldMessages = err.errors ? Object.values(err.errors).join(' ') : null;
+      setResetError(fieldMessages || getErrorMessage(err, 'Failed to reset password.'));
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -440,6 +474,13 @@ const AdminDashboard = () => {
                             Revoke Staff
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openResetPassword(u)}
+                        >
+                          Reset Password
+                        </Button>
                         {(u.status === 'pending' || u.status === 'inactive') && u.role !== 'admin' && (
                           <Button
                             variant="danger"
@@ -825,6 +866,49 @@ const AdminDashboard = () => {
         )}
       </main>
       </div>{/* end flex-row wrapper */}
+
+      {/* Reset Password Modal — the Administrator sets a new password without seeing the old one */}
+      <Modal
+        isOpen={resetUser !== null}
+        onClose={() => setResetUser(null)}
+        title={resetUser ? `Reset Password: ${resetUser.name}` : 'Reset Password'}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleResetPassword} className="space-y-4" noValidate>
+          {resetError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+              {resetError}
+            </div>
+          )}
+          <p className="text-xs text-stone-500">
+            The member is signed out of every device and must log in with the new password.
+          </p>
+          <FormInput
+            label="New Password"
+            type="password"
+            value={resetPassword}
+            onChange={(e) => setResetPassword(e.target.value)}
+            autoComplete="new-password"
+            required
+          />
+          <FormInput
+            label="Confirm New Password"
+            type="password"
+            value={resetConfirm}
+            onChange={(e) => setResetConfirm(e.target.value)}
+            autoComplete="new-password"
+            required
+          />
+          <div className="pt-2 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setResetUser(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={resetting}>
+              Reset Password
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

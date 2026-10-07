@@ -73,7 +73,8 @@ export const userService = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.put('/user/profile', data),
   getDashboard: () => api.get('/user/dashboard'),
-  deactivateAccount: () => api.put('/user/deactivate'),
+  // The backend asks for the member's password before deactivating.
+  deactivateAccount: (password) => api.put('/user/deactivate', { password }),
   getNotifications: () => api.get('/user/notifications'),
   markNotificationRead: (id) => api.put(`/user/notifications/${id}/read`),
   markAllNotificationsRead: () => api.put('/user/notifications/read-all'),
@@ -105,6 +106,7 @@ export const categoryService = {
 export const exchangeService = {
   sendRequest: (data) => api.post('/exchanges', data),
   getExchange: (id) => api.get(`/exchanges/${id}`),
+  acceptRequest: (id) => api.put(`/exchanges/${id}/accept`),
   // reason is a DECLINE_REASONS key (backend/config/constants.php); note is required when reason is 'other'.
   declineRequest: (id, reason, note = '') => api.put(`/exchanges/${id}/decline`, { reason, note, decline_reason: reason }),
   withdrawRequest: (id) => api.put(`/exchanges/${id}/withdraw`),
@@ -134,7 +136,8 @@ export const adminService = {
   getUsers: (params) => api.get('/admin/users', { params }),
   updateUserStatus: (id, status) => api.put(`/admin/users/${id}/status`, { status }),
   updateUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
-  resetPassword: (id, new_password) => api.post(`/admin/users/${id}/reset-password`, { new_password }),
+  resetPassword: (id, new_password, confirm_password) =>
+    api.post(`/admin/users/${id}/reset-password`, { new_password, confirm_password }),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   getDashboard: () => api.get('/admin/dashboard'),
   getSummaryReport: (params) => api.get('/admin/reports/summary', { params }),

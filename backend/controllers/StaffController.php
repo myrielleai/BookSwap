@@ -33,6 +33,7 @@ require_once __DIR__ . '/../models/IncidentReportModel.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
+require_once __DIR__ . '/../helpers/email.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/constants.php';
 
@@ -239,6 +240,7 @@ class StaffController {
 
         $tx = $this->transactionModel->findById($id);
         $this->notifyParties($tx, 'handover_scheduled', 'Your handover is scheduled for ' . $this->describeSlot($tx) . '.');
+        $this->emailHandoverToParties($tx, false);
 
         sendSuccess($this->slotSummary($tx), 'Handover scheduled.');
     }
@@ -264,6 +266,7 @@ class StaffController {
 
         $tx = $this->transactionModel->findById($id);
         $this->notifyParties($tx, 'handover_rescheduled', 'Your handover has been moved to ' . $this->describeSlot($tx) . '.');
+        $this->emailHandoverToParties($tx, true);
 
         sendSuccess($this->slotSummary($tx), 'Handover rescheduled.');
     }
@@ -618,6 +621,24 @@ class StaffController {
             'transaction',
             (int) $tx['id']
         );
+    }
+
+    /**
+     * Email both members the venue, date, and time of their handover.
+     *
+     * @param array $tx           Transaction detail row.
+     * @param bool  $isReschedule
+     */
+    private function emailHandoverToParties(array $tx, bool $isReschedule): void {
+        $location = "{$tx['location_name']} ({$tx['location_address']}, {$tx['location_city']})";
+        $time     = substr((string) $tx['start_time'], 0, 5) . '–' . substr((string) $tx['end_time'], 0, 5);
+
+        foreach ([(int) $tx['requester_id'], (int) $tx['owner_id']] as $userId) {
+            $member = $this->userModel->findById($userId);
+            if ($member !== null) {
+                sendEmail_handoverScheduled($member['email'], $member['name'], $location, (string) $tx['slot_date'], $time, $isReschedule);
+            }
+        }
     }
 
     /**

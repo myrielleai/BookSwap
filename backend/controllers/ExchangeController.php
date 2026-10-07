@@ -27,6 +27,7 @@ require_once __DIR__ . '/../models/ReportModel.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/validator.php';
+require_once __DIR__ . '/../helpers/email.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/constants.php';
 
@@ -129,6 +130,12 @@ class ExchangeController {
             'request',
             $requestId
         );
+
+        $owner     = $this->userModel->findById((int) $targetListing['user_id']);
+        $requester = $this->userModel->findById($userId);
+        if ($owner !== null && $requester !== null) {
+            sendEmail_exchangeRequestReceived($owner['email'], $owner['name'], $requester['name'], $targetListing['title']);
+        }
 
         sendSuccess(['request_id' => $requestId], 'Exchange request sent to the listing owner.', 201);
     }

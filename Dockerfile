@@ -3,9 +3,13 @@
 # Authorization header. The React frontend is deployed separately on Vercel.
 FROM php:8.2-apache
 
+# expose_php off and ServerTokens Prod hide the PHP and Apache versions
+# (Phase 4 vulnerability scan, findings 4 and 5).
 RUN docker-php-ext-install pdo_mysql \
  && a2enmod rewrite headers \
- && sed -ri 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+ && sed -ri 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf \
+ && echo 'expose_php = Off' > /usr/local/etc/php/conf.d/hardening.ini \
+ && sed -ri 's/^ServerTokens .*/ServerTokens Prod/; s/^ServerSignature .*/ServerSignature Off/' /etc/apache2/conf-available/security.conf
 
 # Matches the repo layout: UPLOAD_DIR and STORAGE_DIR resolve to /var/www/uploads
 # and /var/www/storage, outside the web root.

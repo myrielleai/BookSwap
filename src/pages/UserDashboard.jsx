@@ -57,6 +57,12 @@ const UserDashboard = () => {
   const [declineNote, setDeclineNote] = useState('');
   const [declineError, setDeclineError] = useState(null);
 
+  // Report modal state (Phase 1 §3.3.6: report a handover that went wrong)
+  const [reportTx, setReportTx] = useState(null);
+  const [reportType, setReportType] = useState('misdescribed_condition');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportError, setReportError] = useState(null);
+
   const fetchDashboard = async () => {
     setLoading(true);
     try {
@@ -140,6 +146,31 @@ const UserDashboard = () => {
       }
     } catch (err) {
       alert(err.message || 'Failed to confirm receipt.');
+    }
+  };
+
+  const openReportModal = (tx) => {
+    setReportTx(tx);
+    setReportType('misdescribed_condition');
+    setReportDescription('');
+    setReportError(null);
+  };
+
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    setReportError(null);
+    const description = reportDescription.trim();
+    if (!description) {
+      setReportError('Please describe what happened.');
+      return;
+    }
+    try {
+      await userService.fileReport({ report_type: reportType, transaction_id: reportTx.id, description });
+      setReportTx(null);
+      alert('Report filed. A moderator will review it.');
+    } catch (err) {
+      const fieldMessages = err.errors ? Object.values(err.errors).join(' ') : null;
+      setReportError(fieldMessages || err.message || 'Failed to file report.');
     }
   };
 
@@ -479,15 +510,23 @@ const UserDashboard = () => {
                         {tx.owner_confirmed === 1 ? '✓ Owner confirmed' : '⏳ Awaiting owner confirmation'}
                       </div>
 
-                      {tx.status !== 'completed' && tx.status !== 'cancelled' && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleConfirmReceipt(tx.id)}
-                        >
-                          Confirm Physical Receipt
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {/* Reports open once a handover is scheduled (backend rule) */}
+                        {(tx.status === 'scheduled' || tx.status === 'completed') && (
+                          <Button variant="outline" size="sm" onClick={() => openReportModal(tx)}>
+                            Report Issue
+                          </Button>
+                        )}
+                        {tx.status !== 'completed' && tx.status !== 'cancelled' && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleConfirmReceipt(tx.id)}
+                          >
+                            Confirm Physical Receipt
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -622,6 +661,59 @@ const UserDashboard = () => {
             </Button>
             <Button type="submit" variant="danger">
               Decline Proposal
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Report Issue Modal */}
+      <Modal
+        isOpen={reportTx !== null}
+        onClose={() => setReportTx(null)}
+        title={reportTx ? `Report Transaction #${reportTx.id}` : 'Report Issue'}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleReportSubmit} className="space-y-4">
+          {reportError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{reportError}</span>
+            </div>
+          )}
+
+          {/* Values are the transaction report types in backend/controllers/UserController.php */}
+          <Dropdown
+            label="What went wrong?"
+            options={[
+              { value: 'misdescribed_condition', label: 'The book did not match its listed condition' },
+              { value: 'no_show', label: 'The other member did not show up' },
+            ]}
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value)}
+            required
+          />
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-stone-700">
+              Details <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              rows={4}
+              maxLength={2000}
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              placeholder="Describe what happened so a moderator can review it."
+              className="block w-full rounded-lg border border-stone-300 text-xs p-3 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setReportTx(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="danger">
+              Submit Report
             </Button>
           </div>
         </form>
